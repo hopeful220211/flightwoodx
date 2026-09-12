@@ -21,7 +21,7 @@ for (const viewport of [
 
     await page.setViewportSize(viewport)
     await page.goto('/')
-    const honors = page.getByRole('button', { name: '查看获奖荣誉', exact: true })
+    const honors = page.getByRole('group', { name: '获奖荣誉', exact: true })
     await expect(honors).toBeVisible()
     await expect(honors).toHaveCSS('opacity', '1')
     await expect(honors.locator('img')).toHaveCount(4)
@@ -69,10 +69,8 @@ for (const viewport of [
     await expect(page.getByRole('button', { name: '开始设计', exact: true })).toBeInViewport()
     await expect(page.getByRole('button', { name: '观看视频', exact: true })).toBeInViewport()
 
-    if (viewport.width === 768) await honors.press('Enter')
-    else await honors.click()
-    await expect.poll(() => page.locator('#awards').evaluate(element => Math.abs(element.getBoundingClientRect().top))).toBeLessThan(2)
-    await expect(page.locator('#awards h3')).toHaveText(['Red Dot', 'iF Design', 'IDEA'])
+    await expect(page.locator('#awards')).toHaveCount(0)
+    await expect(page.getByText('这几个国际设计奖，我们拿到了', { exact: true })).toHaveCount(0)
     expect(failures).toEqual([])
   })
 }

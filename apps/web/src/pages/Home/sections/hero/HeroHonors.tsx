@@ -6,17 +6,15 @@ const honors = [
 ] as const
 
 interface HeroHonorsProps {
-  onClick?: () => void
   delay?: number
 }
 
-export function HeroHonors({ onClick, delay = 0 }: HeroHonorsProps) {
+export function HeroHonors({ delay = 0 }: HeroHonorsProps) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="查看获奖荣誉"
-      className="relative top-3 grid w-full min-w-0 grid-cols-2 gap-x-0 gap-y-3 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-800 sm:w-[calc(100%+2rem)] sm:max-w-[calc(100vw-2rem)] sm:grid-cols-4 sm:gap-2"
+    <div
+      role="group"
+      aria-label="获奖荣誉"
+      className="relative top-3 grid w-full min-w-0 grid-cols-2 gap-x-0 gap-y-3 sm:w-[calc(100%+2rem)] sm:max-w-[calc(100vw-2rem)] sm:grid-cols-4 sm:gap-2"
       style={{
         opacity: 0,
         transform: 'translateY(12px)',
@@ -35,6 +33,6 @@ export function HeroHonors({ onClick, delay = 0 }: HeroHonorsProps) {
           className="h-auto w-full min-w-0 object-contain [&:nth-child(2)]:-translate-x-[6.6667%] sm:[&:nth-child(n+3)]:-translate-x-[10.4167%]"
         />
       ))}
-    </button>
+    </div>
   )
 }

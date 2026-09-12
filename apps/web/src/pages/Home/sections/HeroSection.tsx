@@ -1,13 +1,9 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ArrowRight, Play, Trophy, Puzzle, ChevronDown, Rocket } from 'lucide-react'
 import { Button } from '../../../components/common/Button'
-import { VideoModal } from '../../../components/common/VideoModal'
 import { HeroHonors } from './hero/HeroHonors'
 import { HeroDrone3D } from './hero/HeroDrone3D'
 import { CloudLayer } from '../components/CloudLayer'
-
-const demoVideoUrl = '/resource/videos/example.mp4'
 
 function AnimatedEntry({ children, delay = 0, className = '' }: {
   children: React.ReactNode
@@ -27,17 +23,11 @@ function AnimatedEntry({ children, delay = 0, className = '' }: {
   )
 }
 
-export function HeroSection() {
+export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
   const navigate = useNavigate()
-  const [showVideoModal, setShowVideoModal] = useState(false)
-
-  const scrollToAwards = () => {
-    document.getElementById('awards')?.scrollIntoView({ behavior: 'smooth' })
-  }
 
   return (
-    <>
-      <section className="relative min-h-dvh bg-sky-hero overflow-x-clip">
+      <section id="home-hero" className="relative min-h-dvh bg-sky-hero overflow-x-clip pb-[var(--home-video-overlap)]">
         <CloudLayer />
         <div className="relative z-[1] mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid min-h-[calc(100dvh-64px)] items-center gap-12 pt-[80px] pb-16 lg:grid-cols-[11fr_9fr] lg:gap-8">
@@ -46,7 +36,7 @@ export function HeroSection() {
             <div className="z-10 space-y-6">
 
               {/* Owner-provided award honors */}
-              <HeroHonors onClick={scrollToAwards} delay={0} />
+              <HeroHonors delay={0} />
 
               {/* Main title */}
               <div className="space-y-1">
@@ -97,7 +87,7 @@ export function HeroSection() {
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={() => setShowVideoModal(true)}
+                  onClick={onWatchVideo}
                   leftIcon={<Play size={18} />}
                   className="px-8"
                 >
@@ -134,7 +124,7 @@ export function HeroSection() {
             </div>
 
             {/* Right column: drone images */}
-            <AnimatedEntry delay={300} className="relative flex items-center justify-center max-w-[400px] mx-auto lg:max-w-none lg:mx-0 lg:h-[500px]">
+            <AnimatedEntry delay={300} className="relative flex w-full items-center justify-center max-w-[400px] mx-auto lg:max-w-none lg:mx-0 lg:h-[500px]">
               <HeroDrone3D />
             </AnimatedEntry>
           </div>
@@ -142,7 +132,7 @@ export function HeroSection() {
 
         {/* Scroll hint */}
         <div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-sky-400"
+          className="absolute bottom-[calc(var(--home-video-overlap)+1rem)] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-sky-400"
           style={{
             opacity: 0,
             animation: 'fadeInUp 500ms cubic-bezier(0.2, 0.8, 0.2, 1) 900ms forwards',
@@ -152,13 +142,5 @@ export function HeroSection() {
           <ChevronDown size={16} className="animate-bounce" />
         </div>
       </section>
-
-      <VideoModal
-        open={showVideoModal}
-        onClose={() => setShowVideoModal(false)}
-        videoUrl={demoVideoUrl}
-        title="FlightWoodX 产品演示"
-      />
-    </>
   )
 }
