@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { ArrowRight, Play, Trophy, Puzzle, ChevronDown, Rocket } from 'lucide-react'
 import { Button } from '../../../components/common/Button'
 import { VideoModal } from '../../../components/common/VideoModal'
-import { AwardCapsule } from './hero/AwardCapsule'
+import { HeroHonors } from './hero/HeroHonors'
 import { HeroDrone3D } from './hero/HeroDrone3D'
 import { CloudLayer } from '../components/CloudLayer'
 
@@ -45,8 +45,8 @@ export function HeroSection() {
             {/* Left column */}
             <div className="z-10 space-y-6">
 
-              {/* Award capsule */}
-              <AwardCapsule onClick={scrollToAwards} delay={0} />
+              {/* Owner-provided award honors */}
+              <HeroHonors onClick={scrollToAwards} delay={0} />
 
               {/* Main title */}
               <div className="space-y-1">

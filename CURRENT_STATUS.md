@@ -1,16 +1,26 @@
 # FlightWoodX 当前状态
 
-> 状态：前端自动发布、三奖更正与真实回退恢复已验证；正式管理员等业务验收仍待完成
+> 状态：首屏荣誉图片替换完成本地验证，尚未发布；已有前端自动发布和三奖更正记录保留，正式管理员等业务验收仍待完成
 >
-> 更新时间：2026-09-08
+> 更新时间：2026-09-13
 >
-> 验证对象：正式前端 `77e4a194ad81d711479df86d39f7e3c468963ad3`；后续文档收尾位于 `codex/automated-web-release-2026-09-08`，未另行发布
+> 验证对象：本次本地候选为 `codex/home-hero-honors-2026-09-13`（基于 `e4e3451`）；远端 `production` 仍为 `77e4a194ad81d711479df86d39f7e3c468963ad3`，本次未推送或部署
 >
 > 适用范围：当前代码、自动测试、真实浏览器、隔离数据库与正式网站部署边界
 >
 > 替代关系：更新 2026-08-17 状态；架构、冻结规则和历史交付分别见 `ARCHITECTURE.md`、`AGENTS.md` 与已完成执行计划
 
 ## 1. 当前结论
+
+### 2026-09-13 首屏荣誉图片
+
+- 按用户提供的四张 PNG，仅将首屏奖项文字胶囊替换为 Red Dot、iF、IDEA 和其他奖项的荣誉图片。原图存于 `apps/web/public/resource/picture/honors/`，已逐一与附件核对 SHA-256，字节完全一致；沿用现有流程生成同源 WebP，没有重绘、裁切或添加获奖级别。四张新增页面图片合计约 622 KiB。
+- 原按钮改为 `HeroHonors`：手机两列，640px 起四列；保留点击/键盘跳转到下方奖项区、可见焦点和减弱动画支持。下方三奖介绍及其他首页文字不变，不恢复 G-Mark 展示。原 `AwardCapsule` 组件已替换，无残余引用。
+- 组件回归先失败（旧版无四图荣誉按钮），替换后 2/2 通过。新增 `apps/web/e2e/home-honors.spec.ts`，覆盖 390×844、768×1024、1440×900 的四图实际加载、比例、列数、无横向溢出、首屏操作按钮、旧文案移除和点击/Enter 跳转；开发预览 3/3 通过。CUA 实际查看三个尺寸，图片完整、未遮挡标题/按钮，页面无控制台错误；浏览器自动回归通过项目既有 Playwright 入口执行，没有借用用户登录资料或写正式数据。
+- 首次完整 CI 在依赖审计阶段发现 2 项高危、2 项中危工具链公告；没有跳过安全检查。仅补丁更新 sharp 0.35.4、js-yaml override 4.3.2、Vitest/配套 mocker 4.1.11，未改业务依赖或 API 逻辑。依据：[sharp](https://github.com/lovell/sharp/security/advisories/GHSA-rgj7-g3m4-5g8c)、[js-yaml](https://github.com/nodeca/js-yaml/security/advisories/GHSA-2883-xcg3-v3hh)、[Vitest](https://github.com/vitest-dev/vitest/security/advisories/GHSA-82fw-gwwq-j7x9)。
+- 补丁后 `pnpm run harness`、`FWX_TEST_MONGO_URI=mongodb://127.0.0.1:27028 pnpm run ci` 全部通过：462 项测试（123 根脚本、61 共享包、198 Web、80 API），API 无跳过，审计无已知漏洞。构建入口 `index-Dns4XflL.js`；保留已有 Blockly 706.52 kB 大包提示，未放宽阈值。独立只读审查未发现本次图片替换的阻断缺陷。
+- 最终生产构建预览 `http://127.0.0.1:4173` 再跑 `FWX_E2E_BASE_URL=http://127.0.0.1:4173 FWX_E2E_BROWSER_CHANNEL=chrome pnpm --filter web test:e2e home-honors.spec.ts`：3/3 通过（9.2 秒）；三个尺寸无失败请求或页面错误，含鼠标与 Enter 跳转。CUA 重新加载确认入口为上述最终构建并查看三种尺寸。此次仅运行新增首页浏览器回归，没有重新执行会写入隔离账号的完整核心 E2E 或本机 Docker smoke；发布前仍须通过远端全部 8 项门禁。
+- 本轮没有修改数据库、环境变量、服务器权限或正式站，未创建正式账号。发布授权、确切提交的远端 8 项检查与正式回读尚待完成；不能把上述本地结果写成已上线。回滚范围为本次前端版本，不涉及业务数据迁移。
 
 ### 2026-09-08 前端自动发布
 
@@ -157,6 +167,8 @@
 具体执行与回滚见 [deploy/README.md](deploy/README.md)，本轮计划见 [评审前修复记录](docs/exec-plans/active/2026-09-07-review-readiness.md)。
 
 ## 6. 接下来怎么开发
+
+本轮首页荣誉替换在本机 `/Users/nesty/Projects/flightwoodx-review` 的 `codex/home-hero-honors-2026-09-13` 分支，尚未推送，不能从下述历史远端分支取得这次新改动。
 
 换电脑接续代码和本轮最新收尾文档时，使用 GitHub 的 `codex/automated-web-release-2026-09-08` 分支，再创建自己的 `codex/` 开发分支。正式前端源码对应受保护的 `production`（本次为 `77e4a19`）；最新收尾文档提交保留在开发分支，没有为文档再次切换网站。本机工作树为 `/Users/nesty/Projects/flightwoodx-review`。本轮没有把改动合并到原先存在未提交工作的 `chore/add-speckit` 工作树，默认 `main` 也不代表本次线上版本。
 
