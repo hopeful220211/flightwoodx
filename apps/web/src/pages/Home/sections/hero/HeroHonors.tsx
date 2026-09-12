@@ -16,13 +16,14 @@ export function HeroHonors({ onClick, delay = 0 }: HeroHonorsProps) {
       type="button"
       onClick={onClick}
       aria-label="查看获奖荣誉"
-      className="grid w-full min-w-0 grid-cols-2 gap-3 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-800 sm:grid-cols-4 sm:gap-2"
+      className="relative top-3 grid w-full min-w-0 grid-cols-2 gap-x-0 gap-y-3 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-800 sm:w-[calc(100%+2rem)] sm:max-w-[calc(100vw-2rem)] sm:grid-cols-4 sm:gap-2"
       style={{
         opacity: 0,
         transform: 'translateY(12px)',
         animation: `fadeInUp 500ms cubic-bezier(0.2, 0.8, 0.2, 1) ${delay}ms forwards`,
       }}
     >
+      {/* Compensate for unequal transparent margins without changing the supplied artwork. */}
       {honors.map(({ file, alt }) => (
         <img
           key={file}
@@ -31,7 +32,7 @@ export function HeroHonors({ onClick, delay = 0 }: HeroHonorsProps) {
           width={2298}
           height={872}
           decoding="async"
-          className="h-auto w-full min-w-0 object-contain"
+          className="h-auto w-full min-w-0 object-contain [&:nth-child(2)]:-translate-x-[6.6667%] sm:[&:nth-child(n+3)]:-translate-x-[10.4167%]"
         />
       ))}
     </button>
