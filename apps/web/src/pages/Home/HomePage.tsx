@@ -1,7 +1,6 @@
-import { useState } from 'react'
-import { VideoModal } from '../../components/common/VideoModal'
+import { useRef } from 'react'
 import { HeroSection } from './sections/HeroSection'
-import { VideoPreviewSection } from './sections/VideoPreviewSection'
+import { VideoPreviewSection, type VideoPreviewHandle } from './sections/VideoPreviewSection'
 import { WhyUsSection } from './sections/WhyUsSection'
 import { ProductDemoSection } from './sections/ProductDemoSection'
 import { CurriculumSection } from './sections/CurriculumSection'
@@ -11,12 +10,12 @@ import { FinalCTASection } from './sections/FinalCTASection'
 import { Footer } from '../../components/layout/Footer'
 
 export function HomePage() {
-  const [showVideo, setShowVideo] = useState(false)
+  const videoRef = useRef<VideoPreviewHandle>(null)
 
   return (
-    <div className="min-h-screen [--home-video-overlap:clamp(3rem,12vw,10rem)]">
-      <HeroSection onWatchVideo={() => setShowVideo(true)} />
-      <VideoPreviewSection onPlay={() => setShowVideo(true)} />
+    <div className="min-h-screen [--home-video-overlap:clamp(3rem,10vw,4.6875rem)]">
+      <HeroSection onWatchVideo={() => videoRef.current?.play()} />
+      <VideoPreviewSection ref={videoRef} />
       <WhyUsSection />
       <ProductDemoSection />
       <CurriculumSection />
@@ -24,12 +23,6 @@ export function HomePage() {
       <LovedBySection />
       <FinalCTASection />
       <Footer />
-      <VideoModal
-        open={showVideo}
-        onClose={() => setShowVideo(false)}
-        videoUrl="/resource/videos/flightwoodx-introduction.mp4"
-        title="FlightWoodX 产品演示"
-      />
     </div>
   )
 }
