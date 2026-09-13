@@ -66,3 +66,27 @@ it('creates a separate draft instead of reopening the active work', async () => 
   expect(useDesignStore.getState().designs).toHaveLength(2)
   expect(useDesignStore.getState().activeDesignId).not.toBe(oldId)
 })
+
+it('identifies learning totals as local records rather than account-wide progress', () => {
+  expect(container.textContent).toContain('本机学习记录')
+  expect(container.textContent).toContain('这些记录仅保存在当前浏览器，不与账号同步。')
+})
+
+it('allows long profile text to wrap without truncating the saved name or shrinking controls', async () => {
+  const nickname = 'copy_0123456789'
+  const school = 'SchoolNameWithoutSpacesForProfileLayout'
+  await act(async () => useProfileStore.getState().update({ nickname, school, grade: '七年级' }))
+  const card = container.querySelector('.group')!
+  const heading = card.querySelector('h2')!
+  const text = heading.parentElement!
+  const schoolText = text.querySelector('p')!
+  expect(heading.textContent).toBe(nickname)
+  expect(schoolText.textContent).toBe(`${school} · 七年级`)
+  expect(heading.classList.contains('break-words')).toBe(true)
+  expect(schoolText.classList.contains('break-words')).toBe(true)
+  expect(text.classList.contains('min-w-0')).toBe(true)
+  expect(card.querySelector('.items-start > .flex-1')?.classList.contains('min-w-0')).toBe(true)
+  expect(text.previousElementSibling?.classList.contains('shrink-0')).toBe(true)
+  expect(button('编辑').classList.contains('shrink-0')).toBe(true)
+  expect(card.querySelector('.truncate, .overflow-hidden')).toBeNull()
+})

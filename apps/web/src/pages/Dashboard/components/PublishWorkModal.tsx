@@ -60,7 +60,7 @@ export function PublishWorkModal({ open, onClose, design, serverId, initialReusa
       }
 
       if (!id) {
-        toast.push('error', '无法确定作品的服务器 ID，请稍后重试')
+        toast.push('error', '未找到账号中的作品记录，请保存后重试')
         return
       }
 
@@ -97,7 +97,7 @@ export function PublishWorkModal({ open, onClose, design, serverId, initialReusa
       <div className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-ink-700">作品标题</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="给你的作品起个名字" />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="输入作品名称" />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-ink-700">作品介绍（可选）</label>
@@ -105,7 +105,7 @@ export function PublishWorkModal({ open, onClose, design, serverId, initialReusa
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            placeholder="说说你的设计思路、亮点……"
+            placeholder="介绍使用的零件、结构或设计方法"
             className="w-full rounded-lg border border-sky-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-sky-400"
           />
         </div>
@@ -118,13 +118,13 @@ export function PublishWorkModal({ open, onClose, design, serverId, initialReusa
             className="mt-0.5 h-4 w-4 shrink-0 accent-sky-500"
           />
           <span className="text-sm">
-            <span className="font-medium text-ink-800">允许其他同学复用我的设计</span>
-            <span className="mt-0.5 block text-xs text-ink-400">开启后，别的同学可以「复用这个设计」，在你的作品基础上继续改造。</span>
+            <span className="font-medium text-ink-800">允许其他用户复制并编辑我的设计</span>
+            <span className="mt-0.5 block text-xs text-ink-400">开启后，其他用户可将此设计复制到自己的作品中，修改不会影响原作品。</span>
           </span>
         </label>
 
         <div className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-700 ring-1 ring-sky-100">
-          发布后，同学们在社区就能看到你的作品。
+          发布后，所有访问社区的用户都能查看此作品。
         </div>
 
         <div className="flex justify-end gap-2">

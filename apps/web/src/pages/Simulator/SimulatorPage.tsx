@@ -145,7 +145,7 @@ function SimulatorWorkspace({ designId: id }: { designId?: string }) {
         setRunning(false)
         toast.push(
           kind === 'success' ? 'success' : kind === 'stopped' ? 'info' : 'error',
-          kind === 'success' ? '飞行完成！' : kind === 'collision' ? '撞到障碍了' : kind === 'error' ? adapter.getFailureReason()! : '已停止',
+          kind === 'success' ? '模拟运行完成' : kind === 'collision' ? '模拟中发生碰撞' : kind === 'error' ? adapter.getFailureReason()! : '已停止',
         )
       },
     })
@@ -227,7 +227,7 @@ function SimulatorWorkspace({ designId: id }: { designId?: string }) {
         {/* Event log overlay */}
         {result && result.events.length > 0 && (
           <div className="absolute bottom-4 left-4 max-h-40 max-w-xs overflow-auto rounded-xl border border-sky-100 bg-white/90 p-3 shadow-soft backdrop-blur">
-            <h4 className="mb-1 text-xs font-semibold text-ink-700">飞行日志 ({result.events.length})</h4>
+            <h4 className="mb-1 text-xs font-semibold text-ink-700">模拟运行日志 ({result.events.length})</h4>
             <ul className="space-y-0.5">
               {result.events.map((evt, i) => (
                 <li key={i} className="font-mono text-xs text-ink-500">{evt}</li>

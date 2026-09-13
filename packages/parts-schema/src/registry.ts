@@ -30,11 +30,11 @@ export const STEP_CATEGORIES: Record<BuildStep, PartCategory[]> = {
 export const BUILD_STEPS: BuildStep[] = ['HUB', 'ARM', 'GUARD', 'DECO', 'REVIEW']
 
 export const STEP_INFO: Record<BuildStep, { label: string; number: number; description: string; optional?: boolean }> = {
-  HUB:    { label: '主板',   number: 1, description: '选一块主板作为无人机的核心' },
+  HUB:    { label: '主板',   number: 1, description: '选择主板，作为其他零件的连接基础' },
   ARM:    { label: '起落架', number: 2, description: '安装起落架（4-8 个）' },
-  GUARD:  { label: '保护板', number: 3, description: '选保护板保护螺旋桨（1/2/4 个）' },
-  DECO:   { label: '装饰件', number: 4, description: '加装饰衔接件（可跳过）', optional: true },
-  REVIEW: { label: '结构检查', number: 5, description: '检查装配完整性和左右平衡' },
+  GUARD:  { label: '保护板', number: 3, description: '选择并安装保护板（1/2/4 个）' },
+  DECO:   { label: '装饰件', number: 4, description: '添加装饰件或衔接件（可跳过）', optional: true },
+  REVIEW: { label: '结构检查', number: 5, description: '核对已装零件、连接和位置对称性' },
 }
 
 // === Part factory functions ===

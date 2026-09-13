@@ -10,8 +10,8 @@ import { MasonryGrid } from '../../components/features/community/MasonryGrid'
 type TabKey = 'new' | 'day' | 'week' | 'all'
 const TABS: { key: TabKey; label: string; mode: FeedMode; window?: TrendingWindow }[] = [
   { key: 'new', label: '最新', mode: 'new' },
-  { key: 'day', label: '今日热门', mode: 'trending', window: 'day' },
-  { key: 'week', label: '本周热门', mode: 'trending', window: 'week' },
+  { key: 'day', label: '近 24 小时', mode: 'trending', window: 'day' },
+  { key: 'week', label: '近 7 天', mode: 'trending', window: 'week' },
   { key: 'all', label: '总榜', mode: 'trending', window: 'all' },
 ]
 
@@ -64,7 +64,7 @@ export function CommunityPage() {
             作品广场
           </h1>
           <p className="mt-7 max-w-[560px] text-[18px] leading-[1.5] text-black/55">
-            小创客们用榫卯拼出的木质飞行器。挑一架喜欢的，点开看看，点赞、收藏，或者复用它的设计，自己改造出新花样。
+            浏览用户公开发布的无人机设计。登录后可以点赞、评论和收藏，也可以复制作者允许复用的设计并继续编辑。
           </p>
         </header>
 
@@ -121,7 +121,7 @@ export function CommunityPage() {
           </div>
         ) : isError ? (
           <div className="rounded-2xl border border-dashed border-black/[0.08] bg-white/50 py-24 text-center">
-            <p className="text-[18px] text-black/55">作品墙加载失败了</p>
+            <p className="text-[18px] text-black/55">作品列表加载失败</p>
             <button
               onClick={() => refetch()}
               className="mt-5 rounded-full bg-sky-500 px-6 py-2.5 text-[14px] font-medium text-white shadow-soft transition hover:bg-sky-600"
@@ -138,8 +138,8 @@ export function CommunityPage() {
               {active.mode === 'new' && q
                 ? `没有找到与「${q}」相关的作品`
                 : active.mode === 'trending'
-                  ? '这个榜单还没有上榜作品，先去点赞支持喜欢的作品吧！'
-                  : '社区还没有作品，去把你的作品发布到社区吧！'}
+                  ? '此榜单暂无作品。'
+                  : '社区暂无公开作品。已保存的作品可从工作台发布到社区。'}
             </p>
           </div>
         ) : (

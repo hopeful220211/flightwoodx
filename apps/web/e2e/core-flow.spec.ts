@@ -7,7 +7,9 @@ import { DroneDesignSnapshotSchema, PART_REGISTRY } from '@fwx/parts-schema'
 import type { DroneDesignSnapshot } from '@fwx/parts-schema'
 
 /**
- * Requires a running local Web app and its isolated API/database; no mocks or production writes.
+ * Requires a running local Web app and its isolated API/database; no production writes.
+ * The custom-part case injects one failed response to exercise retry; successful
+ * saves and restores use the real local API/database.
  * Each user-flow test creates a unique e2e_* account. Retain or discard the whole test
  * database after the run; these tests never delete an existing account or unrelated work.
  * Credentials only live in memory. Tracing/video are disabled in playwright.config.ts.
@@ -194,8 +196,8 @@ async function runSimulation(page: Page) {
   await expect(page.getByText('视觉仿真 · 用于检查指令流程，不代表真实飞行结果', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '运行', exact: true }).click()
   await expect(page.getByRole('button', { name: '停止', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: /完成！/ })).toBeVisible({ timeout: 45_000 })
-  await expect(page.getByRole('heading', { name: /运行失败|撞到障碍了/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: /模拟运行完成/ })).toBeVisible({ timeout: 45_000 })
+  await expect(page.getByRole('heading', { name: /运行失败|模拟中发生碰撞/ })).toHaveCount(0)
 }
 
 async function expectInsideViewport(page: Page, locator: Locator) {
@@ -283,6 +285,10 @@ test.describe('mobile 390 × 844', () => {
     await saveExampleProgram(page)
     await expectInsideViewport(page, page.getByRole('button', { name: '运行', exact: true }))
     await runSimulation(page)
+    await page.goto('/profile')
+    await expect(page.getByRole('heading', { name: '本机学习记录', exact: true })).toBeVisible()
+    await expectInsideViewport(page, page.getByRole('button', { name: '编辑', exact: true }))
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     expect(failures).toEqual([])
   })
 })
@@ -333,27 +339,41 @@ test('read-only: every registered official model and thumbnail is served as a va
 
 test('custom part: draw, place without invented connectors, save, restore, and retain broken references', async ({ page, browser, baseURL }, testInfo) => {
   let deletedSourcePath: string | null = null
+  let forceSaveFailure = false
   // Both open contexts may revalidate on focus after the test deliberately deletes its source.
-  const expectedDeletedSource = (response: Response) => response.status() === 404 && new URL(response.url()).pathname === deletedSourcePath
+  const expectedDeletedSource = (response: Response) => (response.status() === 404 && new URL(response.url()).pathname === deletedSourcePath)
+    || (forceSaveFailure && response.status() === 503 && new URL(response.url()).pathname === '/api/custom-parts' && response.request().method() === 'POST')
   const errors = observeBrowser(page, expectedDeletedSource)
   const name = await registerDedicatedAccount(page)
   await page.goto('/part-studio')
-  const canvas = page.locator('canvas').first()
-  const box = await canvas.boundingBox()
-  if (!box) throw new Error('The drawing canvas is not visible.')
-  const start = { x: box.x + 70, y: box.y + 80 }
-  await page.mouse.move(start.x, start.y)
-  await page.mouse.down()
-  await page.mouse.move(start.x + 160, start.y, { steps: 16 })
-  await page.mouse.move(start.x + 160, start.y + 100, { steps: 10 })
-  await page.mouse.move(start.x, start.y + 100, { steps: 16 })
-  await page.mouse.move(start.x, start.y, { steps: 10 })
-  await page.mouse.up()
+  await expect(page.getByLabel('参考类型', { exact: true })).toHaveValue('mainboard')
+  await page.getByRole('button', { name: '添加图形', exact: true }).click()
+  await page.getByRole('button', { name: '圆孔', exact: true }).click()
+  await page.getByRole('button', { name: '添加图形', exact: true }).click()
   await page.getByLabel('零件名称', { exact: true }).fill(name)
-  await page.getByRole('button', { name: '立起来 →', exact: true }).click()
+  await expect(page.getByTestId('part-3d-preview')).toHaveAttribute('data-wood-ready', 'true')
+  // Simulate only the failed write; the subsequent retry reaches the real
+  // isolated API. The editable sketch, dimensions and name must survive.
+  forceSaveFailure = true
+  await page.route('**/api/custom-parts', async route => {
+    if (route.request().method() === 'POST') await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: '测试：暂时无法保存' }) })
+    else await route.continue()
+  })
+  await page.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(page.getByText('测试：暂时无法保存', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('零件名称', { exact: true })).toHaveValue(name)
+  await expect(page.getByTestId('sketch-canvas').locator('[data-shape-id]')).toHaveCount(2)
+  await expect(page.getByRole('button', { name: '保存', exact: true })).toBeEnabled()
+  await page.unroute('**/api/custom-parts')
+  forceSaveFailure = false
   const creation = page.waitForResponse(response => new URL(response.url()).pathname === '/api/custom-parts' && response.request().method() === 'POST')
   await page.getByRole('button', { name: '保存', exact: true }).click()
-  expect((await creation).status()).toBe(201)
+  const created = await creation
+  expect(created.status()).toBe(201)
+  const geometryPayload = created.request().postDataJSON()
+  expect(geometryPayload.geometry).toMatchObject({ thicknessMm: 2, bboxMm: { w: 60, h: 40 } })
+  expect(geometryPayload.geometry.holes).toHaveLength(1)
+  expect(geometryPayload.category).toBe('mainboard')
   await page.getByRole('button', { name: `放入自由拼装：${name}`, exact: true }).click()
   await page.getByLabel('自由作品名称', { exact: true }).fill(`${name} free`)
   await page.getByRole('button', { name: '确认放入', exact: true }).click()

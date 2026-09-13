@@ -77,10 +77,10 @@ export function AuthPage() {
                 className="h-8 w-8 object-contain"
               />
             </div>
-            <SectionLabel className="text-sky-500/80">Join FlightWoodX</SectionLabel>
+            <SectionLabel className="text-sky-500/80">FlightWoodX 账号</SectionLabel>
             <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#0B3A68]">创建账号</h1>
             <p className="mt-1.5 text-sm text-sky-700/75">
-              从一块木头，到一架会飞的无人机
+              注册后可保存无人机设计和程序，并在其他设备登录查看。
             </p>
           </div>
 
@@ -159,7 +159,7 @@ export function AuthPage() {
               className="inline-flex items-center justify-center gap-1.5 text-sm text-sky-600 transition hover:text-[#1F83E0]"
             >
               <Sparkles size={14} />
-              <span>游客模式 · 立即体验</span>
+              <span>进入游客模式</span>
             </button>
           </div>
 

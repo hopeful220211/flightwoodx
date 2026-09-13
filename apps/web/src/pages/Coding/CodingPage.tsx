@@ -241,7 +241,7 @@ function CodingWorkspace({ designId: id }: { designId?: string }) {
 
   const handleSave = useCallback(async () => {
     if (!id || !workspaceRef.current || preserveUnreadableDraftRef.current) {
-      toast.push('error', '请先拼出程序再保存')
+      toast.push('error', '当前作品或程序尚未就绪，请检查加载提示')
       return
     }
     const ws = workspaceRef.current
@@ -285,13 +285,13 @@ function CodingWorkspace({ designId: id }: { designId?: string }) {
   const handleRun = useCallback(() => {
     const ws = workspaceRef.current
     if (!id || !ws || preserveUnreadableDraftRef.current) {
-      toast.push('error', '请先拼出程序再运行')
+      toast.push('error', '当前作品或程序尚未就绪，请检查加载提示')
       return
     }
     // 运行前从工作区重新序列化，确保交接给仿真页的是最新积木（不依赖可能滞后的 state）
     try {
       const program = compileWorkspace(ws, { name: ir?.metadata.name || `项目 ${id.slice(0, 6)}`, author: user?.username || '设计师' })
-      if (!program.commands.length) throw new Error('请先拼出程序再运行')
+      if (!program.commands.length) throw new Error('请先连接可运行的积木')
       const xml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(ws))
       useProgramStore.getState().setProgram(id, xml, program)
       navigate(`/simulator/${id}`)

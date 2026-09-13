@@ -108,7 +108,7 @@ function ProfileContent() {
         {/* 用户信息卡片 */}
         <Card className="group">
           <div className="flex items-start justify-between">
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               {editing ? (
                 <div className="space-y-4">
                   <div>
@@ -156,13 +156,13 @@ function ProfileContent() {
               ) : (
                 <div>
                   <div className="mb-4 flex items-center gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-2xl font-extrabold text-white">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-2xl font-extrabold text-white">
                       {profile.nickname[0] || '设'}
                     </div>
-                    <div className="flex-1">
-                      <h2 className="text-2xl font-extrabold text-wood-900 dark:text-white">{profile.nickname}</h2>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="break-words text-2xl font-extrabold text-wood-900 dark:text-white">{profile.nickname}</h2>
                       {profile.school && (
-                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                        <p className="mt-1 break-words text-sm text-slate-600 dark:text-slate-300">
                           {profile.school} {profile.grade && `· ${profile.grade}`}
                         </p>
                       )}
@@ -170,6 +170,7 @@ function ProfileContent() {
                     <Button
                       size="sm"
                       variant="outline"
+                      className="shrink-0"
                       leftIcon={<Edit2 className="h-4 w-4" />}
                       onClick={() => { setEditNickname(profile.nickname); setEditSchool(profile.school || ''); setEditGrade(profile.grade || ''); setEditing(true) }}
                     >
@@ -184,12 +185,13 @@ function ProfileContent() {
 
         {/* 学习统计 */}
         <Card>
-          <h3 className="mb-4 text-lg font-extrabold text-wood-900 dark:text-white">学习统计</h3>
+          <h3 className="mb-4 text-lg font-extrabold text-wood-900 dark:text-white">本机学习记录</h3>
+          <p>这些记录仅保存在当前浏览器，不与账号同步。课程功能暂未开放。</p>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-lg bg-wood-50 p-4 dark:bg-slate-800">
               <div className="mb-2 flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-sky-600" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">已完成课程</span>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">已记录课时</span>
               </div>
               <div className="text-2xl font-extrabold text-wood-900 dark:text-white">
                 {progress.completedLessons.length}
@@ -198,7 +200,7 @@ function ProfileContent() {
             <div className="rounded-lg bg-wood-50 p-4 dark:bg-slate-800">
               <div className="mb-2 flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-sky-600" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">总学习时长</span>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">已记录时长</span>
               </div>
               <div className="text-2xl font-extrabold text-wood-900 dark:text-white">
                 {Math.round(progress.totalStudyTime)} 分钟
@@ -207,7 +209,7 @@ function ProfileContent() {
             <div className="rounded-lg bg-wood-50 p-4 dark:bg-slate-800">
               <div className="mb-2 flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-sky-600" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">学习天数</span>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">已记录天数</span>
               </div>
               <div className="text-2xl font-extrabold text-wood-900 dark:text-white">{progress.studyDays.length} 天</div>
             </div>
@@ -230,8 +232,8 @@ function ProfileContent() {
           {myProjects.length === 0 ? (
             <EmptyState
               icon={<Palette size={18} />}
-              title="你还没有任何作品哦"
-              description="从零件库开始拼装，完成你的第一架无人机！"
+              title="暂无设计作品"
+              description="新建设计后，可以选择零件并组装无人机模型。"
               action={{ label: '新建设计', onClick: handleCreateProject, buttonProps: { variant: 'primary' } }}
             />
           ) : (
@@ -308,7 +310,7 @@ function ProfileContent() {
                 onClick={() => setShowClearModal(true)}
                 className="text-error hover:bg-error/10"
               >
-                清除所有本地数据
+                清除本机作品与设置
               </Button>
             </div>
           </div>
@@ -323,12 +325,12 @@ function ProfileContent() {
       >
         <div className="space-y-4">
           <p className="text-slate-700 dark:text-slate-200">
-            此操作将清除所有本地保存的数据，包括：
+            此操作将清除当前浏览器中的以下数据，不会删除服务器中的作品：
           </p>
           <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-300">
-            <li>所有设计作品</li>
+            <li>本机设计作品，包括尚未同步的草稿</li>
             <li>学习进度</li>
-            <li>个人设置</li>
+            <li>本机个人资料与设置</li>
           </ul>
           <p className="text-sm text-error">此操作不可恢复，请谨慎操作！</p>
           <div className="flex gap-3">

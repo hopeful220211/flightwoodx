@@ -81,8 +81,8 @@ export function ReviewStep() {
         <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-sky-50 text-sky-400">
           <Rocket size={26} />
         </div>
-        <p className="text-sm font-semibold text-ink-900">还没有可以检查的飞机</p>
-        <p className="mt-1.5 text-xs text-gray-500">先装主板和 4 个起落架，再检查装配结构</p>
+        <p className="text-sm font-semibold text-ink-900">暂无可检查的零件</p>
+        <p className="mt-1.5 text-xs text-gray-500">请先完成前面的零件选择与拼装步骤。</p>
       </div>
     )
   }
@@ -109,7 +109,7 @@ export function ReviewStep() {
               readiness.canTakeoff ? 'text-green-600' : 'text-sky-700'
             }`}
           >
-            {readiness.canTakeoff ? '都检查好了' : '还差一点'}
+            {readiness.canTakeoff ? '检查条件已满足' : '检查条件未满足'}
           </span>
         </div>
         <p className="mt-1 text-xs text-gray-500">
@@ -158,7 +158,7 @@ export function ReviewStep() {
       {/* 一条主建议（动力够不够 = 总推力 ÷ 总重量） */}
       {!readiness.canTakeoff && readiness.primaryFix && (
         <div className="rounded-xl bg-sky-50 p-3">
-          <p className="text-xs font-semibold text-sky-700 mb-0.5">先调这一处</p>
+          <p className="text-xs font-semibold text-sky-700 mb-0.5">需要处理的问题</p>
           <p className="text-xs text-sky-600">{readiness.primaryFix}</p>
         </div>
       )}

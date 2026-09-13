@@ -144,8 +144,8 @@ export function AuthorPage() {
 
         {/* ── 作品墙：标题条 + 瀑布流 / 空态 ── */}
         <div className="mb-6 flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold text-black/90">TA 的作品</h2>
-          {posts.length > 0 && <span className="text-sm text-black/45">共 {posts.length} 件</span>}
+          <h2 className="text-lg font-semibold text-black/90">作者的公开作品</h2>
+          {posts.length > 0 && <span className="text-sm text-black/45">已加载 {posts.length} 件</span>}
         </div>
 
         {posts.length === 0 ? (
@@ -166,7 +166,7 @@ export function AuthorPage() {
             )}
             {!hasNextPage && (
               <p className="flex items-center justify-center gap-1.5 pb-2 pt-8 text-center text-sm text-black/35">
-                <Users size={13} /> 已经到底啦
+                <Users size={13} /> 已显示全部作品
               </p>
             )}
           </>

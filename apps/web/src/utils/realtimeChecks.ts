@@ -31,7 +31,7 @@ export function checkBeforeAdd(
   if (partCategory === 'mainboard') {
     const count = countByCategory(currentParts, 'mainboard')
     if (count >= 2) {
-      return { id: 'mainboard-max', level: 'error', message: '最多只能放 2 块主板哦！', hint: '已经有 2 块了' }
+      return { id: 'mainboard-max', level: 'error', message: '主板数量已达上限：2 块。', hint: '已经有 2 块了' }
     }
   }
 
@@ -39,7 +39,7 @@ export function checkBeforeAdd(
   if (partCategory === 'landing') {
     const count = countByCategory(currentParts, 'landing')
     if (count >= 8) {
-      return { id: 'landing-max', level: 'error', message: '最多 8 个起落架！', hint: '当前装配模式的数量限制，不是实物飞行结论' }
+      return { id: 'landing-max', level: 'error', message: '起落架数量已达上限：8 个。', hint: '当前装配模式的数量限制，不是实物飞行结论' }
     }
   }
 
@@ -47,7 +47,7 @@ export function checkBeforeAdd(
   if (partCategory === 'guard') {
     const count = countByCategory(currentParts, 'guard')
     if (count >= 4) {
-      return { id: 'guard-max', level: 'error', message: '最多 4 个保护板！', hint: '1个、2个或4个都可以' }
+      return { id: 'guard-max', level: 'error', message: '保护板数量已达上限：4 个。', hint: '1个、2个或4个都可以' }
     }
   }
 

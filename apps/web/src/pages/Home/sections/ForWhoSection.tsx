@@ -5,20 +5,20 @@ import { SectionHeading } from '../components/SectionHeading'
 
 const personas = [
   {
-    title: '我是学生',
-    subtitle: '从设计到飞行，自己做主',
+    title: '学生',
+    subtitle: '绘制零件、拼装机体、编写程序并保存作品。',
     href: '/auth?type=student',
     img: '/optimized/picture/learning_kids/EX4A6285.webp',
   },
   {
-    title: '我是教师',
-    subtitle: '教学套件 + 软件平台',
+    title: '教师',
+    subtitle: '使用设计和模拟工具演示操作。课程管理尚未开放。',
     href: '/auth?type=teacher',
     img: '/optimized/picture/learning_kids/EX4A6264 1.webp',
   },
   {
-    title: '我是学校',
-    subtitle: '校本课程 + 师资培训 + 效果评估',
+    title: '学校',
+    subtitle: '了解平台的设计与编程工具。学校管理功能尚未开放。',
     href: '/auth?type=school',
     img: '/optimized/picture/learning_kids/EX4A6148.webp',
   },
@@ -32,9 +32,9 @@ export function ForWhoSection() {
       <div className="mx-auto max-w-6xl px-4">
         <ScrollReveal className="mb-16">
           <SectionHeading
-            eyebrow="适合谁"
-            title="适合不同的你"
-            lead="学生、老师、学校，各走各的入口。"
+            eyebrow="使用对象"
+            title="学生、教师和学校"
+            lead="学生可设计作品，教师和学校可了解工具功能。当前均使用同一登录入口。"
           />
         </ScrollReveal>
 
@@ -66,7 +66,7 @@ export function ForWhoSection() {
                   <h3 className="font-display text-2xl font-semibold text-white">{p.title}</h3>
                   <p className="mt-1 text-sm text-white/70">{p.subtitle}</p>
                   <div className="mt-4 flex w-fit items-center gap-1 whitespace-nowrap text-sm font-medium text-white/80 transition-transform duration-300 group-hover:translate-x-1">
-                    进入
+                    登录平台
                     <ArrowRight size={14} />
                   </div>
                 </div>

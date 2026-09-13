@@ -218,10 +218,10 @@ export function DesignPage() {
   }
 
   const checks = useMemo(() => {
-    if (usedCount === 0) return [{ level: 'warning', text: '还没有添加零件：从左侧零件库开始吧！' }]
+    if (usedCount === 0) return [{ level: 'warning', text: '尚未添加零件，请从零件库选择。' }]
     const issues: Array<{ level: 'warning' | 'error' | 'info'; text: string }> = []
     if (!usedParts.some((p) => (partById.get(p.partId)?.category ?? 'other') === 'mainboard'))
-      issues.push({ level: 'error', text: '缺少主板：建议至少选择一个主板零件。' })
+      issues.push({ level: 'error', text: usedParts.some(part => part.source && part.category === 'mainboard') ? '未安装官方主板；自制主机身尚未验证连接。' : '缺少主板：建议至少选择一个主板零件。' })
     if (usedParts.some(part => part.source)) issues.push({ level: 'warning', text: '自制零件仅自由摆放，尚未连接；未验证制造、结构或飞行。' })
     if (issues.length === 0) issues.push({ level: 'info', text: '基础装配检查通过：可以继续检查连接与左右对称。' })
     return issues
@@ -430,7 +430,7 @@ export function DesignPage() {
                   filteredParts.map(renderPartThumb)
                 ) : (
                   <div className="col-span-2">
-                    <EmptyState icon={<Box size={18} />} title="没有找到零件" description="换个关键词试试，或切换分类。" />
+                    <EmptyState icon={<Box size={18} />} title="没有找到零件" description="请修改搜索词或切换分类。" />
                   </div>
                 )}
               </div>}

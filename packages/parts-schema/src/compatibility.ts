@@ -31,10 +31,10 @@ export interface CompatibilityResult {
 
 const MESSAGES: Record<CompatibilityReason, string> = {
   OK: '',
-  WRONG_STEP: '还没到这一步哦，先完成当前步骤吧！',
-  MAX_QUANTITY: '已经装满啦，不能再加了！',
-  NEED_MAINBOARD_FIRST: '先选一块主板吧，它是一切的基础！',
-  SNAP_TYPE_MISMATCH: '这个位置放不了这种零件，换个试试？',
+  WRONG_STEP: '此零件不属于当前步骤，请切换到对应步骤。',
+  MAX_QUANTITY: '此类零件已达到数量上限。',
+  NEED_MAINBOARD_FIRST: '请先添加主板，再安装其他零件。',
+  SNAP_TYPE_MISMATCH: '此零件与当前连接位置不匹配，请选择其他零件或位置。',
 }
 
 export function isCategoryAllowedInStep(category: PartCategory, step: BuildStep): boolean {
@@ -56,7 +56,7 @@ export function canAddPart(part: PartEntry, state: BuildState): CompatibilityRes
   if (part.category === 'mainboard') {
     const count = state.parts.filter(p => p.category === 'mainboard').length
     if (count >= 2) {
-      return { ok: false, reason: 'MAX_QUANTITY', message: '最多只能放 2 块主板哦！' }
+      return { ok: false, reason: 'MAX_QUANTITY', message: '主板数量已达上限：2 块。' }
     }
   }
 
@@ -64,7 +64,7 @@ export function canAddPart(part: PartEntry, state: BuildState): CompatibilityRes
   if (part.category === 'landing') {
     const count = state.parts.filter(p => p.category === 'landing').length
     if (count >= 8) {
-      return { ok: false, reason: 'MAX_QUANTITY', message: '最多 8 个起落架！' }
+      return { ok: false, reason: 'MAX_QUANTITY', message: '起落架数量已达上限：8 个。' }
     }
   }
 
@@ -72,7 +72,7 @@ export function canAddPart(part: PartEntry, state: BuildState): CompatibilityRes
   if (part.category === 'guard') {
     const count = state.parts.filter(p => p.category === 'guard').length
     if (count >= 4) {
-      return { ok: false, reason: 'MAX_QUANTITY', message: '最多 4 个保护板！' }
+      return { ok: false, reason: 'MAX_QUANTITY', message: '保护板数量已达上限：4 个。' }
     }
   }
 

@@ -312,7 +312,7 @@ function buildReadme(design: Design, generated: string[], pending2D: string[]): 
     out.push('')
     out.push('以下零件暂无 2D 轮廓，当前导出不完整：')
     for (const id of pending2D) out.push(`  - ${id}`)
-    out.push('这些零件的 2D 轮廓数据源正在补齐；补齐后重新导出即会自动包含其切割图。')
+    out.push('这些零件缺少可用的二维轮廓，本次无法导出对应切割图；加工前需另行准备并验证图纸。')
   }
   out.push('')
   out.push('注：电子件、材料、公差、强度和真实飞行参数不在本导出的已验证范围内。')

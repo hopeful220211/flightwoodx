@@ -12,7 +12,7 @@ interface HeroSectionProps {
 
 export function ExportHeroSection({ design }: HeroSectionProps) {
   const user = useAuthStore(s => s.user)
-  const title = design.name ? `看，这是你设计的「${design.name}」！` : '看，这是你设计的飞机！'
+  const title = design.name ? `${design.name} · 导出预览` : '设计导出预览'
   const date = new Date(design.updatedAt).toLocaleDateString('zh-CN')
 
   return (
@@ -44,7 +44,7 @@ export function ExportHeroSection({ design }: HeroSectionProps) {
 
         <ScrollReveal delay={300}>
           <p className="mt-6 text-base text-ink-600">
-            由 {user?.username ?? '设计师'} · {date} 设计
+            当前账号：{user?.username ?? '未登录'} · 设计更新时间：{date}
           </p>
         </ScrollReveal>
       </div>

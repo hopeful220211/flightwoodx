@@ -45,7 +45,7 @@ export function ReuseButton({ postId, projectId, reusable }: ReuseButtonProps) {
     if (fork.isPending) return
     fork.mutate(postId, {
       onSuccess: ({ projectId: newProjectId }) => {
-        toast.push('success', '已复制到你的项目，开始改造吧！')
+        toast.push('success', '已复制到你的作品，可继续编辑')
         nav(`/design/${newProjectId}?forkedFrom=${postId}`)
       },
       onError: (e) => toast.push('error', e instanceof Error ? e.message : '复用失败'),

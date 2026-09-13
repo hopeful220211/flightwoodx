@@ -8,11 +8,11 @@ interface StepGuideProps {
 }
 
 const STEP_HELP: Record<BuildStep, string> = {
-  HUB: '不同形状的主板适合不同飞行风格：圆形稳、十字形灵活、多边形个性。',
-  ARM: '4臂最常见（四轴），6臂更稳（六轴），8臂用于载重。机臂会对称安装。',
-  GUARD: '三种保护罩：一体版保护最强但最重、分体版更轻更灵活、半体版折中。',
-  DECO: '衔接件把上下两层主板连起来，让结构更牢固。必须对称安装。',
-  REVIEW: '检查装配完整性和对称性；真实飞行仍需硬件参数与实测确认。',
+  HUB: '主板用于连接其他零件。选择形状后，在三维视图中查看连接位置。',
+  ARM: '本步骤安装起落架。选择零件后，检查其与主板的连接位置。',
+  GUARD: '保护板有不同形状和连接方式。选择零件后，查看它与已装部件的位置关系。',
+  DECO: '可添加装饰件或衔接件，并检查连接位置。本步骤可以跳过。',
+  REVIEW: '核对已装零件、连接与位置对称性。检查结果不代表实物结构安全或真实飞行表现。',
 }
 
 export function StepGuide({ currentStep, canAdvance, advanceReason }: StepGuideProps) {
@@ -40,7 +40,7 @@ export function StepGuide({ currentStep, canAdvance, advanceReason }: StepGuideP
 
       {canAdvance && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-          <p className="text-xs text-green-700">可以进入下一步了！</p>
+          <p className="text-xs text-green-700">本步骤已满足继续条件。</p>
         </div>
       )}
     </div>

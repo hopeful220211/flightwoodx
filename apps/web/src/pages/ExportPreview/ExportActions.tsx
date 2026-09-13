@@ -29,8 +29,8 @@ export function ExportActions({ checks, design }: ExportActionsProps) {
       const { generatedParts, pending2D } = await downloadExportZip(design)
       const msg =
         pending2D.length > 0
-          ? `设计导出包已下载（${generatedParts.length} 种零件出图，${pending2D.length} 种二维图待补）`
-          : '设计导出包已下载'
+          ? `设计记录与零件清单已下载（切割图：${generatedParts.length} 种；缺少二维轮廓：${pending2D.length} 种零件）`
+          : '设计记录与零件清单已下载，当前入口不提供切割图'
       toast.push('success', msg)
       setExported(true)
       setTimeout(() => setExported(false), 3000)
@@ -57,7 +57,7 @@ export function ExportActions({ checks, design }: ExportActionsProps) {
               disabled={hasBlockingErrors || exporting}
               className="group inline-flex w-fit items-center gap-2 whitespace-nowrap px-6 py-3 text-sm font-medium text-white bg-sky-500 rounded-md hover:brightness-[0.92] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {exported ? '✓ 已下载' : exporting ? '正在打包...' : hasBlockingErrors ? '请先修复必须改的问题' : '确认导出'}
+              {exported ? '✓ 已下载' : exporting ? '正在打包...' : hasBlockingErrors ? '请先处理检查错误' : '导出设计记录'}
               {!exporting && !exported && !hasBlockingErrors && (
                 <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
               )}
@@ -67,7 +67,7 @@ export function ExportActions({ checks, design }: ExportActionsProps) {
           {hasBlockingErrors && (
             <div className="mt-4 flex items-center justify-center gap-2 text-sm text-[#E04545]">
               <XCircle size={16} />
-              请先修复 {errorCount} 个必须改的问题
+              请先处理 {errorCount} 项检查错误
             </div>
           )}
         </ScrollReveal>

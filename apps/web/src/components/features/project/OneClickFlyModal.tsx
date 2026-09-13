@@ -40,7 +40,7 @@ export function OneClickFlyModal({ open, onClose, program, programName }: OneCli
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title={`一键试飞${programName ? ` · ${programName}` : ''}`}>
+    <Modal open={open} onClose={handleClose} title={`运行模拟${programName ? ` · ${programName}` : ''}`}>
       <div className="space-y-3">
         {/* 3D 飞行场景 */}
         <div className="relative h-72 overflow-hidden rounded-lg ring-1 ring-sky-100">
@@ -63,7 +63,7 @@ export function OneClickFlyModal({ open, onClose, program, programName }: OneCli
               }`}
             >
               {result.success ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
-              {result.success ? '飞行完成' : '飞行中止'}
+              {result.success ? '模拟完成' : '模拟中止'}
             </div>
           )}
         </div>
@@ -76,11 +76,11 @@ export function OneClickFlyModal({ open, onClose, program, programName }: OneCli
             </Button>
           ) : (
             <Button size="sm" onClick={() => program && run(program)} leftIcon={<RotateCcw size={14} />}>
-              {result ? '再次试飞' : '开始试飞'}
+              {result ? '再次运行' : '开始运行'}
             </Button>
           )}
           <span className="text-xs text-sky-500">
-            {running ? '飞行中…' : result ? `共 ${result.events.length} 个事件` : '准备就绪'}
+            {running ? '模拟运行中…' : result ? `共 ${result.events.length} 条运行记录` : '准备就绪'}
           </span>
         </div>
 

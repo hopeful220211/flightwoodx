@@ -38,7 +38,7 @@ export function MePage() {
               <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${item.color}`}>
                 <item.icon size={18} />
               </div>
-              <span className="font-medium text-ink-900">{item.label}{item.to === '#' && <span className="ml-2 text-xs font-normal text-ink-400">暂无记录</span>}</span>
+              <span className="font-medium text-ink-900">{item.label}{item.to === '#' && <span className="ml-2 text-xs font-normal text-ink-400">暂未开放</span>}</span>
             </div>
           </Card>
         ))}
@@ -48,8 +48,8 @@ export function MePage() {
       <Card hoverable={false}>
         <h2 className="text-lg font-semibold text-ink-900 mb-3">最近动态</h2>
         <div className="py-8 text-center text-ink-400">
-          <p>暂无动态</p>
-          <p className="text-sm mt-1">开始设计你的第一架无人机吧！</p>
+          <p>动态记录暂未开放</p>
+          <p className="text-sm mt-1">已保存的设计可在我的作品中查看。</p>
         </div>
       </Card>
     </PageContainer>

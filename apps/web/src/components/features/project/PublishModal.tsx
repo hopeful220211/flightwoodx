@@ -87,7 +87,7 @@ export function PublishModal({ open, onClose, projectId, defaultTitle }: Publish
       <div className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-ink-700">作品标题</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="给你的作品起个名字" />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="输入作品名称" />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-ink-700">作品介绍（可选）</label>
@@ -95,7 +95,7 @@ export function PublishModal({ open, onClose, projectId, defaultTitle }: Publish
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            placeholder="说说你的设计思路、亮点……"
+            placeholder="介绍使用的零件、结构或设计方法"
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-sky-400"
           />
         </div>
@@ -108,8 +108,8 @@ export function PublishModal({ open, onClose, projectId, defaultTitle }: Publish
             className="mt-0.5 h-4 w-4 shrink-0 accent-sky-500"
           />
           <span className="text-sm">
-            <span className="font-medium text-ink-800">允许其他同学复用我的设计</span>
-            <span className="mt-0.5 block text-xs text-ink-400">开启后，别的同学可以「复用这个设计」，在你的作品基础上继续改造。</span>
+            <span className="font-medium text-ink-800">允许其他用户复制并编辑我的设计</span>
+            <span className="mt-0.5 block text-xs text-ink-400">开启后，其他用户可将此设计复制到自己的作品中，修改不会影响原作品。</span>
           </span>
         </label>
 
@@ -117,7 +117,7 @@ export function PublishModal({ open, onClose, projectId, defaultTitle }: Publish
           <div className="rounded-lg bg-amber-50 p-3 ring-1 ring-amber-200">
             <p className="text-sm text-amber-700">这个项目目前是<strong>私密</strong>的。发布到社区会让它<strong>公开可见</strong>。</p>
             <div className="mt-3 flex justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={onClose} disabled={busy}>再想想</Button>
+              <Button size="sm" variant="outline" onClick={onClose} disabled={busy}>取消发布</Button>
               <Button size="sm" onClick={handlePublicAndPublish} disabled={busy}>公开项目并发布</Button>
             </div>
           </div>

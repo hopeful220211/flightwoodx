@@ -113,7 +113,7 @@ export function LoginModal() {
             <img src="/web_logo.png" alt="FlightWoodX" className="h-8 w-8 object-contain" />
           </div>
           <h2 className="text-xl font-extrabold tracking-tight text-sky-900">登录</h2>
-          <p className="mt-1 text-sm text-sky-600/90">欢迎回来，继续你的飞行之旅</p>
+          <p className="mt-1 text-sm text-sky-600/90">登录后可查看和编辑账号中保存的作品。</p>
         </div>
 
         {/* 表单 */}
@@ -166,7 +166,7 @@ export function LoginModal() {
             onClick={goRegister}
             className="ml-1.5 font-semibold text-accent-spark transition hover:brightness-110"
           >
-            立即注册
+            注册账号
           </button>
         </div>
 
@@ -184,7 +184,7 @@ export function LoginModal() {
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50/60 px-5 py-2.5 text-sm font-medium text-sky-700 transition hover:bg-sky-100 active:scale-[0.99]"
         >
           <Sparkles size={16} className="text-accent-spark" />
-          <span>游客模式 — 立即体验</span>
+          <span>进入游客模式</span>
           <ArrowRight size={14} />
         </button>
       </div>

@@ -4,12 +4,13 @@ import { ScrollReveal } from '../../../components/common/ScrollReveal'
 import { SectionHeading } from '../components/SectionHeading'
 import { Button } from '../../../components/common/Button'
 import { useAuthStore } from '../../../stores/authStore'
+import { WorkbenchAnimation } from '../components/WorkbenchAnimation'
 
 const features = [
-  { icon: Layers, text: '5 步引导式搭建' },
-  { icon: Puzzle, text: '77 种木质零件' },
-  { icon: Eye, text: '3D 实时预览' },
-  { icon: ShieldCheck, text: '起飞检查 · 一键导出' },
+  { icon: Layers, text: '分步引导与自由拼装' },
+  { icon: Puzzle, text: '浏览和选择零件' },
+  { icon: Eye, text: '三维结构预览' },
+  { icon: ShieldCheck, text: '结构规则检查与设计数据导出' },
 ]
 
 export function ProductDemoSection() {
@@ -21,25 +22,13 @@ export function ProductDemoSection() {
       <div className="mx-auto max-w-6xl px-4">
         <div className="grid items-center gap-12 lg:grid-cols-[3fr_2fr]">
 
-          {/* Left: screenshot */}
+          {/* Left: silent workbench demonstration */}
           <ScrollReveal direction="left" distance={30}>
             <div
               className="rounded-2xl overflow-hidden shadow-[0_30px_70px_rgba(23,74,126,0.22)] ring-1 ring-sky-100/70"
               style={{ transform: 'perspective(1400px) rotateY(-3deg) rotateX(1deg)' }}
             >
-              <img
-                src="/optimized/picture/UI/design_ui.webp"
-                alt="FlightWoodX 设计工作台"
-                className="w-full h-auto"
-                loading="lazy"
-                decoding="async"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.src = `data:image/svg+xml;utf8,${encodeURIComponent(
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600"><rect width="100%" height="100%" fill="#F3EFE8"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Inter" font-size="20" fill="#5C5C5C">设计工作台截屏</text></svg>'
-                  )}`
-                }}
-              />
+              <WorkbenchAnimation />
             </div>
           </ScrollReveal>
 
@@ -48,9 +37,9 @@ export function ProductDemoSection() {
             <div className="space-y-6">
               <SectionHeading
                 align="left"
-                eyebrow="真实界面"
-                title={<>你看到的，<br />是孩子看到的</>}
-                lead="没放修过的宣传图，这就是学生每天打开的那个界面。"
+                eyebrow="在线工具"
+                title="设计工作台"
+                lead="浏览零件、调整位置并预览三维结构。登录后可保存作品、继续编程或导出设计记录。目前不提供切割图。"
               />
 
               <ul className="space-y-3">
@@ -67,7 +56,7 @@ export function ProductDemoSection() {
                 rightIcon={<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />}
                 className="group mt-2"
               >
-                立即体验
+                {isAuthenticated ? '打开设计工作台' : '登录平台'}
               </Button>
             </div>
           </ScrollReveal>

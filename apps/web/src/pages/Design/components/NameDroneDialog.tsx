@@ -57,8 +57,8 @@ export function NameDroneDialog({ open, onConfirm, onCancel }: NameDroneDialogPr
             <Plane className="h-6 w-6" strokeWidth={1.6} aria-hidden />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-sky-900">给你的无人机起个名字</h2>
-            <p className="mt-0.5 text-xs text-ink-500">起好名字就开始搭建，之后随时能改。</p>
+            <h2 className="text-lg font-bold text-sky-900">设置作品名称</h2>
+            <p className="mt-0.5 text-xs text-ink-500">名称用于区分作品，开始搭建后仍可修改。</p>
           </div>
         </div>
 

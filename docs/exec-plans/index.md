@@ -2,7 +2,7 @@
 
 > 状态：生效中的计划导航与格式规则
 >
-> 更新时间：2026-09-08
+> 更新时间：2026-09-14
 >
 > 适用范围：跨文件、跨模块或需要独立验证记录的仓库工作
 >
@@ -10,12 +10,16 @@
 
 ## 当前计划
 
+- [`active/2026-09-14-all-pending-release.md`](./active/2026-09-14-all-pending-release.md)：此前全部未发布功能的前后端配套发布、备份与正式验收。
 - [`active/2026-09-07-review-readiness.md`](./active/2026-09-07-review-readiness.md)：评审前现有官网功能、界面与线上验证修复。
 
 进行中的计划放在 `docs/exec-plans/active/`，结束后按实际结果移入 `completed/`。目录位置不能替代文档状态和验证证据。
 
 ## 已结束记录
 
+- [`completed/2026-09-14-part-studio-selection.md`](./completed/2026-09-14-part-studio-selection.md)：固定绘制参数区与画布、细选框和鼠标/触控缩放，634项自动测试及49项全站浏览器回归通过，未发布。
+- [`completed/2026-09-13-part-studio-dimensioned-editor.md`](./completed/2026-09-13-part-studio-dimensioned-editor.md)：毫米规则绘图、参考范围、真实2mm板厚与共享木纹、主机身类别及保存恢复；599项自动测试和14项浏览器回归通过，未发布，实物配合未验证。
+- [`completed/2026-09-13-plain-site-copy.md`](./completed/2026-09-13-plain-site-copy.md)：冻结首页顶部，其余页面改为功能说明；文案规则、局部换行修正、505项自动测试、19项浏览器回归及27次页面尺寸检查通过，未发布。
 - [`completed/2026-09-08-automated-web-release.md`](./completed/2026-09-08-automated-web-release.md)：受限 GitHub→ECS 前端发布、首次安装、真实权限检查、三奖更正上线及受控回退恢复验收。
 - [`completed/2026-08-15-harness-foundation.md`](./completed/2026-08-15-harness-foundation.md)：建立分层规则、知识入口、项目 Skill、静态门禁并完成本地工程基线重验；未重验产品浏览器路径或目标环境。
 - [`completed/2026-08-17-github-handoff.md`](./completed/2026-08-17-github-handoff.md)：建立详细项目手册、重验工程基线，并把当前 tree 作为不扩散本机祖先的 GitHub 快照交付。

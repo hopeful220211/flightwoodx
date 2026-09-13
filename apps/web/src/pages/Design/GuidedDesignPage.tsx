@@ -157,7 +157,7 @@ export function GuidedDesignPage() {
       toast.push('success', '已通过全部已验证条件')
     } else {
       setPassedSnapshot(null)
-      toast.push('error', r.primaryFix ?? '还差一点，调一调再试')
+      toast.push('error', r.primaryFix ?? '检查条件未满足，请查看检查结果')
     }
   }, [activeDesign, toast])
 

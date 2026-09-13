@@ -35,7 +35,7 @@ export function FlightStats({ stats }: FlightStatsProps) {
     <section className="py-12 lg:py-16">
       <div className="mx-auto max-w-5xl px-4">
         <ScrollReveal>
-          <h2 className="font-display text-3xl lg:text-[40px] font-semibold text-ink-900">飞机参数</h2>
+          <h2 className="font-display text-3xl lg:text-[40px] font-semibold text-ink-900">设计参数</h2>
           <p className="mt-3 text-sm text-ink-600">目录质量与设计坐标仅作结构参考；整机质量、动力和续航尚未经过实测验证。</p>
         </ScrollReveal>
 
@@ -63,7 +63,7 @@ export function FlightStats({ stats }: FlightStatsProps) {
           />
           <StatCard
             icon={<Clock size={20} />}
-            label="续航估算"
+            label="续航数据"
             value={stats.estimatedFlightMinutes !== null ? `${stats.estimatedFlightMinutes} 分钟` : '--'}
             status={getFlightTimeLabel(stats.estimatedFlightMinutes)}
             delay={400}

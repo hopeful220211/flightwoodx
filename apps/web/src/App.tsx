@@ -11,6 +11,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 /* ── Route-level code splitting ── */
 const HomePage = lazy(() => import('./pages/Home/HomePage').then((m) => ({ default: m.HomePage })))
+const AboutPage = lazy(() => import('./pages/About/AboutPage').then((m) => ({ default: m.AboutPage })))
 const AuthPage = lazy(() => import('./pages/Auth/AuthPage').then((m) => ({ default: m.AuthPage })))
 const LoginRedirect = lazy(() => import('./pages/Auth/LoginRedirect').then((m) => ({ default: m.LoginRedirect })))
 const NotFoundPage = lazy(() => import('./pages/NotFound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
@@ -41,7 +42,7 @@ const AdminPartsPage = lazy(() => import('./pages/Admin/pages/ModulePlaceholder'
 const AdminAuditPage = lazy(() => import('./pages/Admin/pages/ModulePlaceholder').then((m) => ({ default: m.AdminAuditPage })))
 
 function RouteLoadingFallback() {
-  return <div role="status" className="flex min-h-dvh items-center justify-center gap-3 bg-slate-50 text-sm text-sky-800"><span className="h-5 w-5 animate-spin rounded-full border-2 border-sky-200 border-t-sky-600" aria-hidden="true" />正在加载工作区…</div>
+  return <div role="status" className="flex min-h-dvh items-center justify-center gap-3 bg-slate-50 text-sm text-sky-800"><span className="h-5 w-5 animate-spin rounded-full border-2 border-sky-200 border-t-sky-600" aria-hidden="true" />正在加载页面…</div>
 }
 
 export default function App() {
@@ -90,6 +91,7 @@ export default function App() {
       <Route element={<AppLayout />}>
         {/* Public */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/community/leaderboard" element={<CommunityLeaderboardPage />} />
         <Route path="/community/:postId" element={<CommunityPostPage />} />

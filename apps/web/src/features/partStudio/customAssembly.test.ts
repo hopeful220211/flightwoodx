@@ -55,4 +55,36 @@ describe('自制件来源与运行时几何', () => {
       expect(() => buildCustomGeometry({ ...record.geometry, contour })).toThrow()
     }
   })
+
+  it('uses the strict shared path and measured-bounds contract for previews and restored sources', () => {
+    const instance = makeCustomInstance(record, 'owner-a')
+    for (const geometry of [
+      { ...record.geometry, bboxMm: { w: 41, h: 20 } },
+      { ...record.geometry, contour: 'M0 0 L40 0@ L40 20 L0 20 Z' },
+      { ...record.geometry, contour: 'M0 0 L40 0 M40 20 L0 20 Z' },
+    ]) {
+      expect(() => buildCustomGeometry(geometry)).toThrow()
+      expect(() => resolveCustomPart({ ...record, geometry }, instance, 'owner-a')).toThrow(/来源引用仍保留/)
+    }
+  })
+
+  it('uses readable wood UVs at millimetre scale without changing the geometry', () => {
+    const geometry = buildCustomGeometry(record.geometry)
+    const uv = geometry.getAttribute('uv')
+    const positions = geometry.getAttribute('position')
+    const cap = geometry.groups[0]!
+    const us: number[] = [], vs: number[] = []
+    for (let i = cap.start; i < cap.start + cap.count; i++) {
+      us.push(uv.getX(i)); vs.push(uv.getY(i))
+      expect(Math.abs(positions.getY(i))).toBeCloseTo(0.001)
+    }
+    expect(Math.max(...us) - Math.min(...us)).toBeCloseTo(1)
+    expect(Math.max(...vs) - Math.min(...vs)).toBeCloseTo(0.5)
+    expect(Array.from(uv.array).every(Number.isFinite)).toBe(true)
+    geometry.dispose()
+  })
+
+  it('rejects a runtime caller trying to override the fixed board thickness', () => {
+    expect(() => buildCustomGeometry({ ...record.geometry, thicknessMm: 20 as 2 })).toThrow()
+  })
 })

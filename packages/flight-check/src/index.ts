@@ -81,14 +81,14 @@ export function evaluateFlightRules(
   const issues: FlightIssue[] = []
 
   if (!input.hasMainboard || input.motorCount === 0) {
-    issues.push({ code: 'STRUCTURE_MISSING', message: `先装好主板和 ${required} 个起落架` })
+    issues.push({ code: 'STRUCTURE_MISSING', message: `当前检查要求包含主板和 ${required} 个起落架，请核对零件清单` })
   } else if (input.motorCount !== required) {
     issues.push({
       code: 'ARM_COUNT_ILLEGAL',
       message:
         input.motorCount < required
-          ? `还差 ${required - input.motorCount} 个起落架，装满 ${required} 个`
-          : `起落架要正好 ${required} 个（现在 ${input.motorCount} 个）`,
+          ? `当前检查要求 ${required} 个起落架，还缺 ${required - input.motorCount} 个`
+          : `当前检查要求 ${required} 个起落架，现有 ${input.motorCount} 个`,
     })
   }
 
@@ -107,13 +107,13 @@ export function evaluateFlightRules(
   }
 
   if (input.symmetryPercent < evidence.minSymmetryPercent) {
-    issues.push({ code: 'ASYMMETRIC', message: '左右不平，调一下更稳' })
+    issues.push({ code: 'ASYMMETRIC', message: '对称性指标未达到当前验证配置的要求' })
   }
   if (input.totalWeightG <= 0 || input.totalWeightG > evidence.maxWeightG) {
-    issues.push({ code: 'OVERWEIGHT', message: '太重了，减一点装饰' })
+    issues.push({ code: 'OVERWEIGHT', message: '质量值无效或超出当前验证配置的范围' })
   }
   if (input.thrustWeightRatio === null || input.thrustWeightRatio < evidence.minThrustWeightRatio) {
-    issues.push({ code: 'UNDERPOWERED', message: '当前动力配置不足，请使用已验证套件配置' })
+    issues.push({ code: 'UNDERPOWERED', message: '动力数据缺失或未达到当前验证配置的要求' })
   }
 
   const checks = [

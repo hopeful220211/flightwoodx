@@ -22,14 +22,14 @@ export function EmptyCanvasGuide({ onLoadExample }: EmptyCanvasGuideProps) {
         <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50">
           <Blocks size={28} className="text-sky-400" />
         </div>
-        <h3 className="text-base font-semibold text-ink-700">动手搭一架会飞的程序吧</h3>
+        <h3 className="text-base font-semibold text-ink-700">编写飞行程序</h3>
         <p className="mt-1.5 text-sm text-ink-500">
-          把左边的积木拖到这里，像搭积木一样给无人机下命令。
+          将工具箱中的积木拖入画布并依次连接，设置动作和参数。
         </p>
         <Button size="sm" className="pointer-events-auto mt-4 w-full" onClick={onLoadExample} leftIcon={<Wand2 size={15} />}>
           从示例开始
         </Button>
-        <p className="mt-2 text-xs text-ink-400">或者，直接从左边拖一块「起飞」开始</p>
+        <p className="mt-2 text-xs text-ink-400">运行后在模拟场景中查看指令执行过程。</p>
       </div>
     </div>
   )

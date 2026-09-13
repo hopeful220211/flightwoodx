@@ -97,7 +97,7 @@ export function CommunityPostPage() {
   const onLike = () => {
     if (!post) return
     if (!isLoggedIn) {
-      toast.push('info', '登录后才能点赞哦')
+      toast.push('info', '请先登录再点赞')
       return
     }
     toggleLike.mutate({ id: post.id, liked: post.likedByMe })
@@ -106,7 +106,7 @@ export function CommunityPostPage() {
   const onShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href)
-      toast.push('success', '链接已复制，可以分享给同学了')
+      toast.push('success', '链接已复制')
     } catch {
       toast.push('info', '复制失败，请手动复制网址')
     }
@@ -242,7 +242,7 @@ export function CommunityPostPage() {
                     作品介绍
                   </h2>
                   <p className="mt-4 whitespace-pre-wrap text-[18px] leading-[1.6] text-black/70">
-                    {post.description || '这位创作者还没有写作品介绍，但作品本身已经在说话啦。'}
+                    {post.description || '作者尚未填写作品介绍。'}
                   </p>
                 </div>
 
@@ -347,7 +347,7 @@ export function CommunityPostPage() {
                 <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50 ring-1 ring-sky-100">
                   <Boxes size={26} className="text-sky-300" />
                 </div>
-                <p className="text-lg font-medium text-black/80 fwx-display">这是示例作品</p>
+                <p className="text-lg font-medium text-black/80 fwx-display">暂无模型数据</p>
                 <p className="mt-1.5 text-sm text-black/50">暂无可旋转的 3D 模型 / 零件清单</p>
               </section>
             )}

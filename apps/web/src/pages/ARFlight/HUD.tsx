@@ -34,7 +34,7 @@ export function HUD({ altitude, onExit, onFirstTouch }: HUDProps) {
       <div className="pointer-events-none absolute top-6 left-6 flex items-center gap-2">
         <MapPin size={16} className="text-white drop-shadow-md" />
         <span className="text-sm font-medium text-white drop-shadow-md">
-          高度：{altitude.toFixed(1)}m
+          模拟高度：{altitude.toFixed(1)}m
         </span>
       </div>
 
@@ -42,7 +42,7 @@ export function HUD({ altitude, onExit, onFirstTouch }: HUDProps) {
       <button
         onClick={onExit}
         className="pointer-events-auto absolute top-6 right-6 flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
-        aria-label="退出 AR 试飞"
+        aria-label="退出摄像头模拟"
       >
         <X size={20} />
       </button>
@@ -53,7 +53,7 @@ export function HUD({ altitude, onExit, onFirstTouch }: HUDProps) {
           className="pointer-events-none absolute bottom-32 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 backdrop-blur-sm rounded-md text-sm text-white text-center whitespace-nowrap transition-opacity duration-500"
           style={{ opacity: showHint ? 1 : 0 }}
         >
-          👈 左摇杆控制升降和左右移动 &nbsp;&nbsp; 右摇杆控制前后和旋转 👉
+          左摇杆：升降、左右移动 &nbsp;&nbsp; 右摇杆：前后移动、旋转
         </div>
       )}
 
@@ -96,8 +96,8 @@ function LandscapePrompt() {
     <div className="pointer-events-auto fixed inset-0 z-50 bg-black/70 flex items-center justify-center">
       <div className="bg-ink-900 rounded-lg p-8 text-center max-w-sm mx-4">
         <p className="text-3xl mb-3">🔄</p>
-        <p className="text-lg font-medium text-white mb-2">建议横屏体验</p>
-        <p className="text-sm text-ink-400 mb-6">请把设备转到横屏，操控更舒适</p>
+        <p className="text-lg font-medium text-white mb-2">建议使用横屏</p>
+        <p className="text-sm text-ink-400 mb-6">横屏可同时查看画面和两个摇杆。</p>
         <button
           onClick={() => setShow(false)}
           className="px-6 py-2 text-sm font-medium text-white bg-wood-500 rounded-md hover:brightness-[0.92]"

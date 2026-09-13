@@ -44,7 +44,7 @@ export function FlightPlanPanel({ ir, compileError }: FlightPlanPanelProps) {
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-sky-100 px-4 py-2.5">
         {devView ? <Code2 size={16} className="text-sky-500" /> : <ListChecks size={16} className="text-sky-500" />}
-        <h3 className="text-sm font-semibold text-ink-700">{devView ? '指令协议 IR' : '飞行计划'}</h3>
+        <h3 className="text-sm font-semibold text-ink-700">{devView ? '程序指令数据（IR）' : '飞行计划'}</h3>
         {lines.length > 0 && (
           <span className="ml-auto text-xs text-ink-400">{lines.length} 步</span>
         )}
@@ -52,7 +52,7 @@ export function FlightPlanPanel({ ir, compileError }: FlightPlanPanelProps) {
           type="button"
           onClick={() => setDevView(v => !v)}
           className={`${lines.length > 0 ? 'ml-2' : 'ml-auto'} inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs transition hover:bg-sky-100 ${devView ? 'text-sky-600' : 'text-ink-400'}`}
-          title={devView ? '切回飞行计划' : '开发者视图（原始 IR）'}
+          title={devView ? '查看程序步骤' : '查看程序指令数据（IR）'}
         >
           {devView ? <Eye size={13} /> : <Code2 size={13} />}
           <span className="hidden sm:inline">{devView ? '飞行计划' : '开发者'}</span>
@@ -72,7 +72,7 @@ export function FlightPlanPanel({ ir, compileError }: FlightPlanPanelProps) {
               {serializeProgram(ir)}
             </pre>
           ) : (
-            <p className="text-sm text-ink-400 text-center py-8">还没有可显示的 IR</p>
+            <p className="text-sm text-ink-400 text-center py-8">暂无可显示的程序指令数据</p>
           )
         ) : lines.length > 0 ? (
           <ol className="space-y-1.5">
@@ -99,8 +99,8 @@ export function FlightPlanPanel({ ir, compileError }: FlightPlanPanelProps) {
         ) : (
           <div className="text-center py-8">
             <ListChecks size={32} className="mx-auto text-sky-200 mb-2" />
-            <p className="text-sm text-ink-400">右边会把积木变成看得懂的飞行步骤</p>
-            <p className="text-xs text-ink-400 mt-1">先从左边拖一块积木试试</p>
+            <p className="text-sm text-ink-400">连接积木后，这里按顺序显示程序步骤。</p>
+            <p className="text-xs text-ink-400 mt-1">从工具箱拖入积木并设置参数。</p>
           </div>
         )}
       </div>

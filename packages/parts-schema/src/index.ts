@@ -83,9 +83,9 @@ export type PartRegistryEntry = z.infer<typeof PartRegistryEntrySchema>;
 // 前端按此实时挤出 3D / 落库，后端按此存档与复核。存的是 JSON，不是 3D 文件。坐标单位 mm。
 // 用户零件只允许结构件；MOTOR/PROP 不属于本契约。
 
-// 用户零件类别：只允许四种结构件。独立枚举，与官方 6 类 PartCategoryEnum 解耦；
+// 用户零件类别：允许主板与原有四种结构件。独立枚举，与官方 6 类 PartCategoryEnum 解耦；
 // deco 是独立用户类别（不走 DECO→joint 旧 alias）。
-export const UserPartCategoryEnum = z.enum(['guard', 'joint', 'deco', 'landing']);
+export const UserPartCategoryEnum = z.enum(['mainboard', 'guard', 'joint', 'deco', 'landing']);
 export type UserPartCategory = z.infer<typeof UserPartCategoryEnum>;
 
 // SVG path 的 d 字符串（可含曲线）。外轮廓与内孔都用它承载，取代旧的点多边形。
@@ -182,7 +182,7 @@ export type UserPartStats = z.infer<typeof UserPartStatsSchema>;
 // 用户零件定义本体（前端创作 + 提交的部分；不含 id / ownerId / 时间戳，那些由后端补）。
 export const UserPartDefSchema = z.object({
   name: z.string().trim().min(1).max(40),
-  category: UserPartCategoryEnum,                     // 只能是四结构类
+  category: UserPartCategoryEnum,                     // 只允许五种结构类，不含电机/螺旋桨
   geometry: UserPartGeometrySchema,
   sockets: z
     .array(UserPartSocketSchema)
@@ -304,7 +304,7 @@ export const DroneDesignSnapshotSchema = z.object({
     ids.add(part.instanceId);
     if (part.source) {
       if (snapshot.buildMode !== 'free' || part.partId !== `custom_${part.source.id}` ||
-          !['landing', 'guard', 'joint'].includes(part.category) || part.activeConnectorId || part.attachedTo) {
+          !['mainboard', 'landing', 'guard', 'joint'].includes(part.category) || part.activeConnectorId || part.attachedTo) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['parts', index], message: '自制件仅支持保留来源的自由摆放，不能声明连接或作为官方件' });
       }
     } else if (part.partId.startsWith('custom_')) {

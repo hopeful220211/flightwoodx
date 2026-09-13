@@ -18,6 +18,17 @@ describe('catalogue mass is not a verified flight limit', () => {
     expect(checkBeforeAdd('landing', 'arm_01', landings)?.id).toBe('landing-max')
   })
 
+  it.each([
+    { category: 'mainboard' as const, limit: 2, message: '主板数量已达上限：2 块。' },
+    { category: 'landing' as const, limit: 8, message: '起落架数量已达上限：8 个。' },
+    { category: 'guard' as const, limit: 4, message: '保护板数量已达上限：4 个。' },
+  ])('states the $category quantity limit without changing the allowed boundary', ({ category, limit, message }) => {
+    const parts = Array.from({ length: limit }, (_, index) => ({ ...board(`part-${index}`, 0, [0, 0, 0]), category }))
+    expect(checkBeforeAdd(category, 'test-part', parts.slice(0, limit - 1))).toBeNull()
+    expect(checkBeforeAdd(category, 'test-part', parts)).toMatchObject({ id: `${category}-max`, level: 'error', message })
+    expect(checkBeforeAdd(category, 'test-part', [...parts, { ...parts[0], instanceId: 'extra' }])).toMatchObject({ id: `${category}-max`, level: 'error', message })
+  })
+
   it('does not use unconnected custom categories to consume the official part quota', () => {
     const custom = Array.from({ length: 8 }, (_, n) => ({ ...board(`custom-${n}`, 0, [0, 0, 0]), category: 'landing' as const, source: { kind: 'custom' as const, id: `source-${n}`, version: 1, updatedAt: '2026-09-07T00:00:00.000Z' } }))
     expect(checkBeforeAdd('landing', 'arm_01', custom)).toBeNull()

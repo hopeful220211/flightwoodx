@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { ArrowRight, Play, Trophy, Puzzle, ChevronDown, Rocket } from 'lucide-react'
+import { ArrowRight, Play, ChevronDown } from 'lucide-react'
 import { Button } from '../../../components/common/Button'
 import { HeroHonors } from './hero/HeroHonors'
 import { HeroDrone3D } from './hero/HeroDrone3D'
@@ -61,14 +61,14 @@ export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
               {/* Chinese subtitle */}
               <AnimatedEntry delay={400}>
                 <p className="font-display text-[clamp(26px,3.5vw,38px)] font-medium text-sky-800">
-                  动手造，会飞的
+                  翼想飞木无人机搭建平台
                 </p>
               </AnimatedEntry>
 
               {/* Description */}
               <AnimatedEntry delay={520}>
                 <p className="max-w-lg text-[17px] leading-relaxed text-sky-900/70">
-                  不上一根钉子的榫卯木工，拼一架真能飞的无人机
+                  在这里设计、制作、测试你的第一架无人机
                   <br />
                   设计 ｜ 搭建 ｜ 导出 ｜ 社区分享
                 </p>
@@ -95,32 +95,6 @@ export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
                 </Button>
               </AnimatedEntry>
 
-              {/* Real achievement metrics */}
-              <AnimatedEntry delay={800}>
-                <div className="grid grid-cols-3 gap-6 pt-4">
-                  <div className="flex items-start gap-3">
-                    <Trophy size={20} className="mt-0.5 text-[#E8B530] shrink-0" />
-                    <div>
-                      <div className="font-display text-2xl font-semibold text-sky-900">3 项</div>
-                      <div className="text-sm text-sky-600/70">全球设计大奖</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Puzzle size={20} className="mt-0.5 text-sky-400 shrink-0" />
-                    <div>
-                      <div className="font-display text-2xl font-semibold text-sky-900">77 个</div>
-                      <div className="text-sm text-sky-600/70">标准化零件</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Rocket size={20} className="mt-0.5 text-sky-400 shrink-0" />
-                    <div>
-                      <div className="font-display text-2xl font-semibold text-sky-900">5 步搭完</div>
-                      <div className="text-sm text-sky-600/70">跟着引导一步步来</div>
-                    </div>
-                  </div>
-                </div>
-              </AnimatedEntry>
             </div>
 
             {/* Right column: drone images */}

@@ -32,7 +32,7 @@ for (const viewport of [
     await preview.scrollIntoViewIfNeeded()
     await expect.poll(() => preview.locator('img').evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
     expect(mediaRequests).toEqual([])
-    await expect(page.locator('video')).toHaveCount(0)
+    await expect(page.getByRole('region', { name: '产品视频', exact: true }).locator('video')).toHaveCount(0)
 
     const hero = await page.locator('#home-hero').boundingBox()
     const poster = await preview.boundingBox()
@@ -44,7 +44,7 @@ for (const viewport of [
     const boundary = hero!.y + hero!.height
     expect(boundary - poster!.y).toBeGreaterThan(poster!.height * 0.15)
     expect(boundary - poster!.y).toBeLessThan(poster!.height * 0.4)
-    const next = page.getByRole('heading', { name: '不只是又一个 STEAM 玩具' })
+    const next = page.getByRole('heading', { name: '平台功能' })
     expect((await next.boundingBox())!.y).toBeGreaterThan(poster!.y + poster!.height)
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
     if (viewport.width === 768) await preview.press('Enter')

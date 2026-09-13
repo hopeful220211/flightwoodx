@@ -5,6 +5,7 @@ import { useDesignStore } from '../../stores/designStore'
 import { useAuthStore } from '../../stores/authStore'
 import { buildCustomGeometry } from './customAssembly'
 import { useCustomAssemblyPart } from './useCustomAssemblyPart'
+import { createWoodMaterial } from '../../components/design/woodMaterial'
 
 export type CustomPartReadiness = { status: 'loading' | 'ready' } | { status: 'error'; error: Error }
 type ReadinessCallback = (instanceId: string, readiness: CustomPartReadiness) => void
@@ -12,14 +13,20 @@ type ReadinessCallback = (instanceId: string, readiness: CustomPartReadiness) =>
 function SourceMesh({ part, instance, interactive, onReady }: { part: UserPart; instance: DesignPartInstance; interactive: boolean; onReady?: () => void }) {
   const geometry = useMemo(() => buildCustomGeometry(part.geometry), [part.geometry])
   const selected = useDesignStore(state => state.selectedInstanceId === instance.instanceId)
+  const material = useMemo(() => {
+    const next = createWoodMaterial()
+    next.emissive.set(selected && interactive ? '#FFB74D' : '#000000')
+    next.emissiveIntensity = selected && interactive ? 0.35 : 0
+    return next
+  }, [selected, interactive])
   const bounds = useBounds()
   useEffect(() => () => geometry.dispose(), [geometry])
+  // Keep the shared texture alive for other pieces and cover rendering.
+  useEffect(() => () => material.dispose(), [material])
   useEffect(() => { bounds?.refresh().clip().fit() }, [bounds, geometry])
   // Passive effects run after R3F has attached this real mesh to its group.
   useEffect(() => { onReady?.() }, [geometry, onReady])
-  return <mesh geometry={geometry} castShadow receiveShadow onClick={interactive ? event => { event.stopPropagation(); useDesignStore.getState().setSelectedInstanceId(instance.instanceId) } : undefined}>
-    <meshStandardMaterial color={selected && interactive ? '#e9ad48' : '#cba77a'} roughness={0.82} />
-  </mesh>
+  return <mesh geometry={geometry} material={material} castShadow receiveShadow onClick={interactive ? event => { event.stopPropagation(); useDesignStore.getState().setSelectedInstanceId(instance.instanceId) } : undefined} />
 }
 
 /** No GLB alias or invented sockets: render the authenticated source contour, or a visible failure. */

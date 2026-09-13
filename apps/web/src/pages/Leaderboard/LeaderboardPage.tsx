@@ -34,9 +34,9 @@ async function fetchLeaderboard(): Promise<LeaderRow[]> {
  * grad/badge 走浅色金银铜（装饰），score 走 *-600 深一档 —— 大字在白底达 WCAG AA。
  */
 const PODIUM = {
-  1: { grad: 'from-amber-300 to-amber-500', badge: 'bg-amber-400', label: '冠军', score: 'text-amber-600', glow: 'shadow-[0_18px_50px_rgba(245,180,30,.30)]' },
-  2: { grad: 'from-slate-300 to-slate-400', badge: 'bg-slate-400', label: '亚军', score: 'text-slate-600', glow: 'shadow-lift' },
-  3: { grad: 'from-orange-300 to-orange-500', badge: 'bg-orange-400', label: '季军', score: 'text-orange-600', glow: 'shadow-lift' },
+  1: { grad: 'from-amber-300 to-amber-500', badge: 'bg-amber-400', label: '第 1 名', score: 'text-amber-600', glow: 'shadow-[0_18px_50px_rgba(245,180,30,.30)]' },
+  2: { grad: 'from-slate-300 to-slate-400', badge: 'bg-slate-400', label: '第 2 名', score: 'text-slate-600', glow: 'shadow-lift' },
+  3: { grad: 'from-orange-300 to-orange-500', badge: 'bg-orange-400', label: '第 3 名', score: 'text-orange-600', glow: 'shadow-lift' },
 } as const
 
 function likeText(n: number) {
@@ -64,13 +64,13 @@ export function LeaderboardPage() {
         {/* ── Hero ── */}
         <header className="mb-10 lg:mb-14">
           <span className="fwx-display inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-[12px] font-medium uppercase tracking-[0.2em] text-sky-600 ring-1 ring-sky-100 backdrop-blur">
-            <Trophy size={12} /> Leaderboard · 点赞排行榜
+            <Trophy size={12} /> 社区榜单
           </span>
           <h1 className="fwx-display mt-5 font-semibold leading-[1.05] tracking-tight text-black/90 [font-size:max(40px,4.5vw)]">
-            人气作品榜
+            点赞排行榜
           </h1>
           <p className="mt-4 max-w-xl text-[18px] leading-relaxed text-black/55">
-            社区里被点赞最多的木质飞行器，按总点赞数从高到低排名。点开任意一架，看看它凭什么火。
+            按总点赞数展示社区公开作品，最多显示 30 件。点击作品可查看详情。
           </p>
         </header>
 
@@ -91,12 +91,12 @@ export function LeaderboardPage() {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-soft ring-1 ring-sky-100">
               <Sparkles size={24} className="text-sky-300" />
             </div>
-            <p className="text-[15px] text-black/55">榜单还空着，去给喜欢的作品点个赞，把它送上榜吧！</p>
+            <p className="text-[15px] text-black/55">排行榜暂无作品。</p>
             <Link
               to="/community"
               className={`mt-5 inline-flex items-center rounded-full bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sky-glow transition-all hover:bg-sky-600 ${EASE}`}
             >
-              逛逛作品广场
+              查看社区作品
             </Link>
           </div>
         ) : (

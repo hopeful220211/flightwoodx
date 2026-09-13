@@ -21,6 +21,7 @@ for (const viewport of [
 
     await page.setViewportSize(viewport)
     await page.goto('/')
+    await expect(page.locator('#home-hero')).not.toContainText(/3 项|全球设计大奖|77 个|标准化零件|5 步搭完|跟着引导一步步来/)
     const honors = page.getByRole('group', { name: '获奖荣誉', exact: true })
     await expect(honors).toBeVisible()
     await expect(honors).toHaveCSS('opacity', '1')

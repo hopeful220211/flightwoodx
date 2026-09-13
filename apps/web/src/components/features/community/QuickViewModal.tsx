@@ -58,7 +58,7 @@ export function QuickViewModal({ postId, onClose }: { postId: string; onClose: (
   const onLike = useCallback(() => {
     if (!post) return
     if (!isLoggedIn) {
-      toast.push('info', '登录后才能点赞哦')
+      toast.push('info', '请先登录再点赞')
       return
     }
     toggleLike.mutate({ id: post.id, liked: post.likedByMe })

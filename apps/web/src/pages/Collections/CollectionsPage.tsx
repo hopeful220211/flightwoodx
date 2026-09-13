@@ -39,7 +39,7 @@ export function CollectionsPage() {
   const submit = () => {
     const trimmed = name.trim()
     if (!trimmed) {
-      toast.push('warning', '请先给合集起个名字')
+      toast.push('warning', '请输入合集名称')
       return
     }
     createCollection.mutate(
@@ -121,7 +121,7 @@ export function CollectionsPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-soft ring-1 ring-sky-100">
             <FolderHeart size={24} className="text-sky-300" />
           </div>
-          <p className="text-black/55">还没有合集，去社区收藏喜欢的作品吧</p>
+          <p className="text-black/55">暂无合集。新建合集后，可以收藏社区作品。</p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
             <button
               onClick={() => setModalOpen(true)}
@@ -133,7 +133,7 @@ export function CollectionsPage() {
               onClick={() => nav('/community')}
               className="inline-flex items-center rounded-full border border-sky-200 bg-white px-5 py-2.5 text-sm font-semibold text-black/75 shadow-soft transition hover:border-sky-300 hover:bg-sky-50"
             >
-              逛逛作品广场
+              查看社区作品
             </button>
           </div>
         </div>
@@ -185,7 +185,7 @@ export function CollectionsPage() {
           />
           <Input
             label="描述（可选）"
-            placeholder="一句话说说这个合集"
+            placeholder="填写合集内容或用途"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -215,7 +215,7 @@ function Hero({ action }: { action?: React.ReactNode }) {
         </span>
         <h1 className="fwx-display mt-4 text-4xl font-semibold tracking-tight text-black/90 lg:text-5xl">我的收藏</h1>
         <p className="mt-3 max-w-xl text-black/55">
-          把喜欢的木质飞行器收进合集，像收藏夹一样分门别类，随时回来看，或者复用它们的设计。
+          将社区作品按主题保存到合集，方便查找和再次查看。可以设置合集为公开或私密。
         </p>
       </div>
       {action}

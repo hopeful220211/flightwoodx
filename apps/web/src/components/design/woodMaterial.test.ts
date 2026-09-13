@@ -92,3 +92,20 @@ it('retries with a new texture without making an older failed scene ready', asyn
   await expect(waitForWoodTextures(failedScene)).rejects.toThrow('木纹加载失败')
   expect(THREE.ImageLoader.prototype.load).toHaveBeenCalledTimes(2)
 })
+
+it('gives generated pieces the exact same wood material and texture as official pieces', async () => {
+  const { createWoodMaterial, prepareWoodScene, waitForWoodTextures } = await import('./woodMaterial')
+  const official = prepareWoodScene(sourceMesh()) as ReturnType<typeof sourceMesh>
+  const material = createWoodMaterial()
+  const generated = new THREE.Mesh(new THREE.BoxGeometry(), material)
+  expect(material.map).toBe(official.material.map)
+  expect(material.color.equals(official.material.color)).toBe(true)
+  expect(material.roughness).toBe(official.material.roughness)
+  expect(material.metalness).toBe(official.material.metalness)
+  expect(material.envMapIntensity).toBe(official.material.envMapIntensity)
+  const ready = waitForWoodTextures(generated)
+  finishImageLoad!()
+  await expect(ready).resolves.toBeUndefined()
+  material.dispose()
+  expect(official.material.map!.image).toBe(image)
+})

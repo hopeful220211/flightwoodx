@@ -2,21 +2,21 @@ import { ScrollReveal } from '../../../components/common/ScrollReveal'
 import { SectionHeading } from '../components/SectionHeading'
 
 const stages = [
-  { num: '01', title: '认识榫卯', desc: '传统工艺入门，理解结构基础' },
-  { num: '02', title: '设计基础', desc: '进入设计工作台，学习飞行原理' },
-  { num: '03', title: '制作实战', desc: '亲手拼装零件，完成组装' },
-  { num: '04', title: '试飞调试', desc: '试飞，飞不好就自己找原因再改' },
+  { num: '01', title: '绘制或选择零件', desc: '在零件工坊绘图，或从零件库选择已有部件。' },
+  { num: '02', title: '拼装机体', desc: '将零件加入工作台，调整位置并查看三维结构。' },
+  { num: '03', title: '编写程序', desc: '用积木安排起飞、移动和降落等动作。' },
+  { num: '04', title: '模拟与保存', desc: '查看程序运行过程，调整后保存作品和程序。' },
 ]
 
 export function CurriculumSection() {
   return (
-    <section className="bg-white py-24 lg:py-32">
+    <section id="home-usage-steps" className="bg-white py-24 lg:py-32">
       <div className="mx-auto max-w-6xl px-4">
         <ScrollReveal className="mb-16">
           <SectionHeading
-            eyebrow="四步造一架"
-            title="从想到做到飞"
-            lead="从认识榫卯，到亲手把它送上天。"
+            eyebrow="操作流程"
+            title="使用步骤"
+            lead="从零件设计开始，依次进行拼装、编程和模拟。"
           />
         </ScrollReveal>
 

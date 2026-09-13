@@ -1,90 +1,116 @@
-// features/partStudio/preview3d/ExtrudePreview.tsx
-//
-// 右侧 3D 实时预览（RFC-021 §7 "立起来"）：2D 闭合轮廓 → THREE.Shape → ExtrudeGeometry。
-// 绕向校正（§2 坑①）：转到 shape 空间后强制外轮廓 CCW，否则面法线翻转/破面。
-// 与 paper.js 解耦：这里只吃"点"，自己建几何（§2 坑②）。
-
-import { useMemo, useEffect } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Component, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import * as THREE from 'three'
-import type { Point2D } from '../types'
-import { ensureWinding } from '../geometry/winding'
+import { Mesh, PerspectiveCamera, Vector3 } from 'three'
+import type { UserPartGeometry } from '@fwx/parts-schema'
+import { createWoodMaterial, waitForWoodTextures } from '../../../components/design/woodMaterial'
+import { SceneLighting } from '../../../components/design/SceneLighting'
+import { buildCustomGeometry } from '../customAssembly'
+import { getPreviewFrame, type PreviewView } from './fitPreview'
 
-const WOOD = '#C8954C'
+const VIEWS: { id: PreviewView; label: string }[] = [
+  { id: 'perspective', label: '立体' }, { id: 'top', label: '俯视' }, { id: 'side', label: '侧视' },
+]
 
-/** 画布坐标(y 向下) → 居中归一化的 shape 点(y 向上, 最长边约 2 单位)。 */
-function normalizeToShapeSpace(outline: Point2D[]): Point2D[] {
-  let minX = Infinity
-  let minY = Infinity
-  let maxX = -Infinity
-  let maxY = -Infinity
-  for (const [x, y] of outline) {
-    if (x < minX) minX = x
-    if (x > maxX) maxX = x
-    if (y < minY) minY = y
-    if (y > maxY) maxY = y
-  }
-  const cx = (minX + maxX) / 2
-  const cy = (minY + maxY) / 2
-  const span = Math.max(maxX - minX, maxY - minY) || 1
-  const scale = 2 / span
-  // y 取负 → 翻转画布的"向下"为 3D 的"向上"
-  return outline.map(([x, y]) => [(x - cx) * scale, -(y - cy) * scale] as Point2D)
-}
-
-function buildGeometry(outline: Point2D[], thickness: number): THREE.ExtrudeGeometry {
-  const pts = ensureWinding(normalizeToShapeSpace(outline), true) // 外轮廓 CCW
-  const shape = new THREE.Shape()
-  shape.moveTo(pts[0][0], pts[0][1])
-  for (let i = 1; i < pts.length; i++) shape.lineTo(pts[i][0], pts[i][1])
-  shape.closePath()
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: thickness,
-    bevelEnabled: false,
-    steps: 1,
-  })
-  geo.center()
-  geo.computeVertexNormals()
-  return geo
-}
-
-interface ExtrudePreviewProps {
-  outline: Point2D[] | null
-  /** 视觉厚度（归一化单位）。真实板厚 mm 映射在 M2 存盘时处理。 */
-  thickness?: number
-}
-
-export function ExtrudePreview({ outline, thickness = 0.32 }: ExtrudePreviewProps) {
-  const geometry = useMemo(() => {
-    if (!outline || outline.length < 3) return null
-    try {
-      return buildGeometry(outline, thickness)
-    } catch {
-      return null
-    }
-  }, [outline, thickness])
-
-  // 卸载/替换时释放上一份几何，避免显存泄漏
+function PreviewScene({ mesh, view, reset }: { mesh: Mesh; view: PreviewView; reset: number }) {
+  const controls = useRef<ComponentRef<typeof OrbitControls>>(null)
+  const getRendererState = useThree(state => state.get)
+  const size = useThree(state => state.size)
+  const dimensions = useMemo(() => {
+    mesh.geometry.computeBoundingBox()
+    return mesh.geometry.boundingBox!.getSize(new Vector3()).toArray()
+  }, [mesh])
+  const frame = useMemo(() => getPreviewFrame(dimensions, size.width / Math.max(size.height, 1), view), [dimensions, size.width, size.height, view])
   useEffect(() => {
-    return () => {
-      geometry?.dispose()
+    const { camera, invalidate } = getRendererState()
+    if (!(camera instanceof PerspectiveCamera)) return
+    camera.position.fromArray(frame.position)
+    camera.up.fromArray(frame.up)
+    camera.near = frame.near
+    camera.far = frame.far
+    camera.lookAt(0, 0, 0)
+    camera.updateProjectionMatrix()
+    controls.current?.target.set(0, 0, 0)
+    controls.current?.update()
+    invalidate()
+  }, [getRendererState, frame, reset])
+  return <>
+    <color attach="background" args={['#F5F9FF']} />
+    <SceneLighting />
+    <primitive object={mesh} />
+    <gridHelper args={[frame.gridSize, frame.gridDivisions, '#B8CDDF', '#E2ECF7']} position={[0, -dimensions[1] / 2 - 0.0002, 0]} />
+    <OrbitControls ref={controls} enablePan={false} enableDamping={false} minDistance={frame.minDistance} maxDistance={frame.maxDistance} />
+  </>
+}
+
+function PreviewFailure({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return <div className="flex h-full min-h-[320px] items-center justify-center p-6"><div role="alert" className="max-w-xs rounded-lg border border-amber-200 bg-white p-4 text-sm text-amber-900"><p>{message}</p><button type="button" onClick={onRetry} className="mt-3 min-h-11 rounded-lg bg-sky-600 px-4 py-2 font-medium text-white">重试预览</button></div></div>
+}
+
+function PreviewContent({ geometry, onRetry }: { geometry: UserPartGeometry; onRetry: () => void }) {
+  const [view, setView] = useState<PreviewView>('perspective')
+  const [reset, setReset] = useState(0)
+  const [ready, setReady] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const result = useMemo(() => {
+    try {
+      const mesh = new Mesh(buildCustomGeometry(geometry), createWoodMaterial())
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+      return { mesh, error: null }
+    } catch (cause) {
+      return { mesh: null, error: cause instanceof Error ? cause.message : '无法生成三维预览' }
     }
   }, [geometry])
+  useEffect(() => {
+    if (!result.mesh) return
+    let active = true
+    void waitForWoodTextures(result.mesh).then(() => {
+      if (active) setReady(true)
+    }).catch(() => {
+      if (active) setError('木纹加载失败，请重试。二维轮廓仍保留。')
+    })
+    return () => {
+      active = false
+      result.mesh.geometry.dispose()
+      result.mesh.material.dispose()
+    }
+  }, [result])
+  if (!result.mesh || result.error) return <PreviewFailure message="当前轮廓无法生成三维预览，请检查二维轮廓。" onRetry={onRetry} />
+  if (error) return <PreviewFailure message={error} onRetry={onRetry} />
+  const gridStepMm = Math.max(geometry.bboxMm.w, geometry.bboxMm.h) > 500 ? 50 : 10
+  return <div className="flex h-full min-h-[420px] w-full flex-col" data-testid="part-3d-preview" data-wood-ready={ready}>
+    <div data-testid="part-3d-toolbar" className="flex shrink-0 flex-wrap items-start justify-between gap-2 px-3 pt-3">
+      <div className="rounded-lg border border-sky-100 bg-white/95 px-3 py-2 text-xs leading-5 text-ink-700">
+        <p className="font-semibold">{geometry.bboxMm.w} × {geometry.bboxMm.h} × {geometry.thicknessMm} mm</p>
+        <p>木板厚度 2 mm · 网格 {gridStepMm} mm</p>
+      </div>
+      <div className="flex gap-1 rounded-lg border border-sky-100 bg-white/95 p-1" role="group" aria-label="三维视角">
+        {VIEWS.map(item => <button key={item.id} type="button" aria-pressed={view === item.id} onClick={() => setView(item.id)} className={`min-h-11 rounded-md px-3 text-xs ${view === item.id ? 'bg-sky-100 font-semibold text-ink-900' : 'text-ink-600 hover:bg-sky-50'}`}>{item.label}</button>)}
+        <button type="button" onClick={() => { setView('perspective'); setReset(value => value + 1) }} className="min-h-11 rounded-md px-3 text-xs text-ink-600 hover:bg-sky-50">复位</button>
+      </div>
+    </div>
+    <div data-testid="part-3d-viewport" className="relative min-h-0 flex-1">
+      <Canvas camera={{ position: [0.2, 0.2, 0.2], fov: 42, near: 0.00001, far: 10 }} style={{ width: '100%', height: '100%' }}>
+        <PreviewScene mesh={result.mesh} view={view} reset={reset} />
+      </Canvas>
+    </div>
+    <p data-testid="part-3d-hint" role={ready ? undefined : 'status'} className="shrink-0 px-3 py-2 text-xs text-ink-600">{ready ? '拖动旋转 · 滚轮缩放' : '正在加载木纹…'}</p>
+  </div>
+}
 
-  return (
-    <Canvas camera={{ position: [2.4, 2.2, 2.8], fov: 45 }} style={{ width: '100%', height: '100%' }}>
-      <color attach="background" args={['#F5F9FF']} />
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[4, 6, 3]} intensity={1.1} />
-      <directionalLight position={[-3, 2, -4]} intensity={0.4} />
-      {geometry && (
-        <mesh geometry={geometry} castShadow>
-          <meshStandardMaterial color={WOOD} roughness={0.75} metalness={0.05} />
-        </mesh>
-      )}
-      <gridHelper args={[8, 16, '#CBDDEF', '#E2ECF7']} position={[0, -0.6, 0]} />
-      <OrbitControls enablePan={false} minDistance={1.5} maxDistance={8} />
-    </Canvas>
-  )
+class PreviewBoundary extends Component<{ children: ReactNode; onRetry: () => void }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  render() {
+    if (this.state.error) return <PreviewFailure message="三维预览加载失败。二维轮廓仍保留。" onRetry={this.props.onRetry} />
+    return this.props.children
+  }
+}
+
+export function ExtrudePreview({ geometry }: { geometry: UserPartGeometry | null }) {
+  const [attempt, setAttempt] = useState(0)
+  if (!geometry) return <p className="p-6 text-sm text-ink-600">完成二维轮廓后查看三维预览。</p>
+  const onRetry = () => setAttempt(value => value + 1)
+  return <PreviewBoundary key={`${JSON.stringify(geometry)}:${attempt}`} onRetry={onRetry}><PreviewContent geometry={geometry} onRetry={onRetry} /></PreviewBoundary>
 }

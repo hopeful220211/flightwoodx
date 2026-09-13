@@ -17,10 +17,10 @@ export function WelcomeEmptyState({ onStartNew, onViewHistory, historyCount }: W
 
         {/* Title */}
         <h1 className="text-2xl font-bold text-gray-800 mb-2">
-          开始设计你的第一架木质无人机
+          无人机拼装
         </h1>
         <p className="text-gray-500 mb-8">
-          我们会一步步引导你完成搭建
+          按步骤选择零件，查看连接位置并保存设计。
         </p>
 
         {/* Primary CTA */}
@@ -37,13 +37,13 @@ export function WelcomeEmptyState({ onStartNew, onViewHistory, historyCount }: W
             onClick={onViewHistory}
             className="mt-4 px-4 py-2 text-sm text-gray-500 hover:text-gray-700 underline-offset-2 hover:underline"
           >
-            查看我以前的设计（{historyCount} 个）
+            查看已有设计（{historyCount} 个）
           </button>
         )}
 
         {/* Footer note */}
         <p className="mt-8 text-xs text-gray-400">
-          完成后你可以将作品发布到作品展示区
+          保存后可在工作台继续编辑或选择发布作品。
         </p>
       </div>
     </div>

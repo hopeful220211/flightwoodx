@@ -68,5 +68,10 @@ describe('evaluateFlightRules', () => {
       'OVERWEIGHT',
       'UNDERPOWERED',
     ])
+    expect(result.issues.map((issue) => issue.message)).toEqual([
+      '对称性指标未达到当前验证配置的要求',
+      '质量值无效或超出当前验证配置的范围',
+      '动力数据缺失或未达到当前验证配置的要求',
+    ])
   })
 })

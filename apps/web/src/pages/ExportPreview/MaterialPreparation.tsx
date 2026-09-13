@@ -16,8 +16,8 @@ export function MaterialPreparation({ estimate }: MaterialPreparationProps) {
     <section className="py-12 lg:py-16">
       <div className="mx-auto max-w-5xl px-4">
         <ScrollReveal>
-          <h2 className="font-display text-3xl lg:text-[40px] font-semibold text-ink-900">制作准备</h2>
-          <p className="mt-2 text-sm text-ink-600">导出后你将得到这些 CAD 文件</p>
+          <h2 className="font-display text-3xl lg:text-[40px] font-semibold text-ink-900">图纸与材料说明</h2>
+          <p className="mt-2 text-sm text-ink-600">当前入口可下载设计记录与零件清单，暂不提供切割图。下方列出缺少二维轮廓的零件。</p>
         </ScrollReveal>
 
         {/* DXF file list */}
@@ -25,12 +25,12 @@ export function MaterialPreparation({ estimate }: MaterialPreparationProps) {
           <div className="mt-8 bg-sky-50 rounded-md p-6">
             <div className="flex items-center gap-2 text-ink-900 font-medium mb-4">
               <Package size={18} />
-              导出包内容（共 {totalDxfCount} 个 .dxf 文件）
+              缺少二维轮廓的零件（共 {totalDxfCount} 个）
             </div>
             <div className="bg-white rounded-md p-4 font-mono text-sm text-ink-700 space-y-1">
               {visibleFiles.map(f => (
                 <p key={f.name}>
-                  {f.name}.dxf{f.count > 1 ? ` × ${f.count} 份` : ''}
+                  {f.name}{f.count > 1 ? ` × ${f.count} 个` : ''}
                 </p>
               ))}
             </div>
@@ -51,12 +51,12 @@ export function MaterialPreparation({ estimate }: MaterialPreparationProps) {
           <div className="mt-6 bg-sky-50 rounded-md p-6">
             <div className="flex items-center gap-2 text-ink-900 font-medium mb-4">
               <Ruler size={18} />
-              切割材料估算
+              材料与加工信息
             </div>
             <ul className="space-y-2 text-sm text-ink-700">
-              <li>• 总切割长度：约 {estimate.totalCutLengthMm} mm</li>
-              <li>• 建议木板尺寸：{estimate.suggestedBoardSize} × {estimate.boardCount} 张</li>
-              <li>• 切割时间估算：约 {estimate.cutTimeMinutes} 分钟</li>
+              <li>• 切割长度：缺少完整二维轮廓，暂无法计算</li>
+              <li>• 板材数量：需根据零件尺寸和排版确认</li>
+              <li>• 加工时间：需根据材料及设备参数确认</li>
             </ul>
           </div>
         </ScrollReveal>
@@ -66,11 +66,11 @@ export function MaterialPreparation({ estimate }: MaterialPreparationProps) {
           <div className="mt-6 bg-accent-sky/10 rounded-md p-6">
             <div className="flex items-center gap-2 text-ink-900 font-medium mb-2">
               <Lightbulb size={18} className="text-accent-gold" />
-              怎么使用这些文件？
+              加工前需要确认的内容
             </div>
             <p className="text-sm text-ink-600 leading-relaxed">
-              把 .dxf 文件交给激光切割机，机器会按图纸切出每一片木头。
-              切完后，照着 FlightWoodX 上的设计把零件拼起来就行了！
+              当前导出不含切割图，不能直接交给设备加工。
+              制作前需准备二维图纸，核对板厚、排版和设备参数；尺寸、公差、材料及连接强度需由教师或制作人员另行确认。
             </p>
           </div>
         </ScrollReveal>

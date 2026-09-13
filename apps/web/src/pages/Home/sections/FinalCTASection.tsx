@@ -17,9 +17,9 @@ export function FinalCTASection() {
         <ScrollReveal>
           <SectionHeading
             tone="light"
-            eyebrow="开始动手"
-            title={<>想自己造一架<br />会飞的无人机吗？</>}
-            lead="设计、搭建、导出、分享，全在这一个平台里。"
+            eyebrow="设计与保存"
+            title="创建设计作品"
+            lead="登录后可保存和管理作品，继续编辑机体结构与积木程序。游客作品仅保存在当前浏览器。"
           />
         </ScrollReveal>
 
@@ -28,14 +28,14 @@ export function FinalCTASection() {
             onClick={() => navigate(isAuthenticated ? '/design' : '/auth')}
             className="group inline-flex w-fit items-center gap-2 whitespace-nowrap rounded-xl bg-white px-8 py-4 text-base font-semibold text-sky-700 shadow-sky-glow transition-all hover:bg-sky-50"
           >
-            免费开始设计
+            {isAuthenticated ? '打开设计工作台' : '登录平台'}
             <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
           </button>
           <button
             onClick={() => navigate('/auth?type=school')}
             className="inline-flex w-fit items-center gap-2 whitespace-nowrap rounded-xl border border-white/20 px-8 py-4 text-base font-medium text-sky-200 transition-colors hover:bg-white/10"
           >
-            联系我们
+            教师与学校登录
           </button>
         </ScrollReveal>
       </div>

@@ -52,7 +52,7 @@ export function SortMenu({ value, onChange }: SortMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`排序方式：${current.label}`}
-        className="inline-flex min-h-[38px] items-center gap-1.5 rounded-pill border border-sky-200 bg-white px-3.5 py-1.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-spark"
+        className="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3.5 py-1.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-spark"
       >
         <ArrowDownUp className="h-4 w-4 text-sky-400" aria-hidden />
         <span className="hidden text-ink-400 sm:inline">排序</span>
@@ -66,7 +66,7 @@ export function SortMenu({ value, onChange }: SortMenuProps) {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-full z-10 mt-1.5 w-44 overflow-hidden rounded-2xl border border-sky-100 bg-white py-1 shadow-sky-glow"
+          className="absolute right-0 top-full z-10 mt-1.5 w-44 overflow-hidden rounded-lg border border-sky-100 bg-white py-1 shadow-sky-glow"
         >
           {SORT_OPTIONS.map((o) => {
             const active = o.key === value

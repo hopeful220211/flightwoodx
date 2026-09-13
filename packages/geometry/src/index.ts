@@ -27,7 +27,14 @@ export interface Part2D {
 export interface SvgPathGeometry {
   contour: string
   holes?: string[]
+  /** 有声明时必须与路径实测范围一致；允许存盘坐标的 0.01mm 舍入。 */
+  bboxMm?: { w: number; h: number }
 }
+
+// 与现有自制件显示边界一致。这些是输入/计算上限，不代表板材或加工能力。
+export const MAX_SVG_TOTAL_POINTS = 2000
+export const MAX_SVG_SIZE_MM = 2000
+export const MAX_SVG_COORDINATE_MM = 1_000_000
 
 // 包围盒（mm）。
 export interface BBox {
@@ -47,9 +54,29 @@ export interface ValidationResult {
  * 曲线、圆弧、非有限数和未闭合路径一律拒绝，不能静默近似为制造文件。
  */
 export function svgPathToPolyline(pathData: string): Point2D[] | null {
-  if (typeof pathData !== 'string' || pathData.trim() === '') return null
-  const tokens = pathData.match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/gi)
-  if (!tokens || tokens.length === 0) return null
+  if (typeof pathData !== 'string' || pathData.length > 200_000 || pathData.trim() === '') return null
+  // Sticky 匹配要求消费每个字符，禁止把未知字符丢弃后拼成另一条合法轮廓。
+  const tokenizer = /([MLHVZmlhvz])|([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)|([ \t\r\n]+)|(,)/gy
+  const tokens: string[] = []
+  let offset = 0
+  let commaPending = false
+  while (offset < pathData.length) {
+    const match = tokenizer.exec(pathData)
+    if (!match) return null
+    offset = tokenizer.lastIndex
+    if (match[3]) continue
+    if (match[4]) {
+      if (commaPending || !tokens.length || /^[a-zA-Z]$/.test(tokens[tokens.length - 1]!)) return null
+      commaPending = true
+      continue
+    }
+    if (commaPending && !match[2]) return null
+    commaPending = false
+    tokens.push(match[0])
+    // 每个顶点最多三个 token，另容纳重复闭合首点及 Z。
+    if (tokens.length > (MAX_SVG_TOTAL_POINTS + 1) * 3 + 1) return null
+  }
+  if (commaPending || !/^[Mm]$/.test(tokens[0] ?? '')) return null
 
   const points: Point2D[] = []
   let currentX = 0
@@ -70,6 +97,8 @@ export function svgPathToPolyline(pathData: string): Point2D[] | null {
   while (index < tokens.length) {
     const token = tokens[index]!
     if (/^[a-zA-Z]$/.test(token)) {
+      // 外轮廓与每个孔必须各是一条子路径，不能把第二次 M 静默连成边。
+      if ((token === 'M' || token === 'm') && points.length > 0) return null
       command = token
       index += 1
       if (command === 'Z' || command === 'z') {
@@ -133,25 +162,41 @@ export function svgPathToPolyline(pathData: string): Point2D[] | null {
       default:
         return null
     }
+    if (!Number.isFinite(currentX) || !Number.isFinite(currentY) ||
+        Math.abs(currentX) > MAX_SVG_COORDINATE_MM || Math.abs(currentY) > MAX_SVG_COORDINATE_MM ||
+        points.length > MAX_SVG_TOTAL_POINTS + 1) return null
   }
 
   if (!closed) return null
   if (points.length >= 2 && samePoint(points[0]!, points[points.length - 1]!)) points.pop()
-  return points.length >= 3 ? points : null
+  return points.length >= 3 && points.length <= MAX_SVG_TOTAL_POINTS ? points : null
 }
 
 /** SVG 路径几何 → 已完整校验的 Part2D。 */
 export function svgGeometryToPart2D(geometry: SvgPathGeometry): Part2D | null {
   if (!geometry || typeof geometry.contour !== 'string') return null
+  if (geometry.holes !== undefined && !Array.isArray(geometry.holes)) return null
   const contour = svgPathToPolyline(geometry.contour)
   if (!contour) return null
   const holes: Polyline[] = []
+  let totalPoints = contour.length
   for (const path of geometry.holes ?? []) {
     const points = svgPathToPolyline(path)
     if (!points) return null
+    totalPoints += points.length
+    if (totalPoints > MAX_SVG_TOTAL_POINTS) return null
     holes.push({ points })
   }
   const part: Part2D = { contour: { points: contour }, holes: holes.length > 0 ? holes : undefined }
+  // 在 O(n²) 拓扑检查前限制真实尺寸，不能只信任客户端填写的 bbox。
+  const allPoints = [contour, ...holes.map(hole => hole.points)].flat()
+  const xs = allPoints.map(point => point[0]), ys = allPoints.map(point => point[1])
+  const width = Math.max(...xs) - Math.min(...xs), height = Math.max(...ys) - Math.min(...ys)
+  if (width > MAX_SVG_SIZE_MM || height > MAX_SVG_SIZE_MM) return null
+  const declared = geometry.bboxMm
+  if (declared !== undefined && (!declared || !Number.isFinite(declared.w) || !Number.isFinite(declared.h) ||
+      declared.w <= 0 || declared.h <= 0 || declared.w > MAX_SVG_SIZE_MM || declared.h > MAX_SVG_SIZE_MM ||
+      Math.abs(width - declared.w) > 0.01 + EPSILON || Math.abs(height - declared.h) > 0.01 + EPSILON)) return null
   return validatePart(part).ok ? part : null
 }
 

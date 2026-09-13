@@ -199,7 +199,7 @@ export function DashboardPage() {
           我的作品
         </h1>
         <p className="mt-1 text-sm text-ink-500">
-          你做过的所有无人机都在这里，点一张就能接着改。
+          查看、新建和管理无人机设计，选择作品可继续编辑。
         </p>
       </div>
 
@@ -214,15 +214,15 @@ export function DashboardPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜作品名"
+            placeholder="搜索作品名称"
             aria-label="搜索作品"
-            className="w-full rounded-pill border border-sky-200 bg-white py-2.5 pl-10 pr-4 text-sm text-sky-900 outline-none transition focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
+            className="w-full rounded-lg border border-sky-200 bg-white py-2.5 pl-10 pr-4 text-sm text-sky-900 outline-none transition focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
           />
         </div>
         <button
           type="button"
           onClick={startNew}
-          className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-pill bg-accent-spark px-6 text-sm font-semibold text-white shadow-sky-glow transition hover:brightness-110 active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-spark"
+          className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg bg-accent-spark px-6 text-sm font-semibold text-white shadow-sky-glow transition hover:brightness-110 active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-spark"
         >
           <Plus className="h-4 w-4" aria-hidden />
           新建作品
@@ -244,8 +244,8 @@ export function DashboardPage() {
                 onClick={() => setGroup(g.key)}
                 className={
                   active
-                    ? 'rounded-pill bg-accent-spark px-4 py-1.5 text-sm font-semibold text-white shadow-sky-glow'
-                    : 'rounded-pill border border-sky-200 bg-white px-4 py-1.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50'
+                    ? 'rounded-lg bg-accent-spark px-4 py-1.5 text-sm font-semibold text-white shadow-sky-glow'
+                    : 'rounded-lg border border-sky-200 bg-white px-4 py-1.5 text-sm font-medium text-sky-700 transition hover:border-sky-300 hover:bg-sky-50'
                 }
               >
                 {g.label}
@@ -317,11 +317,11 @@ function EmptyAll({ onStart }: { onStart: () => void }) {
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-100 text-sky-400">
         <Plane className="h-8 w-8" strokeWidth={1.5} aria-hidden />
       </div>
-      <p className="max-w-sm text-base font-semibold text-sky-900">还没有作品，新建第一个吧。</p>
+      <p className="max-w-sm text-base font-semibold text-sky-900">暂无作品。新建作品后可以开始设计。</p>
       <button
         type="button"
         onClick={onStart}
-        className="inline-flex min-h-[44px] items-center gap-2 rounded-pill bg-accent-spark px-6 text-sm font-semibold text-white shadow-sky-glow transition hover:brightness-110 active:translate-y-px"
+        className="inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-accent-spark px-6 text-sm font-semibold text-white shadow-sky-glow transition hover:brightness-110 active:translate-y-px"
       >
         <Plus className="h-4 w-4" aria-hidden />
         新建作品
@@ -334,7 +334,7 @@ function EmptyAll({ onStart }: { onStart: () => void }) {
 function EmptyFiltered() {
   return (
     <div className="rounded-card border border-dashed border-sky-200 bg-white p-10 text-center">
-      <p className="text-sm font-medium text-sky-700">没有符合条件的作品，换个关键词或筛选看看。</p>
+      <p className="text-sm font-medium text-sky-700">没有符合条件的作品，请调整关键词或筛选条件。</p>
     </div>
   )
 }

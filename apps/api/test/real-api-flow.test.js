@@ -116,6 +116,65 @@ test('real MongoDB: identity, owned design/part persistence, profile and admin b
       assert.equal((await send(`/custom-parts/${part.id}`, { method: 'DELETE', token: other.token })).status, 404)
       assert.equal((await send('/custom-parts', { token: other.token })).body.data.total, 0)
     })
+    await t.test('2mm custom mainboards persist and retry without bypassing identity or geometry boundaries', async () => {
+      const payload = {
+        name: '测试主板', category: 'mainboard',
+        geometry: { contour: 'M0 0 L120 0 L120 120 L0 120 Z', holes: ['M50 50 L50 70 L70 70 L70 50 Z'], thicknessMm: 2, bboxMm: { w: 120, h: 120 } },
+        sockets: [], manufacturability: { closed: true, minFeatureMm: 2, withinBoard: true, passed: true },
+        flightImpact: { massG: 1 }, assets: {},
+      }
+      assert.equal((await send('/custom-parts', { method: 'POST', body: payload })).status, 401)
+      for (const invalid of [
+        { ...payload, category: 'MOTOR' },
+        { ...payload, category: 'PROP' },
+        { ...payload, geometry: { ...payload.geometry, thicknessMm: 3 } },
+        { ...payload, geometry: { ...payload.geometry, contour: 'M0 0 L120 0 L120 120' } },
+      ]) assert.equal((await send('/custom-parts', { method: 'POST', token: owner.token, body: invalid })).status, 400)
+      const created = await send('/custom-parts', { method: 'POST', token: owner.token, body: payload })
+      assert.equal(created.status, 201)
+      const mainboard = created.body.data
+      assert.equal(mainboard.ownerId, owner.user.id)
+      assert.equal(mainboard.category, 'mainboard')
+      assert.equal(mainboard.geometry.thicknessMm, 2)
+      assert.deepEqual(mainboard.geometry.holes, payload.geometry.holes)
+      assert.deepEqual(mainboard.sockets, [])
+      assert.equal(mainboard.manufacturability.passed, false)
+      const updated = { ...payload, name: '修改后主板' }
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const result = await send(`/custom-parts/${mainboard.id}`, { method: 'PUT', token: owner.token, body: updated })
+        assert.equal(result.status, 200)
+        assert.equal(result.body.data.id, mainboard.id)
+      }
+      const reloaded = await send(`/custom-parts/${mainboard.id}`, { token: owner.token })
+      assert.equal(reloaded.body.data.name, updated.name)
+      assert.equal(reloaded.body.data.category, 'mainboard')
+      assert.equal((await send('/custom-parts', { token: owner.token })).body.data.items.filter(item => item.id === mainboard.id).length, 1)
+      assert.equal((await send(`/custom-parts/${mainboard.id}`, { token: other.token })).status, 404)
+      assert.equal((await send(`/custom-parts/${mainboard.id}`, { method: 'PUT', token: other.token, body: updated })).status, 404)
+      assert.equal((await send(`/custom-parts/${mainboard.id}`, { method: 'DELETE', token: other.token })).status, 404)
+      assert.equal((await send(`/custom-parts/${mainboard.id}`, { token: owner.token })).body.data.name, updated.name)
+      const instance = {
+        instanceId: 'custom-mainboard-instance', partId: `custom_${mainboard.id}`, category: 'mainboard',
+        position: [0, 0, 0], rotation: [0, 0, 0],
+        source: { kind: 'custom', id: mainboard.id, version: reloaded.body.data.version, updatedAt: reloaded.body.data.updatedAt },
+      }
+      const designPayload = { localId: 'custom-mainboard-design', name: '自制主板作品', designData: {
+        id: 'custom-mainboard-design', name: '自制主板作品', updatedAt: new Date().toISOString(),
+        buildMode: 'free', currentStep: 'HUB', stepReached: 0, parts: [instance],
+      } }
+      const savedDesign = await send('/drone-designs', { method: 'PUT', token: owner.token, body: designPayload })
+      assert.equal(savedDesign.status, 200)
+      const mainboardDesignId = savedDesign.body.design.id
+      const readDesign = await send(`/drone-designs/${mainboardDesignId}`, { token: owner.token })
+      assert.deepEqual(readDesign.body.design.designData.parts[0], instance)
+      for (const invalidDesignData of [
+        { ...designPayload.designData, buildMode: 'guided' },
+        { ...designPayload.designData, parts: [{ ...instance, activeConnectorId: 'invented' }] },
+      ]) assert.equal((await send('/drone-designs', { method: 'PUT', token: owner.token, body: { ...designPayload, designData: invalidDesignData } })).status, 400)
+      assert.equal((await send(`/drone-designs/${mainboardDesignId}`, { token: other.token })).status, 404)
+      assert.equal((await send(`/drone-designs/${mainboardDesignId}`, { method: 'DELETE', token: owner.token })).status, 200)
+      assert.equal((await send(`/custom-parts/${mainboard.id}`, { method: 'DELETE', token: owner.token })).status, 200)
+    })
     await t.test('community publication, comments, favorites, following and reuse use persisted designs', async () => {
       const programmed = await send('/programs', { method: 'POST', token: owner.token, body: {
         name: 'fixture program', blocklyXml: '<xml/>', commandProgram: {

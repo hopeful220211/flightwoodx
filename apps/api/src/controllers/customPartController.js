@@ -50,7 +50,7 @@ function toUserPartDTO(doc) {
 }
 
 // 校验请求体 → 返回 { ok:true, data } 或 { ok:false, message, issues }。
-// category 限四结构类、geometry 闭合轮廓 + 厚度锁 2mm、sockets/manufacturability/flightImpact 合法 —— 全在 v2 zod 契约里。
+// category 限五种结构类、geometry 闭合轮廓 + 厚度锁 2mm、sockets/manufacturability/flightImpact 合法 —— 全在 v2 zod 契约里。
 function validateDef(body) {
   const parsed = UserPartDefSchema.safeParse(body)
   if (!parsed.success) {

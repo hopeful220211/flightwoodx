@@ -74,9 +74,49 @@ describe('validatePart', () => {
 })
 
 describe('SVG path 解析边界', () => {
+  const circlePath = (count: number) => `${Array.from({ length: count }, (_, i) => {
+    const angle = i * Math.PI * 2 / count
+    return `${i === 0 ? 'M' : 'L'}${10 + 5 * Math.cos(angle)} ${10 + 5 * Math.sin(angle)}`
+  }).join(' ')} Z`
+
   it('支持绝对与相对的闭合折线路径', () => {
     expect(svgPathToPolyline('M0 0 H20 V20 H0 Z')).toEqual([[0, 0], [20, 0], [20, 20], [0, 20]])
     expect(svgPathToPolyline('m0 0 l20 0 l0 20 l-20 0 z')).toEqual([[0, 0], [20, 0], [20, 20], [0, 20]])
+    expect(svgPathToPolyline(' M +0,0 2e1,0 20.,20 .0,20 0,0 z ')).toEqual([[0, 0], [20, 0], [20, 20], [0, 20]])
+  })
+
+  it.each([
+    'M0 0 L20 0 @L20 20 L0 20 Z',
+    'M0 0 L20 0 L20 20 L0 20 Z!',
+    'M0 0 L20 0 M20 20 L0 20 Z',
+    'M0 0 L20 0 m0 20 L0 20 Z',
+    'L0 0 L20 0 L20 20 L0 20 Z',
+    'M0,,0 L20 0 L20 20 L0 20 Z',
+    'M0 0 L20 0 L20 20 L0 20,Z',
+  ])('拒绝丢弃字符、隐式起点或多个子路径：%s', (path) => {
+    expect(svgPathToPolyline(path)).toBeNull()
+  })
+
+  it('在拓扑校验前限制每条路径与所有孔的总顶点', () => {
+    expect(svgPathToPolyline(circlePath(2000))).toHaveLength(2000)
+    expect(svgPathToPolyline(circlePath(2001))).toBeNull()
+    expect(svgGeometryToPart2D({ contour: 'M0 0 H20 V20 H0 Z', holes: [circlePath(1997)] })).toBeNull()
+    expect(svgGeometryToPart2D({ contour: 'M0 0 H20 V20 H0 Z', holes: [circlePath(1996)] })).not.toBeNull()
+  })
+
+  it('复核真实尺寸与声明包围盒，兼容两位小数舍入与合法偏移', () => {
+    expect(svgGeometryToPart2D({ contour: 'M0 0 H2000 V20 H0 Z', bboxMm: { w: 2000, h: 20 } })).not.toBeNull()
+    expect(svgGeometryToPart2D({ contour: 'M0 0 H2001 V20 H0 Z', bboxMm: { w: 20, h: 20 } })).toBeNull()
+    expect(svgGeometryToPart2D({ contour: 'M0 0 H20 V20 H0 Z', bboxMm: { w: 19, h: 20 } })).toBeNull()
+    expect(svgGeometryToPart2D({ contour: 'M0 0 H20 V20 H0 Z', bboxMm: { w: Number.NaN, h: 20 } })).toBeNull()
+    expect(svgGeometryToPart2D({ contour: 'M10 10 H30.004 V30.004 H10 Z', bboxMm: { w: 20, h: 20 } })).not.toBeNull()
+  })
+
+  it('拒绝绝对或相对累加后的越界坐标', () => {
+    expect(svgPathToPolyline('M1000001 0 h20 v20 h-20 Z')).toBeNull()
+    expect(svgPathToPolyline('M999999 0 h20 v20 h-20 Z')).toBeNull()
+    expect(svgPathToPolyline('M-1000001 0 h20 v20 h-20 Z')).toBeNull()
+    expect(svgGeometryToPart2D({ contour: 'M999980 0 h20 v20 h-20 Z', bboxMm: { w: 20, h: 20 } })).not.toBeNull()
   })
 
   it('拒绝未闭合、曲线、非有限数与自交路径', () => {

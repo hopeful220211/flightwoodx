@@ -68,6 +68,23 @@ export async function waitForWoodTextures(scene: THREE.Object3D): Promise<void> 
   await Promise.all(pending)
 }
 
+/** Official GLBs and generated boards share this material, including texture readiness. */
+export function createWoodMaterial(): THREE.MeshStandardMaterial {
+  const material = new THREE.MeshStandardMaterial()
+  configureWoodMaterial(material)
+  return material
+}
+
+function configureWoodMaterial(material: THREE.MeshStandardMaterial): void {
+  material.color.copy(WOOD_COLOR)
+  material.map = getWoodBoardTexture()
+  material.roughness = WOOD_ROUGHNESS
+  material.metalness = WOOD_METALNESS
+  material.envMapIntensity = 0.3
+  material.userData.originalColor = material.color.clone()
+  material.needsUpdate = true
+}
+
 /**
  * 克隆 GLB 场景，并把每个网格材质统一替换为暖木色 MeshStandard 外观。
  *
@@ -92,11 +109,7 @@ export function prepareWoodScene(scene: THREE.Object3D): THREE.Object3D {
         m.color.copy(WOOD_COLOR)
       }
       if (m instanceof THREE.MeshStandardMaterial || m instanceof THREE.MeshPhysicalMaterial) {
-        m.map = getWoodBoardTexture()
-        m.roughness = WOOD_ROUGHNESS
-        m.metalness = WOOD_METALNESS
-        m.envMapIntensity = 0.3
-        m.needsUpdate = true
+        configureWoodMaterial(m)
       }
       if ('color' in m && m.color instanceof THREE.Color) {
         m.userData.originalColor = m.color.clone()

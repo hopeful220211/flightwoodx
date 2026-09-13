@@ -46,7 +46,7 @@ export function SaveToCollectionButton({ postId }: SaveToCollectionButtonProps) 
 
   const openPopover = () => {
     if (!isLoggedIn) {
-      toast.push('info', '登录后才能收藏哦')
+      toast.push('info', '请先登录再收藏')
       return
     }
     setOpen(true)
@@ -132,7 +132,7 @@ export function SaveToCollectionButton({ postId }: SaveToCollectionButtonProps) 
                   <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-soft ring-1 ring-sky-100">
                     <Bookmark size={20} className="text-sky-300" />
                   </div>
-                  <p className="text-sm text-black/55">还没有合集，新建一个开始收藏吧</p>
+                  <p className="text-sm text-black/55">暂无合集。新建合集后可收藏此作品。</p>
                 </div>
               ) : (
                 <ul className="-mx-1 max-h-80 space-y-1 overflow-y-auto px-1">

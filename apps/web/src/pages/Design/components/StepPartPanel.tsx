@@ -29,7 +29,7 @@ export function StepPartPanel({ currentStep, onPartClick, onPartDragStart, pendi
     return (
       <div className="p-4">
         <h3 className="text-sm font-bold text-gray-700 mb-2">第 {info.number} 步 · {info.label}</h3>
-        <p className="text-xs text-gray-500">检查装配结构和左右平衡；真实飞行参数仍待实测。</p>
+        <p className="text-xs text-gray-500">核对零件、连接和位置对称性；不验证实物结构或飞行。</p>
       </div>
     )
   }
@@ -58,7 +58,7 @@ export function StepPartPanel({ currentStep, onPartClick, onPartDragStart, pendi
               <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-white text-sky-500 transition group-hover:scale-105">
                 <Pencil size={22} />
               </div>
-              <p className="mt-1.5 truncate text-center text-xs font-medium text-sky-600">自己画一个</p>
+              <p className="mt-1.5 truncate text-center text-xs font-medium text-sky-600">绘制零件</p>
             </button>
             {filteredParts.map(part => (
               <button

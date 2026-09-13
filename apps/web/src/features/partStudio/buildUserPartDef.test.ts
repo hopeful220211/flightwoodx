@@ -3,7 +3,7 @@ import { UserPartDefSchema } from '@fwx/parts-schema'
 import { buildUserPartDef, pointsToSvgPath } from './buildUserPartDef'
 import type { Point2D } from './types'
 
-// 一个简单的闭合正方形（画布像素，y 向下）
+// 一个简单的闭合正方形（毫米，y 向下）
 const square: Point2D[] = [
   [40, 40],
   [240, 40],
@@ -40,6 +40,20 @@ describe('buildUserPartDef', () => {
     const def = buildUserPartDef({ name: 'x', category: 'deco', points: square, closed: true })
     expect(def.geometry.contour.startsWith('M ')).toBe(true)
     expect(def.geometry.contour.trim().endsWith('Z')).toBe(true)
+  })
+
+  it('uses actual millimetres for dimensions and subtracts holes from the mass estimate', () => {
+    const def = buildUserPartDef({ name: '毫米板', category: 'guard', points: [[10, 20], [90, 20], [90, 80], [10, 80]], holes: [[[20, 30], [30, 30], [30, 40], [20, 40]]], closed: true })
+    expect(def.geometry.bboxMm).toEqual({ w: 80, h: 60 })
+    expect(def.geometry.thicknessMm).toBe(2)
+    expect(def.geometry.holes).toEqual(['M 10 10 L 20 10 L 20 20 L 10 20 Z'])
+    expect(def.flightImpact.massG).toBe(5.64)
+    expect(def.manufacturability.passed).toBe(false)
+  })
+
+  it('rejects invalid or open geometry before saving', () => {
+    expect(() => buildUserPartDef({ name: 'x', category: 'guard', points: square, closed: false })).toThrow()
+    expect(() => buildUserPartDef({ name: 'x', category: 'guard', points: [[0, 0], [NaN, 2], [3, 4]], closed: true })).toThrow()
   })
 })
 

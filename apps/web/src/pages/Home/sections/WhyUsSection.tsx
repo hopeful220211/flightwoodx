@@ -4,21 +4,21 @@ import { SectionHeading } from '../components/SectionHeading'
 const cards = [
   {
     img: '/optimized/picture/flight_png/untitled.160.webp',
-    title: '榫卯结构',
-    subtitle: '传统工艺 × 现代科技',
-    desc: '拼的是榫卯，不用一根钉子，全靠木头互相咬住。拼着拼着，孩子自己就摸清了结构怎么受力。',
+    title: '自主设计',
+    subtitle: '绘制零件，规划结构',
+    desc: '在浏览器中绘制零件、选择部件并调整三维布局，保存自己的无人机设计。',
   },
   {
     img: '/optimized/picture/learning_kids/EX4A6148.webp',
-    title: '真实飞行',
-    subtitle: '不是模拟器，是真会飞',
-    desc: '设计完就能试飞。一堆木片怎么变成真能飞起来的东西，孩子从头到尾自己走一遍。',
+    title: '木质拼接',
+    subtitle: '连接木件，组装机架',
+    desc: '通过榫卯连接木质零件，逐步组装无人机机架。观察各部件的位置与连接关系，理解机体的基本结构。',
   },
   {
     img: '/optimized/picture/learning_kids/EX4A6264 1.webp',
-    title: '配套齐全',
-    subtitle: '软件 + 硬件套件',
-    desc: '设计软件、木质套件、电子件都由官方配齐，拿到就能上手做，不用东拼西凑。',
+    title: '飞行测试',
+    subtitle: '编排动作，模拟运行',
+    desc: '用图形化积木编排飞行动作，在模拟环境中查看运行过程并调整程序。模拟结果不代表实机飞行表现。',
   },
 ]
 
@@ -28,9 +28,9 @@ export function WhyUsSection() {
       <div className="mx-auto max-w-6xl px-4">
         <ScrollReveal className="mb-16">
           <SectionHeading
-            eyebrow="为什么是我们"
-            title="不只是又一个 STEAM 玩具"
-            lead="有三件事，我们做得跟别人不太一样。"
+            eyebrow="功能介绍"
+            title="平台功能"
+            lead="绘制零件、拼装机体，并用积木程序进行模拟测试。"
           />
         </ScrollReveal>
 

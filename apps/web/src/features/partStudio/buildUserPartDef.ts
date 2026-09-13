@@ -3,17 +3,13 @@
 // 把画布上画好的闭合轮廓映射成 v2 契约 UserPartDef（RFC-024 §4.3 / M2 存盘）。
 // 纯函数、可单测；不碰 React、不碰网络。契约类型来自 @fwx/parts-schema（单一事实来源）。
 //
-// 范围（M2「保存落库」）：只把「画的形状 + 名字 + 用途」组成合法 UserPartDef 存草稿。
-// 卡扣印章（sockets）、完整可制造性五项、内孔（holes）留到 Phase 2 —— 这里都给空/占位。
+// 只接收毫米制合法轮廓及孔。参考范围不是制造证明，不生成未经验证的连接元数据。
 
 import type { UserPartCategory, UserPartDef } from '@fwx/parts-schema'
-import { USER_PART_THICKNESS_MM } from '@fwx/parts-schema'
+import { USER_PART_THICKNESS_MM, UserPartDefSchema } from '@fwx/parts-schema'
+import { validatePart } from '@fwx/geometry'
 import type { Point2D } from './types'
 import { polygonArea } from './geometry/winding'
-
-// 画布像素 → 毫米的换算（M2 占位标定）。工坊画布目前没有物理板面标定，先按此常量换算，
-// 使一次手绘大致落在几十毫米量级；Phase 2 接入板材幅面/卡扣印章时再按真实板面标定。
-const PX_PER_MM = 4
 
 // 木质胶合板密度（g/mm³）：椴木/桦木胶合板约 0.6 g/cm³ = 6e-4 g/mm³。用于估算零件重量。
 const WOOD_DENSITY_G_PER_MM3 = 6e-4
@@ -36,21 +32,22 @@ export function pointsToSvgPath(points: Point2D[]): string {
 export interface BuildUserPartDefInput {
   name: string
   category: UserPartCategory
-  /** 画布上的闭合轮廓顶点（像素，y 向下）。 */
+  /** 毫米坐标，y向下；显示缩放不参与存盘。 */
   points: Point2D[]
+  holes?: Point2D[][]
   /** 轮廓是否已闭合（保存前应为 true）。 */
   closed: boolean
 }
 
 /**
- * 组装 v2 UserPartDef。轮廓换算成毫米并平移到局部原点（不存绝对画布坐标），
+ * 组装 v2 UserPartDef。毫米轮廓平移到局部原点（不存绝对画布坐标），
  * 由此推出 bboxMm 与重量估算。返回体形状严格对齐 @fwx/parts-schema 的 UserPartDefSchema。
  */
 export function buildUserPartDef(input: BuildUserPartDefInput): UserPartDef {
-  const { name, category, points, closed } = input
-
-  // px → mm
-  const mm: Point2D[] = points.map(([x, y]) => [x / PX_PER_MM, y / PX_PER_MM])
+  const { name, category, points: mm, holes = [], closed } = input
+  if (!closed || !validatePart({ contour: { points: mm }, holes: holes.map(points => ({ points })) }).ok) {
+    throw new Error('请先修正轮廓与孔的几何问题')
+  }
 
   // 包围盒（mm）
   let minX = Infinity
@@ -67,19 +64,24 @@ export function buildUserPartDef(input: BuildUserPartDefInput): UserPartDef {
   const h = Math.max(0, maxY - minY)
 
   // 平移到局部原点：轮廓从 (0,0) 起，配合 bboxMm 可直接作为 SVG viewBox 渲染
-  const local: Point2D[] = mm.map(([x, y]) => [x - minX, y - minY])
+  const toLocal = (points: Point2D[]): Point2D[] => points.map(([x, y]) => [round2(x - minX), round2(y - minY)])
+  const local = toLocal(mm)
+  const localHoles = holes.map(toLocal)
+  if (!validatePart({ contour: { points: local }, holes: localHoles.map(points => ({ points })) }).ok) {
+    throw new Error('轮廓存在小于0.01毫米的细节，请调整后保存')
+  }
   const contour = pointsToSvgPath(local)
 
   // 重量估算：面积(mm²) × 厚度(2mm) × 木材密度
-  const areaMm2 = polygonArea(local)
+  const areaMm2 = polygonArea(local) - localHoles.reduce((sum, hole) => sum + polygonArea(hole), 0)
   const massG = round2(areaMm2 * USER_PART_THICKNESS_MM * WOOD_DENSITY_G_PER_MM3)
 
-  return {
+  return UserPartDefSchema.parse({
     name: name.trim() || '未命名零件',
     category,
     geometry: {
       contour,
-      holes: [], // Phase 2：内孔镂空
+      holes: localHoles.map(pointsToSvgPath),
       thicknessMm: USER_PART_THICKNESS_MM,
       bboxMm: { w: round2(w), h: round2(h) },
     },
@@ -88,10 +90,10 @@ export function buildUserPartDef(input: BuildUserPartDefInput): UserPartDef {
     manufacturability: {
       closed,
       minFeatureMm: 0,
-      withinBoard: true,
+      withinBoard: false, // 尚无获批板材加工幅面，界面参考框不能代替它
       passed: false,
     },
     flightImpact: { massG }, // 估算值，只进入结构统计，不作为实飞证据
     assets: {},
-  }
+  })
 }

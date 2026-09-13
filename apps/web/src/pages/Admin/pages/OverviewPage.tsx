@@ -51,7 +51,7 @@ export function AdminOverviewPage() {
                 <BookOpen size={16} />
                 <span className="text-label uppercase">课程</span>
               </div>
-              <BigStat value={data.courses.total ?? '—'} label={data.courses.published === null ? '课程服务未接入' : `已发布 ${data.courses.published}`} />
+              <BigStat value={data.courses.total ?? '—'} label={data.courses.published === null ? '课程管理暂未开放' : `已发布 ${data.courses.published}`} />
               <Link to="/admin/courses" className="mt-4 inline-block text-sm text-sky-700 underline">查看课程模块</Link>
             </div>
             <div className="rounded-card border border-sky-100 bg-surface-white p-6">
@@ -59,8 +59,8 @@ export function AdminOverviewPage() {
                 <Boxes size={16} />
                 <span className="text-label uppercase">零件</span>
               </div>
-              <BigStat value={data.parts.total} label="采购 / BOM 条目" />
-              <p className="mt-3 text-sm text-slate-500">{data.parts.pendingReview === null ? '审核服务未接入' : `待审核 ${data.parts.pendingReview}`}</p>
+              <BigStat value={data.parts.total} label="采购清单条目" />
+              <p className="mt-3 text-sm text-slate-500">{data.parts.pendingReview === null ? '零件审核暂未开放' : `待审核 ${data.parts.pendingReview}`}</p>
             </div>
           </div>
 

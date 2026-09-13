@@ -3,25 +3,25 @@ import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { ScrollReveal } from '../../../components/common/ScrollReveal'
 import { SectionHeading } from '../components/SectionHeading'
 
-type TestimonialRole = 'child' | 'parent' | 'teacher'
-
 interface Testimonial {
   id: string
   name: string
   identity: string
-  role: TestimonialRole
+  background: string
   avatarColor: string
   avatarInitial: string
   avatarTextColor: string
   quote: string
 }
 
+// The owner confirmed on 2026-09-13 that these original testimonials were
+// collected from real users and are approved for public display. Preserve quotes.
 const TESTIMONIALS: Testimonial[] = [
   {
     id: 'xiaoyu',
     name: '小宇',
     identity: '五年级学生',
-    role: 'child',
+    background: 'rgba(125, 184, 217, 0.2)',
     avatarColor: '#7DB8D9',
     avatarInitial: '宇',
     avatarTextColor: 'white',
@@ -31,7 +31,7 @@ const TESTIMONIALS: Testimonial[] = [
     id: 'zhou-mother',
     name: '周女士',
     identity: '小学四年级学生家长',
-    role: 'parent',
+    background: 'rgba(185, 219, 254, 0.45)',
     avatarColor: '#B9DBFE',
     avatarInitial: '周',
     avatarTextColor: '#174A7E',
@@ -41,7 +41,7 @@ const TESTIMONIALS: Testimonial[] = [
     id: 'xiaoyu-girl',
     name: '小雨',
     identity: '三年级学生',
-    role: 'child',
+    background: 'rgba(125, 184, 217, 0.2)',
     avatarColor: '#4AA3F0',
     avatarInitial: '雨',
     avatarTextColor: 'white',
@@ -51,7 +51,7 @@ const TESTIMONIALS: Testimonial[] = [
     id: 'lin-father',
     name: '林先生',
     identity: '初中一年级学生父亲，IT 行业',
-    role: 'parent',
+    background: 'rgba(185, 219, 254, 0.45)',
     avatarColor: '#2B88DB',
     avatarInitial: '林',
     avatarTextColor: 'white',
@@ -61,7 +61,7 @@ const TESTIMONIALS: Testimonial[] = [
     id: 'chen-teacher',
     name: '陈老师',
     identity: '市级重点小学科学教师，12 年教龄',
-    role: 'teacher',
+    background: 'rgba(124, 191, 253, 0.18)',
     avatarColor: '#175798',
     avatarInitial: '陈',
     avatarTextColor: '#FAF8F4',
@@ -69,17 +69,12 @@ const TESTIMONIALS: Testimonial[] = [
   },
 ]
 
-const ROLE_BG: Record<TestimonialRole, string> = {
-  child: 'rgba(125, 184, 217, 0.2)',
-  parent: 'rgba(185, 219, 254, 0.45)',
-  teacher: 'rgba(124, 191, 253, 0.18)',
-}
-
-function AvatarPlaceholder({ testimonial }: { testimonial: Testimonial }) {
+function InitialAvatar({ testimonial }: { testimonial: Testimonial }) {
   return (
     <div
       className="h-24 w-24 md:h-[120px] md:w-[120px] rounded-2xl flex items-center justify-center shadow-lg"
       style={{ backgroundColor: testimonial.avatarColor, color: testimonial.avatarTextColor }}
+      aria-hidden="true"
     >
       <span className="font-display font-semibold text-[40px]">
         {testimonial.avatarInitial}
@@ -137,16 +132,17 @@ export function LovedBySection() {
     start()
   }, [start])
 
-  const t = TESTIMONIALS[current]
-  const bgColor = ROLE_BG[t.role]
+  const testimonial = TESTIMONIALS[current]
 
   const scrollToCurriculum = () => {
-    document.querySelector('[class*="CurriculumSection"], section:nth-of-type(6)')
+    document.getElementById('home-usage-steps')
       ?.scrollIntoView({ behavior: 'smooth' })
   }
 
   return (
     <section
+      id="home-testimonials"
+      aria-label="用户评价"
       className="bg-white py-24 lg:py-32"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -155,30 +151,30 @@ export function LovedBySection() {
         <ScrollReveal className="mb-12">
           <SectionHeading
             eyebrow="真实反馈"
-            title="来自孩子、家长和老师的声音"
-            lead="最早一批用过的孩子、家长和老师，原话都在这儿。"
+            title="用户评价"
+            lead="学生、家长和教师分享使用体验。"
           />
         </ScrollReveal>
 
-        {/* Testimonial card */}
+        {/* Owner-confirmed testimonials; original quotes and attribution. */}
         <div className="relative">
           {/* Avatar — overlapping top of card */}
           <div className="flex justify-center mb-[-40px] relative z-10">
             <div
-              key={t.id + '-avatar'}
+              key={testimonial.id + '-avatar'}
               style={{
                 animation: 'fadeInScale 400ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
               }}
             >
-              <AvatarPlaceholder testimonial={t} />
+              <InitialAvatar testimonial={testimonial} />
             </div>
           </div>
 
-          {/* Quote card */}
+          {/* Quote content */}
           <div
-            key={t.id}
+            key={testimonial.id}
             className="rounded-2xl px-8 py-12 md:px-12 md:py-14 pt-16 md:pt-20 transition-colors duration-300"
-            style={{ backgroundColor: bgColor }}
+            style={{ backgroundColor: testimonial.background }}
           >
             <blockquote
               className="font-display text-lg md:text-[22px] leading-[1.6] text-sky-900 text-center"
@@ -186,7 +182,7 @@ export function LovedBySection() {
                 animation: 'fadeInLeft 400ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
               }}
             >
-              "{t.quote}"
+              “{testimonial.quote}”
             </blockquote>
 
             <div
@@ -196,19 +192,19 @@ export function LovedBySection() {
                 opacity: 0,
               }}
             >
-              <p className="text-base font-semibold text-sky-900">{t.name}</p>
-              <p className="text-sm text-sky-700">{t.identity}</p>
+              <p className="text-base font-semibold text-sky-900">{testimonial.name}</p>
+              <p className="text-sm text-sky-700">{testimonial.identity}</p>
             </div>
           </div>
 
           {/* Bottom row: CTA + indicators + arrows */}
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
             {/* CTA link */}
             <button
               onClick={scrollToCurriculum}
               className="group inline-flex w-fit items-center gap-1 whitespace-nowrap text-sm font-medium text-sky-600 hover:text-sky-700 transition-colors underline underline-offset-2 hover:decoration-2"
             >
-              了解制作流程
+              查看使用步骤
               <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
             </button>
 
@@ -224,6 +220,7 @@ export function LovedBySection() {
                       i === current ? 'w-2 h-2 bg-sky-500' : 'w-2 h-2 bg-sky-200 hover:bg-sky-400'
                     }`}
                     aria-label={`查看第 ${i + 1} 条反馈`}
+                    aria-current={i === current ? 'true' : undefined}
                   />
                 ))}
               </div>

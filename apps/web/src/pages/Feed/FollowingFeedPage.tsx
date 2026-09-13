@@ -63,7 +63,7 @@ export function FollowingFeedPage() {
             <Heart size={12} /> 我的关注
           </span>
           <h1 className="fwx-display mt-4 text-4xl font-semibold tracking-tight text-black/90 lg:text-5xl">关注动态</h1>
-          <p className="mt-3 max-w-xl text-black/55">你关注的创作者的最新作品，第一时间看到他们又拼出了什么新飞行器。</p>
+          <p className="mt-3 max-w-xl text-black/55">查看你关注的作者新发布的公开作品。</p>
         </header>
 
         {/* ── 三态 ── */}
@@ -98,13 +98,13 @@ export function FollowingFeedPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-soft ring-1 ring-sky-100">
               <Users size={28} className="text-sky-300" />
             </div>
-            <p className="text-black/70">你还没有关注任何创作者</p>
-            <p className="mt-1 text-sm text-black/45">去社区逛逛，关注喜欢的小创客吧</p>
+            <p className="text-black/70">暂无关注作者的公开作品</p>
+            <p className="mt-1 text-sm text-black/45">可以在社区作品或作者主页中添加关注。</p>
             <button
               onClick={() => nav('/community')}
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sky-glow transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-sky-600 hover:shadow-lift active:scale-[0.97] motion-reduce:transition-none"
             >
-              <Compass size={16} /> 去社区逛逛
+              <Compass size={16} /> 查看社区作品
             </button>
           </div>
         ) : (
@@ -118,7 +118,7 @@ export function FollowingFeedPage() {
             )}
             {!hasNextPage && (
               <p className="flex items-center justify-center gap-1.5 pb-2 pt-8 text-center text-sm text-black/35">
-                <Heart size={13} /> 已经到底啦
+                <Heart size={13} /> 已显示全部作品
               </p>
             )}
           </>

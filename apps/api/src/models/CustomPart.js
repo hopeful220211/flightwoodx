@@ -1,4 +1,5 @@
 const { Schema, model } = require('mongoose')
+const { UserPartCategoryEnum } = require('@fwx/parts-schema/runtime-cjs')
 
 // 用户零件（@fwx/parts-schema 的 UserPart v2 / RFC-024 §4.3）。
 // 契约唯一事实来源在 @fwx/parts-schema，此处只做持久化落地，不在 api 内另立类型。
@@ -42,8 +43,8 @@ const Review = new Schema({
 const CustomPartSchema = new Schema({
   ownerId:  { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   name:     { type: String, required: true, maxlength: 40 },
-  // 只允许四类结构件（guard/joint/deco/landing），不含 MOTOR/PROP。
-  category: { type: String, enum: ['guard', 'joint', 'deco', 'landing'], required: true },
+  // 结构类别直接复用共享契约；包含主板，不含 MOTOR/PROP。
+  category: { type: String, enum: UserPartCategoryEnum.options, required: true },
   geometry: { type: Geometry, required: true },
   sockets:  { type: [Socket], default: [] },
   // 可制造性自检（§4.4 五项）。草稿阶段可缺，故不 required。

@@ -87,7 +87,7 @@ function CommentRow({ comment, postId }: { comment: CommentDTO; postId: string }
     report.mutate(
       { commentId: comment.id, reason },
       {
-        onSuccess: () => toast.push('success', '已举报，我们会尽快处理'),
+        onSuccess: () => toast.push('success', '举报已提交'),
         onError: (e) => toast.push('error', e instanceof Error ? e.message : '举报失败'),
       },
     )
@@ -206,7 +206,7 @@ export function CommentSection({ postId }: { postId: string }) {
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value.slice(0, MAX_LEN))}
-            placeholder="友善地说两句吧～"
+            placeholder="输入评论，请勿填写个人隐私信息"
             rows={3}
             maxLength={MAX_LEN}
             className={cn(
@@ -232,7 +232,7 @@ export function CommentSection({ postId }: { postId: string }) {
       ) : (
         <div className="flex flex-col items-center gap-1 rounded-2xl border border-dashed border-sky-200 bg-sky-50/50 px-4 py-6 text-center">
           <MessageCircle size={22} className="text-sky-300" />
-          <p className="text-sm text-black/55">登录后就能在这里留言啦</p>
+          <p className="text-sm text-black/55">登录后可以发表评论。</p>
         </div>
       )}
 
@@ -264,7 +264,7 @@ export function CommentSection({ postId }: { postId: string }) {
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-soft ring-1 ring-sky-100">
             <MessageCircle size={20} className="text-sky-300" />
           </div>
-          <p className="text-sm text-black/55">还没有评论，来说两句吧</p>
+          <p className="text-sm text-black/55">暂无评论</p>
         </div>
       ) : (
         <ul className="-mx-3 divide-y divide-sky-50">

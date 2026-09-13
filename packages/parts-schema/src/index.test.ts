@@ -3,6 +3,7 @@ import {
   DroneDesignSnapshotSchema,
   PART_REGISTRY,
   PartRegistryEntrySchema,
+  UserPartCategoryEnum,
   UserPartDefSchema,
   UserPartSchema,
 } from './index'
@@ -31,6 +32,27 @@ describe('官方零件注册表', () => {
 })
 
 describe('用户零件契约', () => {
+  it('接受主板与原有四类结构件，全部固定为 2mm 且不生成卡扣', () => {
+    expect(UserPartCategoryEnum.options).toEqual(['mainboard', 'guard', 'joint', 'deco', 'landing'])
+    for (const category of ['mainboard', 'guard', 'joint', 'deco', 'landing']) {
+      const parsed = UserPartDefSchema.parse({ ...validUserPart, category })
+      expect(parsed.category).toBe(category)
+      expect(parsed.geometry.thicknessMm).toBe(2)
+      expect(parsed.sockets).toEqual([])
+    }
+  })
+
+  it('主板扩展不允许电机、螺旋桨或非 2mm 板厚', () => {
+    for (const category of ['MOTOR', 'PROP', 'motor', 'prop', 'unknown']) {
+      expect(UserPartDefSchema.safeParse({ ...validUserPart, category }).success).toBe(false)
+    }
+    for (const thicknessMm of [0, 1, 3, 20, 0.002]) {
+      expect(UserPartDefSchema.safeParse({
+        ...validUserPart, category: 'mainboard', geometry: { ...validUserPart.geometry, thicknessMm },
+      }).success).toBe(false)
+    }
+  })
+
   it('接受通过完整制造检查的结构件', () => {
     expect(UserPartDefSchema.safeParse(validUserPart).success).toBe(true)
   })
@@ -151,6 +173,20 @@ describe('作品装配快照契约', () => {
     const parsed = DroneDesignSnapshotSchema.parse({ ...snapshot, buildMode: 'free', parts: [custom] })
     expect(parsed.parts[0]).toMatchObject(custom)
     expect(parsed.parts[0]).not.toHaveProperty('geometry')
+  })
+
+  it('accepts custom mainboards only as unconnected free placements with unchanged source provenance', () => {
+    const mainboard = { ...custom, category: 'mainboard' }
+    const candidate = { ...snapshot, buildMode: 'free', parts: [mainboard] }
+    expect(DroneDesignSnapshotSchema.parse(candidate).parts[0]).toMatchObject(mainboard)
+    for (const unsafe of [
+      { ...candidate, buildMode: 'guided' },
+      { ...candidate, parts: [{ ...mainboard, source: undefined }] },
+      { ...candidate, parts: [{ ...mainboard, partId: 'core_hub_01' }] },
+      { ...candidate, parts: [{ ...mainboard, activeConnectorId: 'invented' }] },
+      { ...candidate, parts: [snapshot.parts[0], { ...mainboard, attachedTo: { parentInstanceId: 'hub-1', parentConnectorId: 'invented' } }] },
+      { ...candidate, parts: [mainboard, { ...snapshot.parts[1], attachedTo: { parentInstanceId: mainboard.instanceId, parentConnectorId: 'invented' } }] },
+    ]) expect(DroneDesignSnapshotSchema.safeParse(unsafe).success).toBe(false)
   })
 
   it('rejects fabricated custom connections, guided completion, and mismatched provenance', () => {

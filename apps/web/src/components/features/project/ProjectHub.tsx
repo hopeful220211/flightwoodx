@@ -167,7 +167,7 @@ export function ProjectHub() {
       tag: hub.program && !hub.programBound ? '本地草稿' : undefined,
     },
     {
-      label: '试飞', desc: '仿真试飞', path: 'simulator', icon: Play,
+      label: '模拟', desc: '模拟运行程序', path: 'simulator', icon: Play,
       preview: <FlightPreview3D />,
     },
   ]
@@ -223,13 +223,13 @@ export function ProjectHub() {
             </button>
           )}
           <Button size="sm" variant="outline" leftIcon={<Send size={14} />} onClick={() => setPublishOpen(true)}>发布到社区</Button>
-          <Button size="sm" variant="outline" leftIcon={<Share2 size={14} />} onClick={() => toast.push('info', '分享 / 嵌入即将开放（M5.5）')}>分享</Button>
+          <Button size="sm" variant="outline" leftIcon={<Share2 size={14} />} onClick={() => toast.push('info', '项目分享与网页嵌入暂未开放')}>分享</Button>
           <button
             type="button"
             onClick={() => {
               // 接现成的设计 CAD 导出（方案 A）：有设计就跳导出预览页，没有就提示先做设计
               if (hub.design) nav(`/design/export-preview/${hub.design.id}`)
-              else toast.push('info', '先完成你的设计，才能导出 CAD 文件')
+              else toast.push('info', '请先创建设计，再导出已有的零件数据')
             }}
             // 配色与「一键试飞」一致（from-sky-600 to-sky-700），与「分享/设置」的描边区分
             className="touch-target inline-flex min-h-[44px] items-center justify-center gap-2 whitespace-nowrap rounded-md bg-gradient-to-br from-sky-600 to-sky-700 px-3 text-sm font-semibold text-white shadow-sm transition hover:from-sky-700 hover:to-sky-800 active:translate-y-[1px] active:scale-95"
@@ -247,7 +247,7 @@ export function ProjectHub() {
           <p className="text-xs text-amber-700">
             {hub.degraded
               ? '项目部分内容加载失败，请刷新或检查网络后重试。'
-              : '未登录，内容仅保存在本设备。登录后即可把设计与程序绑定到云端项目、跨设备同步。'}
+              : '未登录，内容仅保存在当前浏览器。登录并保存到账号后，可在其他设备查看。'}
           </p>
         </div>
       )}
@@ -263,9 +263,9 @@ export function ProjectHub() {
         <div className="relative flex items-center gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20"><Rocket size={22} /></span>
           <div>
-            <p className="text-base font-bold">一键试飞</p>
+            <p className="text-base font-bold">运行模拟</p>
             <p className="mt-0.5 text-xs text-sky-100">
-              {flyDisabled ? '先在「编程」里拼好程序，就能让它飞起来' : '把这个项目的程序在仿真里跑一遍，看它怎么飞'}
+              {flyDisabled ? '请先在编程页编写程序，再运行模拟。' : '查看当前程序的模拟运行过程，不代表实机飞行结果。'}
             </p>
           </div>
         </div>
@@ -305,11 +305,11 @@ export function ProjectHub() {
 
       {/* 次级挂载点：版本（占位入口，两跳内可达） */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <button type="button" onClick={() => toast.push('info', '版本 / 分支即将开放（M-X）')} className={`flex items-center gap-3 p-4 text-left transition hover:ring-sky-200 ${CARD}`}>
+        <button type="button" onClick={() => toast.push('info', '历史版本与分支管理暂未开放')} className={`flex items-center gap-3 p-4 text-left transition hover:ring-sky-200 ${CARD}`}>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-600"><GitBranch size={18} /></span>
           <div>
             <p className="text-sm font-bold text-sky-900">版本与分支</p>
-            <p className="text-xs text-sky-500">保存历史、分支、回滚 · 即将开放</p>
+            <p className="text-xs text-sky-500">历史查看、分支与版本恢复暂未开放</p>
           </div>
         </button>
       </div>

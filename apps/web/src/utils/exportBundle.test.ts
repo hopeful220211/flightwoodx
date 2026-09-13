@@ -113,6 +113,12 @@ describe('buildExportFiles', () => {
     expect(paths).not.toContain('parts/core_hub_01.dxf')
   })
 
+  it('states missing drawing limits without promising automatic future completion', () => {
+    const readme = result.files.find(file => file.path === 'README.txt')!.content
+    expect(readme).toContain('这些零件缺少可用的二维轮廓，本次无法导出对应切割图；加工前需另行准备并验证图纸。')
+    expect(readme).not.toMatch(/正在补齐|补齐后重新导出即会自动/)
+  })
+
   it('zip 结构齐全：BOM/装配说明/manifest/README 都在', () => {
     expect(paths).toContain('BOM.csv')
     expect(paths).toContain('assembly.md')
