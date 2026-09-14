@@ -170,6 +170,7 @@ jobs:
         env:
           VITE_ASSET_BASE: ''
           VITE_API_URL: /api
+          VITE_ANALYTICS_RELEASE: ${{ github.sha }}
       - name: Start isolated application and verify core flow
         if: needs.evidence.outputs.reuse != 'true'
         env:
@@ -183,14 +184,25 @@ jobs:
         run: |
           export JWT_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(48).toString("hex"))')"
           export UPLOAD_DIR="$RUNNER_TEMP/fwx-e2e-uploads"
-          pnpm --filter api start > "$RUNNER_TEMP/fwx-api.log" 2>&1 &
+          node apps/api/src/server.js > "$RUNNER_TEMP/fwx-api.log" 2>&1 &
+          API_PID=$!
           pnpm --filter web preview --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/fwx-web.log" 2>&1 &
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:4173/api/health > /dev/null; then break; fi
             sleep 1
           done
           curl -fsS http://127.0.0.1:4173/api/health
-          pnpm --filter web test:e2e
+          pnpm --filter web test:e2e '^(?!.*privacy\.spec\.ts).*$'
+          kill "$API_PID"
+          wait "$API_PID"
+          export ANALYTICS_ENABLED=true
+          export ANALYTICS_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(48).toString("hex"))')"
+          node apps/api/src/server.js > "$RUNNER_TEMP/fwx-api-analytics.log" 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/api/analytics/config | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.exit(JSON.parse(s).enabled?0:1)}catch{process.exit(1)}})'; then break; fi
+            sleep 1
+          done
+          pnpm --filter web test:e2e privacy.spec.ts
 
       - name: Package the exact browser-tested public bundle
         if: needs.evidence.outputs.reuse != 'true'
