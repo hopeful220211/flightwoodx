@@ -44,7 +44,7 @@ export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
                 <AnimatedEntry delay={120}>
                   <h1
                     className="leading-[0.95] tracking-tight text-sky-900"
-                    style={{ fontSize: 'clamp(64px, 9vw, 130px)', fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900 }}
+                    style={{ fontSize: 'clamp(64px, 9vw, 130px)', fontFamily: 'Montserrat, "Arial Black", Arial, sans-serif', fontWeight: 900, fontSynthesis: 'none' }}
                   >
                     FLIGHT
                   </h1>
@@ -52,7 +52,7 @@ export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
                 <AnimatedEntry delay={220}>
                   <h1
                     className="leading-[0.95] tracking-tight text-sky-500"
-                    style={{ fontSize: 'clamp(64px, 9vw, 130px)', fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900 }}
+                    style={{ fontSize: 'clamp(64px, 9vw, 130px)', fontFamily: 'Montserrat, "Arial Black", Arial, sans-serif', fontWeight: 900, fontSynthesis: 'none' }}
                   >
                     WOOD X
                   </h1>

@@ -1,0 +1,12 @@
+Montserrat Black (900), normal, Latin webfont
+
+This unmodified WOFF2 file is distributed with FlightWoodX for its English homepage title.
+Source: @fontsource/montserrat 5.2.6, files/montserrat-latin-900-normal.woff2
+Download: https://cdn.jsdelivr.net/npm/@fontsource/montserrat@5.2.6/files/montserrat-latin-900-normal.woff2
+Project: https://github.com/JulietaUla/Montserrat
+Copyright and license: montserrat-OFL-1.1.txt
+License source: https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/OFL.txt
+Retrieved: 2026-09-14
+SHA-256: bf2664ac712a67e024d989d18f818136d1a422c0bd5507571dc347a497ad9b61
+
+Served from this website, not fetched from a third-party font service at runtime.

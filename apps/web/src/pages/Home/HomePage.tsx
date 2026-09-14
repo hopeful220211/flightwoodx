@@ -4,6 +4,7 @@ import { VideoPreviewSection, type VideoPreviewHandle } from './sections/VideoPr
 import { WhyUsSection } from './sections/WhyUsSection'
 import { ProductDemoSection } from './sections/ProductDemoSection'
 import { CurriculumSection } from './sections/CurriculumSection'
+import { AwardBanner } from './sections/AwardBanner'
 import { ForWhoSection } from './sections/ForWhoSection'
 import { LovedBySection } from './sections/LovedBySection'
 import { FinalCTASection } from './sections/FinalCTASection'
@@ -19,6 +20,7 @@ export function HomePage() {
       <WhyUsSection />
       <ProductDemoSection />
       <CurriculumSection />
+      <AwardBanner />
       <ForWhoSection />
       <LovedBySection />
       <FinalCTASection />

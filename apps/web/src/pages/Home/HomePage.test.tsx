@@ -8,6 +8,26 @@ import { WhyUsSection } from './sections/WhyUsSection'
 beforeEach(() => vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))))
 afterEach(() => vi.unstubAllGlobals())
 
+it('places a full-width, source-linked award statement between the steps and audience sections', () => {
+  const container = document.createElement('div')
+  container.innerHTML = renderToStaticMarkup(<MemoryRouter><HomePage /></MemoryRouter>)
+  const banner = container.querySelector('section[aria-label="作品获奖"]')!
+  expect(banner).not.toBeNull()
+  expect(banner.previousElementSibling?.textContent).toContain('使用步骤')
+  expect(banner.nextElementSibling?.textContent).toContain('学生、教师和学校')
+  expect(banner.classList.contains('w-full')).toBe(true)
+  expect(banner.textContent).toBe('FlightWoodX 木质无人机课程服务系统已获红点设计概念奖、iF 设计奖及鲲鹏奖工业设计概念组金奖。')
+  expect([...banner.querySelectorAll('a')].map(link => ({
+    text: link.textContent, href: link.getAttribute('href'), target: link.target, rel: link.rel,
+  }))).toEqual([
+    { text: '红点设计概念奖', href: 'https://www.red-dot.org/project/flightwood-x-83079', target: '_blank', rel: 'noopener noreferrer' },
+    { text: 'iF 设计奖', href: 'https://ifdesign.com/en/winner-ranking/project/flight-wood-xwooden-drone-course-service-system/742980', target: '_blank', rel: 'noopener noreferrer' },
+    { text: '鲲鹏奖工业设计概念组金奖', href: 'https://www.k-p-a.design/news/1448.html', target: '_blank', rel: 'noopener noreferrer' },
+  ])
+  expect(banner.querySelectorAll('button, img, video')).toHaveLength(0)
+  expect(banner.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true')
+})
+
 it('describes design, wooden assembly and flight testing without promising real-flight results', () => {
   const container = document.createElement('div')
   container.innerHTML = renderToStaticMarkup(<WhyUsSection />)
@@ -49,6 +69,19 @@ it('uses the requested hero title and introduction without changing the capabili
   ])
   expect(hero.textContent).not.toMatch(/动手造，会飞的|不上一根钉子的榫卯木工，拼一架真能飞的无人机/)
   expect(Array.from(hero.querySelectorAll('h1'), heading => heading.textContent)).toEqual(['FLIGHT', 'WOOD X'])
+})
+
+it('uses the bundled Montserrat Black face only for the two English hero titles', () => {
+  const container = document.createElement('div')
+  container.innerHTML = renderToStaticMarkup(<MemoryRouter><HomePage /></MemoryRouter>)
+  const titles = [...container.querySelectorAll<HTMLHeadingElement>('#home-hero h1')]
+  expect(titles).toHaveLength(2)
+  for (const title of titles) {
+    expect(title.style.fontFamily).toBe('Montserrat, "Arial Black", Arial, sans-serif')
+    expect(title.style.fontWeight).toBe('900')
+    expect(title.style.fontSynthesis).toBe('none')
+  }
+  expect(container.querySelector('#home-hero p.font-display')?.textContent).toBe('翼想飞木无人机搭建平台')
 })
 
 it('removes the separate award section and offers a video preview without downloading the video', () => {
