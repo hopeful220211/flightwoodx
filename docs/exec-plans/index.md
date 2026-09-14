@@ -16,10 +16,11 @@
 
 ## 已结束记录
 
-- [`completed/2026-09-14-product-analytics.md`](./completed/2026-09-14-product-analytics.md)：第一方可选统计、成功结果、授权撤回与管理员汇总/CSV；845项自动测试和实际浏览器验收通过，未发布。
-- [`completed/2026-09-14-privacy-pages.md`](./completed/2026-09-14-privacy-pages.md)：隐私政策目录、完整说明、精简提示与身份隔离；861项自动测试、6项Chrome用例通过，未发布。
-- [`completed/2026-09-14-release-efficiency.md`](./completed/2026-09-14-release-efficiency.md)：固定发布规则和命令、同提交CI复用、并行检查及计时，827项自动测试通过；云端工作流未上传启用。
-- [`completed/2026-09-14-all-pending-release.md`](./completed/2026-09-14-all-pending-release.md)：全部已完成功能正式发布为c7b69d7；备份恢复、API11步及公网三尺寸36组验收通过。下列功能记录中的未发布为各轮当时状态，当前上线结果以本条为准。
+- [`completed/2026-09-14-combined-release.md`](./completed/2026-09-14-combined-release.md)：两项任务的插接口、工具提示、首页、使用统计及隐私页面合并上线；正式前端71697fc、API4b05017，959项自动测试、92项云端浏览器用例和公网三尺寸验收通过。当前上线结果以本条为准，下列未发布表述为各轮历史。
+- [`completed/2026-09-14-product-analytics.md`](./completed/2026-09-14-product-analytics.md)：第一方可选统计、成功结果、授权撤回与管理员汇总/CSV；845项自动测试和实际浏览器验收通过，已随合并发布上线。
+- [`completed/2026-09-14-privacy-pages.md`](./completed/2026-09-14-privacy-pages.md)：隐私政策目录、完整说明、精简提示与身份隔离；861项自动测试、6项Chrome用例通过，已随合并发布上线。
+- [`completed/2026-09-14-release-efficiency.md`](./completed/2026-09-14-release-efficiency.md)：固定发布规则和命令、同提交CI复用、并行检查及计时，827项当轮自动测试通过；已启用云端复用，实测生产流程91秒、上传切换39秒。
+- [`completed/2026-09-14-all-pending-release.md`](./completed/2026-09-14-all-pending-release.md)：此前一轮正式发布c7b69d7；备份恢复、API11步及公网三尺寸36组验收通过，最新上线结果见71697fc合并发布记录。
 - [`completed/2026-09-14-concise-contextual-copy.md`](./completed/2026-09-14-concise-contextual-copy.md)：全站简短功能文案、按需错误反馈和导出结果折叠，748项自动测试及72项全站浏览器回归通过，未发布。
 - [`completed/2026-09-14-part-studio-selection.md`](./completed/2026-09-14-part-studio-selection.md)：固定绘制参数区与画布、细选框和鼠标/触控缩放，634项自动测试及49项全站浏览器回归通过，未发布。
 - [`completed/2026-09-13-part-studio-dimensioned-editor.md`](./completed/2026-09-13-part-studio-dimensioned-editor.md)：毫米规则绘图、参考范围、真实2mm板厚与共享木纹、主机身类别及保存恢复；599项自动测试和14项浏览器回归通过，未发布，实物配合未验证。
