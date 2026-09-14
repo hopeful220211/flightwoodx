@@ -58,6 +58,11 @@ export function Footer() {
           <p>
             © 2026 芬奇答奥（重庆）科技有限公司
           </p>
+          <nav aria-label="隐私与数据" className="flex flex-wrap justify-center gap-x-6 gap-y-3">
+            <Link to="/privacy" className="underline underline-offset-4 hover:text-white">隐私与数据保护</Link>
+            <Link to="/privacy/policy" className="underline underline-offset-4 hover:text-white">隐私政策</Link>
+            <Link to="/privacy/settings" className="underline underline-offset-4 hover:text-white">隐私设置</Link>
+          </nav>
           <div className="flex flex-col items-center gap-x-6 gap-y-2 sm:flex-row sm:flex-wrap sm:justify-center">
             <a
               href="https://beian.miit.gov.cn/"

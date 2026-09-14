@@ -7,6 +7,7 @@ const { putObject, bestEffortDeleteObject } = require('../lib/storage')
 const { parseDesignPayload } = require('../lib/designSnapshot')
 const { validateProjectReferences } = require('../lib/projectReferences')
 const { isInvalidDocument } = require('../lib/persistenceErrors')
+const { recordDesignSaved } = require('../lib/analytics')
 
 const router = express.Router()
 
@@ -179,6 +180,7 @@ router.post('/', async (req, res) => {
     }
 
     await design.save()
+    recordDesignSaved(req, design, true)
     res.status(201).json({ design: withId(design.toObject()) })
   } catch (error) {
     if (isInvalidDocument(error)) return res.status(400).json({ error: '设计字段格式无效' })
@@ -224,12 +226,13 @@ router.put('/', async (req, res) => {
     if (reusable !== undefined) update.reusable = reusable
     if (programId !== undefined) update.programId = programId
 
-    const design = await DroneDesign.findOneAndUpdate(
+    const result = await DroneDesign.findOneAndUpdate(
       { ownerId: req.userId, localId },
       { $set: update },
-      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true },
+      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true, includeResultMetadata: true },
     ).lean()
-
+    const design = result.value
+    recordDesignSaved(req, design, !result.lastErrorObject.updatedExisting)
     res.json({ design: withId(design) })
   } catch (error) {
     // 并发下唯一索引可能抛 E11000：再读一次返回既有记录，保持幂等
@@ -280,6 +283,7 @@ router.patch('/:id', async (req, res) => {
       return res.status(404).json({ error: '设计不存在' })
     }
 
+    recordDesignSaved(req, design)
     res.json({ design: withId(design) })
   } catch (error) {
     if (isInvalidDocument(error)) return res.status(400).json({ error: '设计字段格式无效' })

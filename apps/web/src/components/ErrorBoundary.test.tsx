@@ -4,6 +4,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { STORAGE_KEYS } from '../constants/storageKeys'
 import ErrorBoundary from './ErrorBoundary'
+import { trackEvent } from '../features/analytics/client'
+vi.mock('../features/analytics/client', () => ({ trackEvent: vi.fn() }))
 
 let root: Root
 let container: HTMLDivElement
@@ -16,6 +18,7 @@ function storedValues(storage: Storage) {
 }
 
 beforeEach(() => {
+  vi.mocked(trackEvent).mockClear()
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   localStorage.clear()
   sessionStorage.clear()
@@ -76,4 +79,10 @@ it('offers refresh without claiming to clear data or changing storage on retry',
   expect(reload).toHaveBeenCalledTimes(1)
   expect(storedValues(localStorage)).toEqual(localBefore)
   expect(storedValues(sessionStorage)).toEqual(sessionBefore)
+})
+
+it('reports only a fixed runtime category, never error text or component stack', async () => {
+  await act(async () => root.render(<ErrorBoundary><BrokenChild /></ErrorBoundary>))
+  expect(trackEvent).toHaveBeenCalledExactlyOnceWith('app_problem', { phase: 'runtime', reason: 'unknown' })
+  expect(JSON.stringify(vi.mocked(trackEvent).mock.calls)).not.toContain(renderError.message)
 })

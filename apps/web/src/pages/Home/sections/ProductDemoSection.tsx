@@ -5,6 +5,7 @@ import { SectionHeading } from '../components/SectionHeading'
 import { Button } from '../../../components/common/Button'
 import { useAuthStore } from '../../../stores/authStore'
 import { WorkbenchAnimation } from '../components/WorkbenchAnimation'
+import { trackEvent } from '../../../features/analytics/client'
 
 const features = [
   { icon: Layers, text: '分步引导与自由拼装' },
@@ -52,7 +53,7 @@ export function ProductDemoSection() {
               </ul>
 
               <Button
-                onClick={() => navigate(isAuthenticated ? '/design' : '/auth')}
+                onClick={() => { trackEvent('home_cta_clicked', { placement: 'demo', destination: isAuthenticated ? 'design' : 'login' }); navigate(isAuthenticated ? '/design' : '/auth') }}
                 rightIcon={<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />}
                 className="group mt-2"
               >

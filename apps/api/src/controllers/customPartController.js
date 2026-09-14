@@ -4,6 +4,7 @@
 // - 增/改/删经 lib/audit 落痕；信封对齐 RFC-014 的 { success, data }。
 // 板厚锁死 2mm 已由契约（geometry.thicknessMm = literal 2）保证，controller 不再单独核对材料表。
 const mongoose = require('mongoose')
+const { recordPartSaved } = require('../lib/analytics')
 const CustomPart = require('../models/CustomPart')
 const { writeAudit } = require('../lib/audit')
 // 单一事实来源：从 @fwx/parts-schema 的 CJS 构建消费 v2 契约，不在 api 内重复定义
@@ -146,6 +147,7 @@ exports.create = async (req, res) => {
       diffSummary: `创建自制零件「${dto.name}」`,
     })
 
+    recordPartSaved(req, dto)
     res.status(201).json({ success: true, data: dto })
   } catch (error) {
     console.error('[custom-parts] Create error:', error)
@@ -208,6 +210,7 @@ exports.update = async (req, res) => {
       diffSummary: `更新自制零件「${dto.name}」`,
     })
 
+    recordPartSaved(req, dto)
     res.json({ success: true, data: dto })
   } catch (error) {
     // 并发首次 PUT 撞 _id 唯一索引抛 E11000：输掉插入的一方改走「非 upsert 更新」，
@@ -223,6 +226,7 @@ exports.update = async (req, res) => {
             target: `custom-part#${dto.id}`,
             diffSummary: `更新自制零件「${dto.name}」`,
           })
+          recordPartSaved(req, dto)
           return res.json({ success: true, data: dto })
         }
         return sendWriteFailure(result)

@@ -2,6 +2,7 @@ const express = require('express')
 const { authenticate } = require('../middleware/auth')
 const Program = require('../models/Program')
 const { withStringId } = require('../lib/documentResponse')
+const { recordProgramSaved } = require('../lib/analytics')
 // IR 后端校验（RFC-014 W9）：从 @fwx/shared 的 CJS 构建消费，单一事实来源，不重复定义
 const { CommandProgramSchema } = require('@fwx/shared/runtime-cjs')
 
@@ -55,6 +56,7 @@ router.post('/', async (req, res) => {
 
     const program = new Program({ ownerId: req.userId, name, blocklyXml, commandProgram })
     await program.save()
+    recordProgramSaved(req, program)
     res.status(201).json({ program: withStringId(program) })
   } catch (error) {
     console.error('[programs] Create error:', error)
@@ -84,6 +86,7 @@ router.patch('/:id', async (req, res) => {
     ).lean()
 
     if (!program) return res.status(404).json({ error: '程序不存在' })
+    recordProgramSaved(req, program)
     res.json({ program: withStringId(program) })
   } catch (error) {
     console.error('[programs] Update error:', error)

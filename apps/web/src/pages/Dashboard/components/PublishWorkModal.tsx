@@ -18,6 +18,7 @@ import { useToast } from '../../../components/common/Toast'
 import { putDroneDesign, updateDroneDesign, createCommunityPost } from '../../../utils/api'
 import { MY_DESIGNS_KEY } from '../../../hooks/useMyDesigns'
 import type { Design } from '../../../types/design'
+import { trackOperationFailure } from '../../../utils/productEvents'
 
 interface PublishWorkModalProps {
   open: boolean
@@ -53,6 +54,7 @@ export function PublishWorkModal({ open, onClose, design, serverId, initialReusa
           weightG: design.safetyCheck?.totalWeightG ?? 0,
         })
         if (!put.success || !put.data) {
+          trackOperationFailure('publish', put.status)
           toast.push('error', put.error || '保存作品失败，请重试')
           return
         }
@@ -60,6 +62,7 @@ export function PublishWorkModal({ open, onClose, design, serverId, initialReusa
       }
 
       if (!id) {
+        trackOperationFailure('publish', 400)
         toast.push('error', '未找到账号中的作品记录，请保存后重试')
         return
       }
@@ -67,6 +70,7 @@ export function PublishWorkModal({ open, onClose, design, serverId, initialReusa
       // 2) 设为公开（+ 是否允许复用）
       const patch = await updateDroneDesign(id, { visibility: 'public', reusable })
       if (!patch.success) {
+        trackOperationFailure('publish', patch.status)
         toast.push('error', patch.error || '公开作品失败')
         return
       }
@@ -86,7 +90,11 @@ export function PublishWorkModal({ open, onClose, design, serverId, initialReusa
         nav(`/community/${post.data.post.id}`)
         return
       }
+      trackOperationFailure('publish', post.status)
       toast.push('error', post.error || '发布失败')
+    } catch (error) {
+      trackOperationFailure('publish')
+      throw error
     } finally {
       setBusy(false)
     }

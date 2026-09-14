@@ -17,6 +17,8 @@ import { useToast } from '../../components/common/Toast'
 import { useAuthStore } from '../../stores/authStore'
 import { useProgramStore } from '../../stores/programStore'
 import { loadDesignProgram, saveDesignProgram } from '../../utils/designProgram'
+import { trackEvent } from '../../features/analytics/client'
+import { trackOperationFailure } from '../../utils/productEvents'
 
 // 自定义主题 + JSON 工具箱 + 分类图标注入（内部已 import './blocks' 注册积木）
 import { DRONE_THEME, DRONE_TOOLBOX, applyCategoryIcons } from '../../blockly/blocklyTheme'
@@ -128,6 +130,8 @@ function CodingWorkspace({ designId: id }: { designId?: string }) {
         preserveUnreadableDraftRef.current = false
         lastXmlRef.current = xml
         useProgramStore.getState().setProgram(id, xml, program)
+        trackEvent('program_edited', { designId: id }, { onceKey: `program-edit:${id}` })
+        trackEvent('design_edit_started', { designId: id, area: 'program' }, { onceKey: `edit:program:${id}` })
         setSaveStatus(token && !isGuest ? '已保存本地草稿，尚未同步到账号' : '已保存本地草稿')
       } else if (!preserveUnreadableDraftRef.current && savedDraft && id && !program) {
         useProgramStore.getState().setProgram(id, xml, null)
@@ -186,7 +190,10 @@ function CodingWorkspace({ designId: id }: { designId?: string }) {
           Blockly.Events.enable()
         }
       } catch (error) {
-        if (!cancelled) setLoadError(error instanceof Error ? error.message : '账号中的程序加载失败')
+        if (!cancelled) {
+          trackOperationFailure('editor_load')
+          setLoadError(error instanceof Error ? error.message : '账号中的程序加载失败')
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -241,6 +248,7 @@ function CodingWorkspace({ designId: id }: { designId?: string }) {
 
   const handleSave = useCallback(async () => {
     if (!id || !workspaceRef.current || preserveUnreadableDraftRef.current) {
+      trackOperationFailure('program_save', 400)
       toast.push('error', '当前作品或程序尚未就绪，请检查加载提示')
       return
     }
@@ -249,6 +257,7 @@ function CodingWorkspace({ designId: id }: { designId?: string }) {
     try {
       program = compileWorkspace(ws, { name: ir?.metadata.name || `项目 ${id.slice(0, 6)}`, author: user?.username || '设计师' })
     } catch (error) {
+      trackOperationFailure('program_save', 400)
       toast.push('error', error instanceof Error ? error.message : '请先修正积木再保存到账号')
       return
     }
@@ -258,6 +267,7 @@ function CodingWorkspace({ designId: id }: { designId?: string }) {
 
     // 游客 / 未登录：仅本地保存
     if (!token || isGuest) {
+      trackEvent('program_bound', { designId: id, destination: 'local' })
       toast.push('success', '已本地保存（登录后可同步到账号）')
       return
     }
@@ -275,6 +285,7 @@ function CodingWorkspace({ designId: id }: { designId?: string }) {
       setLoadError(null)
       toast.push('success', '程序已保存到账号')
     } catch (error) {
+      if (useAuthStore.getState().token === token) trackOperationFailure('program_save')
       setSaveStatus('同步失败，本地草稿已保留')
       toast.push('error', error instanceof Error ? error.message : '保存到账号失败（已本地保存）')
     } finally {

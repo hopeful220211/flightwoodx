@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { SectionLabel } from '../../components/common/SectionLabel'
 import { useToast } from '../../components/common/Toast'
 import { useAuthStore } from '../../stores/authStore'
@@ -85,6 +85,7 @@ export function AuthPage() {
           </div>
 
           {/* 注册表单 */}
+          <p className="mb-4 text-xs leading-6 text-slate-600">注册前请阅读<Link to="/privacy/policy" target="_blank" rel="noopener noreferrer" className="text-sky-800 underline">隐私政策</Link>和<Link to="/privacy/children" target="_blank" rel="noopener noreferrer" className="text-sky-800 underline">儿童个人信息保护规则</Link>。注册不会自动开启使用统计。</p>
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
               <label htmlFor="register-username" className={labelCls}>用户名</label>

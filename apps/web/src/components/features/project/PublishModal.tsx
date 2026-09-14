@@ -13,6 +13,7 @@ import { Button } from '../../common/Button'
 import { Input } from '../../common/Input'
 import { useToast } from '../../common/Toast'
 import { createCommunityPost, updateProject } from '../../../utils/api'
+import { trackOperationFailure } from '../../../utils/productEvents'
 
 interface PublishModalProps {
   open: boolean
@@ -52,9 +53,11 @@ export function PublishModal({ open, onClose, projectId, defaultTitle }: Publish
     }
     // 项目还是私密 → 引导公开
     if ((res.error || '').includes('公开')) {
+      trackOperationFailure('publish', res.status ?? 400)
       setNeedPublic(true)
       return
     }
+    trackOperationFailure('publish', res.status)
     toast.push('error', res.error || '发布失败')
   }
 
@@ -62,6 +65,9 @@ export function PublishModal({ open, onClose, projectId, defaultTitle }: Publish
     setBusy(true)
     try {
       await doPublish()
+    } catch (error) {
+      trackOperationFailure('publish')
+      throw error
     } finally {
       setBusy(false)
     }
@@ -72,11 +78,15 @@ export function PublishModal({ open, onClose, projectId, defaultTitle }: Publish
     try {
       const up = await updateProject(projectId, { visibility: 'public' })
       if (!up.success) {
+        trackOperationFailure('publish', up.status)
         toast.push('error', up.error || '公开项目失败')
         return
       }
       setNeedPublic(false)
       await doPublish()
+    } catch (error) {
+      trackOperationFailure('publish')
+      throw error
     } finally {
       setBusy(false)
     }

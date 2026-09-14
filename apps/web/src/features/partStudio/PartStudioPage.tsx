@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Undo2, Redo2, Trash2, Eraser, X, SlidersHorizontal } from 'lucide-react'
 import { UserPartSchema, USER_PART_THICKNESS_MM, type UserPartDTO } from '@fwx/parts-schema'
+import type { AnalyticsClientEventProperties } from '@fwx/shared'
 import { useToast } from '../../components/common/Toast'
 import { Modal } from '../../components/common/Modal'
 import { useAuthStore } from '../../stores/authStore'
@@ -20,6 +21,7 @@ import { PlaceCustomPartDialog } from './PlaceCustomPartDialog'
 import { analyzeSketchJoints } from './sketch/jointGuides'
 import { JointGuideDialog } from './JointGuideDialog'
 import { SketchPreviewFeedback } from './SketchPreviewFeedback'
+import { trackEvent } from '../analytics/client'
 
 /** All sketch coordinates are mm. The same compiled geometry drives preview
  * and persistence; display zoom and reference frames never rescale a part. */
@@ -61,7 +63,19 @@ export function PartStudioPage() {
   const commit = (next: SketchDocument) => {
     if (!saving && next !== document) dispatch({ type: 'commit', document: next })
   }
-  const updateShapes = (shapes: SketchShape[]) => commit({ ...document, shapes })
+  const updateShapes = (shapes: SketchShape[]) => {
+    if (!saving && JSON.stringify(shapes) !== JSON.stringify(document.shapes)) {
+      trackEvent('design_edit_started', { area: 'sketch' }, { onceKey: 'edit:sketch' })
+      for (const shape of shapes) {
+        if (document.shapes.some(previous => previous.id === shape.id)) continue
+        const shapeKind = shape.kind === 'rectangle' ? 'rect' : shape.kind === 'ellipse' ? 'circle' : tool === 'freehand' ? 'freehand' : 'polygon'
+        const operation = shape.operation === 'add' ? 'add' : 'subtract'
+        const jointKind = shape.joint?.kind === 'edge-slot' ? 'edge' : shape.joint?.kind === 'through-slot' ? 'internal' : 'none'
+        trackEvent('sketch_shape_committed', { shapeKind, operation, jointKind }, { onceKey: `shape:${shapeKind}:${operation}:${jointKind}` })
+      }
+    }
+    commit({ ...document, shapes })
+  }
   const compiled = useMemo(() => compileSketch(document.shapes, document.reference, document.constrain), [document])
   const joints = useMemo(() => compiled.part ? analyzeSketchJoints(document.shapes, compiled.part, document.reference.width) : { guides: [], error: null }, [compiled.part, document.shapes, document.reference.width])
   const prepared = useMemo(() => {
@@ -73,6 +87,17 @@ export function PartStudioPage() {
     }
   }, [compiled, document.category, joints])
   const problemShapeIds = !pending && !prepared.def ? compiled.issue?.shapeIds ?? [] : []
+  const previewAvailable = Boolean(prepared.def)
+  const previousPreviewReason = useRef<AnalyticsClientEventProperties<'sketch_preview_state_changed'>['reason'] | null>(null)
+  useEffect(() => {
+    if (pending) return
+    if (!document.shapes.length) { previousPreviewReason.current = null; return }
+    const reason = previewAvailable ? null : compiled.issue?.code ?? (prepared.error ? 'invalid-sketch' : null)
+    if (reason === previousPreviewReason.current) return
+    if (reason) trackEvent('sketch_preview_state_changed', { state: 'blocked', reason })
+    else if (previousPreviewReason.current) trackEvent('sketch_preview_state_changed', { state: 'recovered', reason: previousPreviewReason.current })
+    previousPreviewReason.current = reason
+  }, [compiled.issue?.code, document.shapes.length, previewAvailable, pending, prepared.error])
   const focusSketch = (shapeId?: string) => {
     if (saving || numericBlocked) return
     if (shapeId && !pending && document.shapes.some(shape => shape.id === shapeId)) {
@@ -123,8 +148,8 @@ export function PartStudioPage() {
         toast.push('success', `已保存「${res.data.name}」到我的零件`)
         setName(''); setSelectedId(null); dispatch({ type: 'reset' })
         await refetchMyParts()
-      } else toast.push('error', res.error || '保存失败，请重试')
-    } catch { toast.push('error', '零件保存失败，当前轮廓仍保留，请重试') }
+      } else { trackEvent('operation_failed', { operation: 'part_save', reason: res.status === 401 || res.status === 403 ? 'unauthorized' : res.status === 400 ? 'validation' : res.status && res.status >= 500 ? 'server' : 'unknown' }); toast.push('error', res.error || '保存失败，请重试') }
+    } catch { trackEvent('operation_failed', { operation: 'part_save', reason: 'unknown' }); toast.push('error', '零件保存失败，当前轮廓仍保留，请重试') }
     finally { setSaving(false) }
   }
 

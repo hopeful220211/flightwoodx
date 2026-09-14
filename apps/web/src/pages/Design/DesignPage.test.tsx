@@ -12,9 +12,11 @@ import type { PartInstance } from '../../types/design'
 import { flightReadiness } from '../../utils/flightReadiness'
 
 const mocks = vi.hoisted(() => ({
+  track: vi.fn(),
   push: vi.fn(), saveNow: vi.fn(), saveToServer: vi.fn(),
   saveStatus: 'saved' as 'saved' | 'error', sourceError: '',
 }))
+vi.mock('../../features/analytics/client', () => ({ trackEvent: mocks.track, getAnalyticsHeaders: () => ({}) }))
 vi.mock('../../components/common/Toast', () => ({ useToast: () => ({ push: mocks.push }) }))
 vi.mock('../../hooks/useDesignSync', () => ({ useDesignSync: () => mocks }))
 vi.mock('../../components/design/ThreeCanvas', () => ({ ThreeCanvas: () => null }))
@@ -42,6 +44,7 @@ beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
   mocks.push.mockReset()
+  mocks.track.mockClear()
   mocks.saveNow.mockReset().mockResolvedValue(true)
   mocks.saveToServer.mockReset()
   mocks.saveStatus = 'saved'
@@ -157,6 +160,7 @@ describe('guided assembly feedback', () => {
     expect(before.issues.map(issue => issue.code)).toEqual(['EVIDENCE_MISSING'])
     await renderReview(parts)
     await act(async () => button('结构检查').click())
+    expect(mocks.track).toHaveBeenCalledWith('assembly_check_completed', { designId: useDesignStore.getState().activeDesignId, outcome: 'blocked' })
     expect(mocks.push).toHaveBeenCalledExactlyOnceWith('info', '装配检查完成')
     expect(container.textContent).not.toContain(before.issues[0]!.message)
     expect(container.textContent).not.toContain('检查通过')

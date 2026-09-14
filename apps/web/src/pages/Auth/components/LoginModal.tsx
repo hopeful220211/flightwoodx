@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { X, Sparkles, ArrowRight } from 'lucide-react'
 import { Button } from '../../../components/common/Button'
 import { useToast } from '../../../components/common/Toast'
@@ -157,6 +157,7 @@ export function LoginModal() {
             登录
           </Button>
         </form>
+        <p className="mt-3 text-center text-xs leading-6 text-slate-600">了解<Link to="/privacy/policy" target="_blank" rel="noopener noreferrer" className="text-sky-800 underline">隐私政策</Link>与<Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-sky-800 underline">数据处理说明</Link>。登录不会自动开启统计。</p>
 
         {/* 去注册 */}
         <div className="mt-5 text-center text-sm">

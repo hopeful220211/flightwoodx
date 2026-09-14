@@ -15,6 +15,7 @@
 import { useCallback, useRef, useState } from 'react'
 import type { DroneAdapter, CommandProgram, Command, Telemetry, RunResult } from '@fwx/shared'
 import { SimAdapter } from '../../../simulator/SimAdapter'
+import { beginSimulationObservation } from '../../../utils/productEvents'
 
 export interface ProjectFlightState {
   running: boolean
@@ -40,8 +41,10 @@ export function useProjectFlight() {
   // 每次 run 递增的 token：旧 run 的回调用它做闸门，避免快速开关 / 重跑 / StrictMode 双调用时回写到新一轮。
   const runIdRef = useRef(0)
   const [state, setState] = useState<ProjectFlightState>(IDLE)
+  const finishObservation = useRef<ReturnType<typeof beginSimulationObservation> | null>(null)
 
   const run = useCallback(async (program: CommandProgram) => {
+    finishObservation.current?.('stopped')
     adapterRef.current?.stop() // 先停掉上一轮，避免两个 adapter 并行回写
     const myRun = ++runIdRef.current
     const live = () => runIdRef.current === myRun // 仅当仍是当前 run 时才回写状态
@@ -49,6 +52,8 @@ export function useProjectFlight() {
     const adapter: DroneAdapter = new SimAdapter({ speed: 1, tickMs: 50 })
     adapterRef.current = adapter
     setState({ ...IDLE, running: true })
+    const finishRun = beginSimulationObservation()
+    finishObservation.current = finishRun
 
     await adapter.execute(program, {
       onCommandStart: (index: number, cmd: Command) => {
@@ -70,18 +75,21 @@ export function useProjectFlight() {
       },
       onFinish: (r: RunResult) => {
         if (!live()) return
+        finishRun(r.success ? 'success' : 'error')
         setState((s) => ({ ...s, result: r, running: false }))
       },
-    })
+    }).catch(error => { finishRun('error'); throw error })
   }, [])
 
   const stop = useCallback(() => {
+    finishObservation.current?.('stopped')
     adapterRef.current?.stop()
     runIdRef.current++ // 作废当前 run 的后续回调（含卸载时）
     setState((s) => ({ ...s, running: false }))
   }, [])
 
   const reset = useCallback(() => {
+    finishObservation.current?.('stopped')
     adapterRef.current?.stop()
     runIdRef.current++
     setState(IDLE)

@@ -157,6 +157,9 @@ export function Navbar() {
                         注册账号
                       </NavLink>
                     )}
+                    <NavLink to="/privacy/settings" className="block px-4 py-2.5 text-sm text-ink-700 hover:bg-sky-50 transition" onClick={() => setUserMenuOpen(false)}>
+                      隐私设置
+                    </NavLink>
                     <button
                       type="button"
                       onClick={handleLogout}
