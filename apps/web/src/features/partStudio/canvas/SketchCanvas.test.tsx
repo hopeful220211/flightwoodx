@@ -44,7 +44,30 @@ it('draws a snapped rectangle in mm and commits only once when the gesture ends'
   expect(props.onPendingChange).toHaveBeenLastCalledWith(false)
 })
 
-it('draws a true circle and a fixed 2 mm slot with distinct cut operations', async () => {
+it('marks a diagnosed source and its mirror without changing selection, hit targets or geometry', async () => {
+  props.shapes = [{ ...shape, mirror: true }, { ...shape, id: 'hole', operation: 'cut', x: 80 }]
+  props.problemShapeIds = ['base']
+  props.referenceInvalid = true
+  props.tool = 'select'
+  props.selectedId = 'base'
+  await render()
+  const problems = container.querySelectorAll('[data-problem-shape-id="base"]')
+  expect(problems).toHaveLength(2)
+  for (const problem of problems) {
+    expect(problem.getAttribute('pointer-events')).toBe('none')
+    expect(problem.getAttribute('stroke')).toBe('#b45309')
+  }
+  expect(container.querySelector('[data-problem-shape-id="hole"]')).toBeNull()
+  expect(container.querySelector('[data-testid="reference-outline"]')?.getAttribute('stroke')).toBe('#b45309')
+  expect(container.querySelectorAll('[data-resize-handle]')).toHaveLength(8)
+  expect(props.onChange).not.toHaveBeenCalled()
+  props.problemShapeIds = []
+  props.referenceInvalid = false
+  await render()
+  expect(container.querySelector('[data-problem-shape-id]')).toBeNull()
+})
+
+it('draws a true circle and a freely sized ordinary rectangular cut', async () => {
   props.tool = 'circle-hole'
   await render()
   await draw(10, 10, 30, 50)
@@ -53,7 +76,24 @@ it('draws a true circle and a fixed 2 mm slot with distinct cut operations', asy
   props.tool = 'slot'
   await render()
   await draw(10, 10, 15, 50)
-  expect(vi.mocked(props.onChange).mock.calls[0]![0][0]).toMatchObject({ kind: 'rectangle', width: 2, height: 40, operation: 'cut' })
+  expect(vi.mocked(props.onChange).mock.calls[0]![0][0]).toMatchObject({ kind: 'rectangle', width: 5, height: 40, operation: 'cut' })
+  expect(vi.mocked(props.onChange).mock.calls[0]![0][0]?.joint).toBeUndefined()
+})
+
+it.each(['edge-slot', 'through-slot'] as const)('keeps the 2mm narrow axis and explicit intent when drawing %s', async slotMode => {
+  props.tool = 'slot'
+  props.slotMode = slotMode
+  await render()
+  await draw(10, 10, 15, 50)
+  expect(vi.mocked(props.onChange).mock.calls[0]![0][0]).toMatchObject({ width: 2, height: 40, operation: 'cut', joint: { kind: slotMode, axis: 'y', entry: slotMode === 'edge-slot' ? 'start' : 'front' } })
+})
+
+it('marks the actual board-edge entrance rather than the cutter extension', async () => {
+  const slot: SketchShape = { ...shape, id: 'edge', operation: 'cut', x: 39, y: 10, width: 2, height: 25, joint: { kind: 'edge-slot', axis: 'y', entry: 'start' } }
+  props = { ...props, shapes: [shape, slot], tool: 'select', selectedId: slot.id,
+    jointGuides: [{ id: 'edge', kind: 'edge-slot', x: 39, y: 20, lengthMm: 15, axis: 'y', entry: 'start' }] }
+  await render()
+  expect(container.querySelector('[data-testid="joint-direction"]')?.getAttribute('d')).toBe('M 40 13 V 24 m -2 -2 l 2 2 l 2 -2')
 })
 
 it('closes a polygon explicitly with Enter without requiring a hit on its first vertex', async () => {
@@ -63,6 +103,37 @@ it('closes a polygon explicitly with Enter without requiring a hit on its first 
   expect(props.onChange).not.toHaveBeenCalled()
   await act(async () => svg().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))
   expect(vi.mocked(props.onChange).mock.calls[0]![0][0]).toMatchObject({ kind: 'polygon', x: 10, y: 10, width: 40, height: 30, points: [[0, 0], [1, 0], [0.5, 1]] })
+})
+
+it.each(['rectangle', 'ellipse', 'circle-hole', 'slot'] as const)('creates a bounded %s from the keyboard without an add button', async tool => {
+  props.tool = tool
+  props.reference = { width: 130, height: 130, shape: 'ellipse' }
+  await render()
+  await act(async () => svg().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))
+  expect(props.onChange).toHaveBeenCalledTimes(1)
+  const created = vi.mocked(props.onChange).mock.calls[0]![0][0]!
+  expect(created.operation).toBe(['circle-hole', 'slot'].includes(tool) ? 'cut' : 'add')
+  expect(created.width).toBeGreaterThan(0)
+  expect(created.height).toBeGreaterThan(0)
+  if (tool === 'slot') expect(created.height).toBe(2)
+  if (tool === 'rectangle') expect(created).toMatchObject({ x: 35, y: 45, width: 60, height: 40 })
+  if (tool === 'ellipse' || tool === 'circle-hole') expect(created.width).toBe(created.height)
+  expect(props.onSelect).toHaveBeenCalledWith(created.id)
+})
+
+it('does not create a keyboard shape when disabled or at capacity, and Escape only deselects', async () => {
+  props.disabled = true
+  await render()
+  await act(async () => svg().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))
+  expect(props.onChange).not.toHaveBeenCalled()
+  props.disabled = false
+  props.shapes = Array.from({ length: 32 }, (_, index) => ({ ...shape, id: `shape-${index}` }))
+  await render()
+  await act(async () => svg().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))
+  expect(props.onChange).not.toHaveBeenCalled()
+  await act(async () => svg().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+  expect(props.onSelect).toHaveBeenLastCalledWith(null)
+  expect(props.onChange).not.toHaveBeenCalled()
 })
 
 it('cancels an uncommitted polygon and drawing without losing existing shapes', async () => {
@@ -163,9 +234,12 @@ it('keeps a freehand stroke uncommitted until the user explicitly closes it', as
   expect(props.onChange).not.toHaveBeenCalled()
   expect(props.onPendingChange).toHaveBeenLastCalledWith(true)
   const close = [...container.querySelectorAll('button')].find(button => button.textContent === '完成闭合')!
+  close.focus()
   await act(async () => close.click())
   expect(vi.mocked(props.onChange).mock.calls[0]![0][0]).toMatchObject({ kind: 'polygon', points: [[0, 0], [1, 0], [0.5, 1]] })
   expect(props.onPendingChange).toHaveBeenLastCalledWith(false)
+  expect(document.activeElement === svg()).toBe(true)
+  expect(props.onSelect).toHaveBeenCalledWith(vi.mocked(props.onChange).mock.calls[0]![0][0]!.id)
 })
 
 it('shows a round mainboard reference and distinguishes an elliptical reference', async () => {

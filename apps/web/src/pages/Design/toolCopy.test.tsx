@@ -49,16 +49,13 @@ describe('tool descriptions', () => {
 
   it('labels required drawings and unknown material requirements, not a ready-to-cut export', () => {
     const html = renderToStaticMarkup(<MaterialPreparation estimate={{ dxfFiles: [{ name: '001', count: 2 }], totalCutLengthMm: 160, suggestedBoardSize: '300mm × 200mm', boardCount: 1, cutTimeMinutes: 1 }} />)
-    expect(html).toContain('图纸与材料说明')
-    expect(html).toContain('当前入口可下载设计记录与零件清单，暂不提供切割图。')
+    expect(html).toContain('导出内容')
+    expect(html).toContain('下载设计记录和零件清单。本次不含切割图，缺少二维轮廓的零件如下。')
     expect(html).toContain('缺少二维轮廓的零件')
+    expect(html).toContain('共 2 个')
     expect(html).not.toContain('001.dxf')
-    expect(html).toContain('切割长度：缺少完整二维轮廓，暂无法计算')
-    expect(html).toContain('板材数量：需根据零件尺寸和排版确认')
-    expect(html).toContain('加工时间：需根据材料及设备参数确认')
     expect(html).not.toMatch(/160 mm|300mm × 200mm|230 mm/)
-    expect(html).toContain('不能直接交给设备加工')
-    expect(html).not.toContain('机器会按图纸切出每一片木头')
+    expect(html).not.toMatch(/材料与加工信息|加工前需要确认|另行确认|不能直接交给设备加工|机器会按图纸切出每一片木头/)
   })
 
   it('names simulator completion and collision as simulated results', () => {
@@ -81,6 +78,6 @@ describe('tool descriptions', () => {
 
   it('explains where saved custom parts are listed', () => {
     const html = renderToStaticMarkup(<MyPartsStrip parts={[]} onDelete={() => {}} onUse={() => {}} />)
-    expect(html).toContain('登录后保存的零件会列在这里。先绘制闭合轮廓，输入名称并保存。')
+    expect(html).toContain('登录后保存的零件会显示在这里。')
   })
 })

@@ -1,5 +1,6 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { join } from 'node:path'
+import { deselectStudioShape, drawStarterRectangle, drawStudioShape, screenPoint as point } from './part-studio-helpers'
 
 const pageFailures = new WeakMap<Page, string[]>()
 test.beforeEach(async ({ context, page }) => {
@@ -23,16 +24,8 @@ async function enterStudio(page: Page) {
   await page.getByRole('button', { name: '进入游客模式', exact: true }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
   await page.goto('/part-studio')
-  await expect(page.getByRole('heading', { name: '零件绘制', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '二维设计', exact: true })).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
-}
-
-async function point(canvas: Locator, x: number, y: number) {
-  return canvas.evaluate((element, p) => {
-    const matrix = (element as SVGSVGElement).getScreenCTM()!
-    const screen = new DOMPoint(p.x, p.y).matrixTransform(matrix)
-    return { x: screen.x, y: screen.y }
-  }, { x, y })
 }
 
 async function positions(page: Page) {
@@ -47,15 +40,25 @@ for (const width of [390, 768, 1440]) {
   test(`selection preserves toolbar and canvas position at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 768 ? 1024 : width === 390 ? 844 : 900 })
     await enterStudio(page)
-    await page.getByRole('button', { name: '添加图形', exact: true }).click()
+    await expect(page.getByRole('button', { name: '添加图形', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('combobox', { name: '选中图形', exact: true })).toHaveCount(0)
+    await expect(page.locator('[aria-label="图形属性"]')).toHaveCount(0)
+    const toolbar = page.getByTestId('sketch-toolbar')
+    const initialCanvas = (await page.getByTestId('sketch-canvas').boundingBox())!
+    const initialToolbar = (await toolbar.boundingBox())!
+    expect(initialToolbar.y, 'Tools belong near the bottom of the canvas').toBeGreaterThan(initialCanvas.y + initialCanvas.height / 2)
+    expect(initialToolbar.x).toBeGreaterThanOrEqual(initialCanvas.x)
+    expect(initialToolbar.x + initialToolbar.width).toBeLessThanOrEqual(initialCanvas.x + initialCanvas.width + 1)
+    await drawStarterRectangle(page)
     const canvas = page.getByTestId('sketch-canvas')
-    await page.getByRole('combobox', { name: '选中图形', exact: true }).selectOption('')
+    await deselectStudioShape(page)
     await canvas.scrollIntoViewIfNeeded()
     const before = await positions(page)
     const original = await canvas.locator('[data-shape-id] rect').evaluate(rect => ['x', 'y', 'width', 'height'].map(name => rect.getAttribute(name)))
     const center = await point(canvas, 65, 65)
     await page.mouse.click(center.x, center.y)
-    await expect(page.getByRole('combobox', { name: '选中图形', exact: true })).not.toHaveValue('')
+    await expect(page.locator('[aria-label="图形属性"]')).toBeVisible()
+    await expect(page.locator('[aria-label="图形属性"]')).not.toHaveAttribute('aria-modal', 'true')
     const after = await positions(page)
     expect(await canvas.locator('[data-shape-id] rect').evaluate(rect => ['x', 'y', 'width', 'height'].map(name => rect.getAttribute(name))), 'Clicking selects without moving or resizing geometry').toEqual(original)
     if (process.env.FWX_UI_CAPTURE_DIR) {
@@ -78,7 +81,7 @@ for (const width of [390, 768, 1440]) {
     }
     const empty = await point(canvas, 5, 5)
     await page.mouse.click(empty.x, empty.y)
-    await expect(page.getByRole('combobox', { name: '选中图形', exact: true })).toHaveValue('')
+    await expect(page.locator('[aria-label="图形属性"]')).toHaveCount(0)
     const cleared = await positions(page)
     for (const key of ['scroll', 'tools', 'canvas'] as const) expect(Math.abs(cleared[key] - after[key])).toBeLessThanOrEqual(1)
     await expect(page.getByRole('button', { name: '删除图形', exact: true })).toBeDisabled()
@@ -87,7 +90,7 @@ for (const width of [390, 768, 1440]) {
   test(`mouse anchors resize accurately with one-step history at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 768 ? 1024 : width === 390 ? 844 : 900 })
     await enterStudio(page)
-    await page.getByRole('button', { name: '添加图形', exact: true }).click()
+    await drawStarterRectangle(page)
     const canvas = page.getByTestId('sketch-canvas')
     const shape = canvas.locator('[data-shape-id] rect')
     const drag = async (handle: string, x: number, y: number, cancel = false) => {
@@ -130,7 +133,7 @@ test.describe('tablet touch input', () => {
   test('touch drag resizes, touch cancellation preserves the original geometry', async ({ page, context }) => {
     await page.setViewportSize({ width: 768, height: 1024 })
     await enterStudio(page)
-    await page.getByRole('button', { name: '添加图形', exact: true }).click()
+    await drawStarterRectangle(page)
     const canvas = page.getByTestId('sketch-canvas')
     await canvas.evaluate(element => element.scrollIntoView({ block: 'center' }))
     const client = await context.newCDPSession(page)
@@ -159,8 +162,7 @@ test.describe('tablet touch input', () => {
     await expect(shape).toHaveAttribute('height', '40')
     // Small cutouts have overlapping touch targets. Hit the visible right
     // handle and then the centre: neither may select a different anchor.
-    await page.getByRole('group', { name: '绘图工具', exact: true }).getByRole('button', { name: '圆孔', exact: true }).click()
-    await page.getByRole('button', { name: '添加图形', exact: true }).click()
+    await drawStudioShape(page, '圆孔', [61, 61], [69, 69])
     await canvas.evaluate(element => element.scrollIntoView({ block: 'center' }))
     const nativeDrag = async (from: [number, number], to: [number, number]) => {
       const begin = await point(canvas, ...from)
@@ -186,7 +188,7 @@ test.describe('tablet touch input', () => {
 
 test('numeric input commits before dragging and invalid edits survive a canvas click', async ({ page }) => {
   await enterStudio(page)
-  await page.getByRole('button', { name: '添加图形', exact: true }).click()
+  await drawStarterRectangle(page)
   const canvas = page.getByTestId('sketch-canvas')
   const shape = canvas.locator('[data-shape-id] rect')
   const width = page.getByRole('spinbutton', { name: '宽（毫米）', exact: true })
@@ -237,9 +239,15 @@ test('drawing viewport stays fixed when polygon closure controls appear', async 
 
 test('keyboard users can see focus, select a shape and move it precisely', async ({ page }) => {
   await enterStudio(page)
-  await page.getByRole('button', { name: '添加图形', exact: true }).click()
-  await page.getByRole('combobox', { name: '选中图形', exact: true }).selectOption('')
   const canvas = page.getByTestId('sketch-canvas')
+  await page.getByRole('group', { name: '绘图工具', exact: true }).getByRole('button', { name: '矩形', exact: true }).press('Enter')
+  await canvas.press('Enter')
+  await expect(canvas.locator('[data-shape-id]')).toHaveCount(1)
+  await expect(canvas.locator('[data-shape-id] rect')).toHaveAttribute('width', '60')
+  await expect(canvas.locator('[data-shape-id] rect')).toHaveAttribute('height', '40')
+  await page.getByRole('group', { name: '绘图工具', exact: true }).getByRole('button', { name: '选择', exact: true }).press('Enter')
+  await canvas.press('Escape')
+  await expect(page.locator('[aria-label="图形属性"]')).toHaveCount(0)
   await canvas.evaluate(element => element.scrollIntoView({ block: 'center' }))
   const empty = await point(canvas, 5, 5)
   await page.mouse.click(empty.x, empty.y)

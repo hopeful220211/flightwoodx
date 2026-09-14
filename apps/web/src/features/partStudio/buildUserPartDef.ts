@@ -5,9 +5,9 @@
 //
 // 只接收毫米制合法轮廓及孔。参考范围不是制造证明，不生成未经验证的连接元数据。
 
-import type { UserPartCategory, UserPartDef } from '@fwx/parts-schema'
+import type { UserPartCategory, UserPartDef, JointGuide } from '@fwx/parts-schema'
 import { USER_PART_THICKNESS_MM, UserPartDefSchema } from '@fwx/parts-schema'
-import { validatePart } from '@fwx/geometry'
+import { validatePart, validateJointGuides } from '@fwx/geometry'
 import type { Point2D } from './types'
 import { polygonArea } from './geometry/winding'
 
@@ -35,6 +35,7 @@ export interface BuildUserPartDefInput {
   /** 毫米坐标，y向下；显示缩放不参与存盘。 */
   points: Point2D[]
   holes?: Point2D[][]
+  jointGuides?: JointGuide[]
   /** 轮廓是否已闭合（保存前应为 true）。 */
   closed: boolean
 }
@@ -71,6 +72,11 @@ export function buildUserPartDef(input: BuildUserPartDefInput): UserPartDef {
     throw new Error('轮廓存在小于0.01毫米的细节，请调整后保存')
   }
   const contour = pointsToSvgPath(local)
+  const jointGuides = input.jointGuides?.map(guide => ({ ...guide, x: round2(guide.x - minX), y: round2(guide.y - minY), lengthMm: round2(guide.lengthMm) }))
+  if (jointGuides?.length) {
+    const validation = validateJointGuides({ contour: { points: local }, holes: localHoles.map(points => ({ points })) }, jointGuides)
+    if (!validation.ok) throw new Error(validation.reason ?? '插槽位置无效，请调整后保存')
+  }
 
   // 重量估算：面积(mm²) × 厚度(2mm) × 木材密度
   const areaMm2 = polygonArea(local) - localHoles.reduce((sum, hole) => sum + polygonArea(hole), 0)
@@ -85,7 +91,8 @@ export function buildUserPartDef(input: BuildUserPartDefInput): UserPartDef {
       thicknessMm: USER_PART_THICKNESS_MM,
       bboxMm: { w: round2(w), h: round2(h) },
     },
-    sockets: [], // Phase 2：卡扣印章
+    sockets: [], // Generic slot guides do not claim compatibility with official connectors.
+    ...(jointGuides === undefined ? {} : { jointGuides }),
     // 当前只验证闭合；最小筋宽和板材边界尚未完成，不能提前声称可制造。
     manufacturability: {
       closed,

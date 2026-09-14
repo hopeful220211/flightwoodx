@@ -13,6 +13,8 @@ export interface SketchShape {
   width: number
   height: number
   radius: number
+  /** Explicit nominal 2mm slot intent; ordinary cuts never imply a joint. */
+  joint?: { kind: 'edge-slot' | 'through-slot'; axis: 'x' | 'y'; entry: 'start' | 'end' | 'front' | 'back' }
   /** Polygon vertices are local normalized coordinates in [0, 1]. */
   points?: Point2D[]
   /** Duplicate this shape across the reference width's vertical centre line. */
@@ -21,10 +23,27 @@ export interface SketchShape {
 
 export interface SketchReference { width: number; height: number; shape?: 'rectangle' | 'ellipse' }
 export interface SketchBounds { x: number; y: number; width: number; height: number }
+/** Diagnostic metadata from the same validation that accepts the geometry.
+ * Source ids are included only when the failing shape is known. */
+export interface SketchIssue {
+  code: 'no-solid' | 'outside-reference' | 'disconnected' | 'empty-result' | 'invalid-shape' | 'invalid-sketch'
+  shapeIds: string[]
+  componentCount?: number
+}
 export interface SketchCompilation {
   part: Part2D | null
   error: string | null
   bounds: SketchBounds | null
+  issue?: SketchIssue
+}
+
+class SketchValidationError extends RangeError {
+  readonly issue: SketchIssue
+
+  constructor(message: string, issue: SketchIssue) {
+    super(message)
+    this.issue = issue
+  }
 }
 
 export const MAX_SKETCH_SHAPES = 32
@@ -159,7 +178,7 @@ export function compileSketch(shapes: SketchShape[], reference: SketchReference,
     dimension(reference?.height, '参考范围高度')
     if (reference.shape !== undefined && !['rectangle', 'ellipse'].includes(reference.shape)) throw new RangeError('参考范围形状无效')
     if (!Array.isArray(shapes) || shapes.length === 0 || !shapes.some(shape => shape?.operation === 'add')) {
-      throw new RangeError('请先添加至少一个实体形状')
+      throw new SketchValidationError('请先添加至少一个实体形状', { code: 'no-solid', shapeIds: [] })
     }
     if (shapes.length > MAX_SKETCH_SHAPES) throw new RangeError(`形状不能超过 ${MAX_SKETCH_SHAPES} 个`)
     const ids = new Set<string>()
@@ -168,7 +187,13 @@ export function compileSketch(shapes: SketchShape[], reference: SketchReference,
       if (!shape || typeof shape.id !== 'string' || !shape.id.trim() || ids.has(shape.id)) throw new RangeError('形状标识缺失或重复')
       ids.add(shape.id)
       if (!['add', 'cut'].includes(shape.operation) || (shape.mirror !== undefined && typeof shape.mirror !== 'boolean')) throw new RangeError('形状操作或对称设置无效')
-      const points = shapePoints(shape)
+      let points: Point2D[]
+      try {
+        points = shapePoints(shape)
+      } catch (error) {
+        if (error instanceof RangeError) throw new SketchValidationError(error.message, { code: 'invalid-shape', shapeIds: [shape.id] })
+        throw error
+      }
       const copies = [points]
       if (shape.mirror) copies.push(points.map(([x, y]): Point2D => [reference.width - x, y]).reverse())
       return copies.map(vertices => {
@@ -177,7 +202,7 @@ export function compileSketch(shapes: SketchShape[], reference: SketchReference,
         // A cutting tool may cross the reference edge to create an open slot.
         // Only actual material is constrained, never the outside part of a cut.
         if (constrain && shape.operation === 'add' && vertices.some(point => !withinReference(point, reference))) {
-          throw new RangeError(reference.shape === 'ellipse' ? '实体超出圆形或椭圆参考范围，请调整尺寸或位置' : '实体超出参考范围，请调整尺寸或位置')
+          throw new SketchValidationError(reference.shape === 'ellipse' ? '实体超出圆形或椭圆参考范围，请调整尺寸或位置' : '实体超出参考范围，请调整尺寸或位置', { code: 'outside-reference', shapeIds: [shape.id] })
         }
         return { points: vertices, operation: shape.operation }
       })
@@ -195,10 +220,11 @@ export function compileSketch(shapes: SketchShape[], reference: SketchReference,
     for (const next of solids.slice(1)) solid = own(solid.unite(next, { insert: false }))
     let result = solid
     for (const cut of cuts) {
-      // Check against the complete original solid, so overlapping/duplicate cuts
-      // remain valid while a wholly missed cut is never silently ignored.
+      // A cutting tool outside the material (including edge-only contact) has
+      // no effect. Keep the source shape editable, but do not reject the board.
+      // Check the original solid so overlapping/duplicate cuts remain valid.
       const overlap = own(solid.intersect(cut, { insert: false }))
-      if (Math.abs((overlap as paper.Path | paper.CompoundPath).area) < 1e-6) throw new RangeError('切除形状未进入实体，请移动到需要开孔或开口的位置')
+      if ((overlap as paper.Path | paper.CompoundPath).area === 0) continue
       result = own(result.subtract(cut, { insert: false }))
     }
     const paths = result.className === 'CompoundPath' ? (result as paper.CompoundPath).children as paper.Path[] : [result as paper.Path]
@@ -206,7 +232,7 @@ export function compileSketch(shapes: SketchShape[], reference: SketchReference,
       if (path.segments.some(segment => segment.hasHandles())) throw new Error('轮廓含未离散曲线，无法生成零件')
       return path.segments.map((segment): Point2D => [rounded(segment.point.x), rounded(segment.point.y)])
     })
-    if (rings.length === 0 || Math.abs((result as paper.Path | paper.CompoundPath).area) < 1e-6) throw new RangeError('切除后没有剩余实体，请减小切除范围')
+    if (rings.length === 0 || Math.abs((result as paper.Path | paper.CompoundPath).area) < 1e-6) throw new SketchValidationError('切除后没有剩余实体，请减小切除范围', { code: 'empty-result', shapeIds: [] })
     if (rings.reduce((sum, points) => sum + points.length, 0) > MAX_SKETCH_POINTS) {
       throw new RangeError(`轮廓过于复杂，最终顶点不能超过 ${MAX_SKETCH_POINTS} 个`)
     }
@@ -216,7 +242,7 @@ export function compileSketch(shapes: SketchShape[], reference: SketchReference,
       const depth = rings.filter((other, otherIndex) => index !== otherIndex && pointInside(ring[0]!, other)).length
       ;(depth % 2 === 0 ? outer : holes).push(ring)
     })
-    if (outer.length !== 1) throw new RangeError('存在多个不相连的实体，请连接形状后再生成一个零件')
+    if (outer.length !== 1) throw new SketchValidationError('存在多个不相连的实体，请连接形状后再生成一个零件', { code: 'disconnected', shapeIds: [], componentCount: outer.length })
     const contour = outer[0]!
     const part: Part2D = {
       contour: { points: area(contour) > 0 ? contour : [...contour].reverse() },
@@ -224,14 +250,15 @@ export function compileSketch(shapes: SketchShape[], reference: SketchReference,
     }
     const validation = validatePart(part)
     if (!validation.ok) throw new RangeError(validation.reason ?? '组合后的零件几何无效')
-    if (constrain && contour.some(point => !withinReference(point, reference))) throw new RangeError('组合后的零件超出参考范围，请调整尺寸或位置')
+    if (constrain && contour.some(point => !withinReference(point, reference))) throw new SketchValidationError('组合后的零件超出参考范围，请调整尺寸或位置', { code: 'outside-reference', shapeIds: [] })
     const xs = contour.map(point => point[0])
     const ys = contour.map(point => point[1])
     const bounds = { x: Math.min(...xs), y: Math.min(...ys), width: rounded(Math.max(...xs) - Math.min(...xs)), height: rounded(Math.max(...ys) - Math.min(...ys)) }
     if (bounds.width > MAX_SKETCH_SIZE_MM || bounds.height > MAX_SKETCH_SIZE_MM) throw new RangeError(`零件范围不能超过 ${MAX_SKETCH_SIZE_MM} 毫米`)
     return { part, error: null, bounds }
   } catch (error) {
-    return { part: null, error: error instanceof RangeError ? error.message : '几何运算失败，请调整形状后重试', bounds: null }
+    return { part: null, error: error instanceof RangeError ? error.message : '几何运算失败，请调整形状后重试', bounds: null,
+      issue: error instanceof SketchValidationError ? error.issue : { code: 'invalid-sketch', shapeIds: [] } }
   } finally {
     for (const item of items) item.remove()
     // Paper 0.12.18 implements remove() to clear projects and deregister the

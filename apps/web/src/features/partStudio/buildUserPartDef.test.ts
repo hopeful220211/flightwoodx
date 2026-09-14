@@ -12,6 +12,20 @@ const square: Point2D[] = [
 ]
 
 describe('buildUserPartDef', () => {
+  it('preserves an explicitly empty guide list while leaving old callers unchanged', () => {
+    const input = { name: '普通板', category: 'guard' as const, points: square, closed: true }
+    expect(buildUserPartDef(input).jointGuides).toBeUndefined()
+    expect(buildUserPartDef({ ...input, jointGuides: [] }).jointGuides).toEqual([])
+  })
+  it('normalizes slot locations with the saved geometry and does not invent connectors', () => {
+    const def = buildUserPartDef({ name: '插槽板', category: 'guard', points: square, closed: true,
+      holes: [[[60, 60], [72, 60], [72, 62], [60, 62]]],
+      jointGuides: [{ id: 'slot-1', kind: 'through-slot', x: 60, y: 60, lengthMm: 12, axis: 'x', entry: 'front' }],
+    })
+    expect(def.jointGuides).toEqual([{ id: 'slot-1', kind: 'through-slot', x: 20, y: 20, lengthMm: 12, axis: 'x', entry: 'front' }])
+    expect(def.sockets).toEqual([])
+    expect(def.manufacturability.passed).toBe(false)
+  })
   it('产出能通过后端同一份 v2 契约校验（UserPartDefSchema）', () => {
     const def = buildUserPartDef({ name: '测试罩', category: 'guard', points: square, closed: true })
     const parsed = UserPartDefSchema.safeParse(def)

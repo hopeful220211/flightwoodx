@@ -12,4 +12,5 @@ declare module '@fwx/parts-schema/runtime-cjs' {
 
 declare module '@fwx/geometry/runtime-cjs' {
   export const svgGeometryToPart2D: any
+  export const validateJointGuides: any
 }

@@ -9,6 +9,7 @@ import {
   getFlightTimeLabel,
 } from '../../../../utils/designStats'
 import { flightReadiness } from '../../../../utils/flightReadiness'
+import { getAssemblyIssue } from '../../assemblyFeedback'
 
 const CORAL = '#E0653B' // 失败用珊瑚红，不用金黄/琥珀（RFC-022 §3）
 
@@ -47,7 +48,7 @@ function MetricCard({
           }}
         />
       </div>}
-      <p className="mt-1.5 text-xs font-medium" style={{ color: ok ? '#16A34A' : CORAL }}>
+      <p className="mt-1.5 text-xs leading-relaxed text-gray-600">
         {label}
       </p>
     </div>
@@ -89,6 +90,7 @@ export function ReviewStep() {
 
   const ratio = stats.thrustWeightRatio
   const power = getThrustLabel(ratio)
+  const assemblyIssue = getAssemblyIssue(readiness)
 
   return (
     <div className="p-4 space-y-3">
@@ -109,21 +111,20 @@ export function ReviewStep() {
               readiness.canTakeoff ? 'text-green-600' : 'text-sky-700'
             }`}
           >
-            {readiness.canTakeoff ? '检查条件已满足' : '检查条件未满足'}
+            {readiness.canTakeoff ? '检查通过' : '装配检查'}
           </span>
         </div>
         <p className="mt-1 text-xs text-gray-500">
-          {readiness.canTakeoff
-            ? `已通过 ${readiness.passedCount}/${readiness.totalChecks} 项已验证条件`
-            : readiness.primaryFix ?? '当前只完成装配检查'}
+          已通过 {readiness.passedCount}/{readiness.totalChecks} 项检查
         </p>
+        {!readiness.canTakeoff && assemblyIssue && <p className="mt-2 text-sm leading-relaxed text-slate-700">{assemblyIssue.message}</p>}
       </div>
 
       {/* 四项体检（儿童词在前） */}
       <div className="space-y-2.5">
         <MetricCard
           icon={<Weight size={15} />}
-          name="目录质量小计"
+          name="重量小计"
           sci="估算"
           value={stats.weightKnownCount > 0 ? `${stats.totalWeightG.toFixed(1)}g` : '—'}
           label={weight.text}
@@ -139,7 +140,7 @@ export function ReviewStep() {
         />
         <MetricCard
           icon={<Scaling size={15} />}
-          name="坐标镜像匹配率"
+          name="左右位置匹配率"
           value={`${stats.symmetryPercent}%`}
           fillPct={stats.symmetryPercent}
           label={symmetry.text}
@@ -150,18 +151,11 @@ export function ReviewStep() {
           name="续航数据"
           sci="实测续航"
           value={stats.estimatedFlightMinutes !== null ? `${stats.estimatedFlightMinutes} 分钟` : '—'}
-          label={stats.estimatedFlightMinutes !== null ? flight.text : '缺少电池和动力实测数据'}
+          label={flight.text}
           ok={flight.ok && stats.estimatedFlightMinutes !== null}
         />
       </div>
 
-      {/* 一条主建议（动力够不够 = 总推力 ÷ 总重量） */}
-      {!readiness.canTakeoff && readiness.primaryFix && (
-        <div className="rounded-xl bg-sky-50 p-3">
-          <p className="text-xs font-semibold text-sky-700 mb-0.5">需要处理的问题</p>
-          <p className="text-xs text-sky-600">{readiness.primaryFix}</p>
-        </div>
-      )}
     </div>
   )
 }

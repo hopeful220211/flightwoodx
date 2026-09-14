@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Package, Ruler, Lightbulb, ChevronDown } from 'lucide-react'
+import { Package, ChevronDown } from 'lucide-react'
 import { ScrollReveal } from '../../components/common/ScrollReveal'
 import type { MaterialEstimate } from '../../utils/materialEstimate'
 
@@ -16,8 +16,8 @@ export function MaterialPreparation({ estimate }: MaterialPreparationProps) {
     <section className="py-12 lg:py-16">
       <div className="mx-auto max-w-5xl px-4">
         <ScrollReveal>
-          <h2 className="font-display text-3xl lg:text-[40px] font-semibold text-ink-900">图纸与材料说明</h2>
-          <p className="mt-2 text-sm text-ink-600">当前入口可下载设计记录与零件清单，暂不提供切割图。下方列出缺少二维轮廓的零件。</p>
+          <h2 className="font-display text-3xl lg:text-[40px] font-semibold text-ink-900">导出内容</h2>
+          <p className="mt-2 text-sm text-ink-600">下载设计记录和零件清单。本次不含切割图，缺少二维轮廓的零件如下。</p>
         </ScrollReveal>
 
         {/* DXF file list */}
@@ -46,34 +46,6 @@ export function MaterialPreparation({ estimate }: MaterialPreparationProps) {
           </div>
         </ScrollReveal>
 
-        {/* Material estimate */}
-        <ScrollReveal delay={200}>
-          <div className="mt-6 bg-sky-50 rounded-md p-6">
-            <div className="flex items-center gap-2 text-ink-900 font-medium mb-4">
-              <Ruler size={18} />
-              材料与加工信息
-            </div>
-            <ul className="space-y-2 text-sm text-ink-700">
-              <li>• 切割长度：缺少完整二维轮廓，暂无法计算</li>
-              <li>• 板材数量：需根据零件尺寸和排版确认</li>
-              <li>• 加工时间：需根据材料及设备参数确认</li>
-            </ul>
-          </div>
-        </ScrollReveal>
-
-        {/* How to use */}
-        <ScrollReveal delay={300}>
-          <div className="mt-6 bg-accent-sky/10 rounded-md p-6">
-            <div className="flex items-center gap-2 text-ink-900 font-medium mb-2">
-              <Lightbulb size={18} className="text-accent-gold" />
-              加工前需要确认的内容
-            </div>
-            <p className="text-sm text-ink-600 leading-relaxed">
-              当前导出不含切割图，不能直接交给设备加工。
-              制作前需准备二维图纸，核对板厚、排版和设备参数；尺寸、公差、材料及连接强度需由教师或制作人员另行确认。
-            </p>
-          </div>
-        </ScrollReveal>
       </div>
     </section>
   )

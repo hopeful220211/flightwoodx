@@ -5,6 +5,7 @@ import { expect, test } from '@playwright/test'
 import type { BrowserContext, Locator, Page, Response } from '@playwright/test'
 import { DroneDesignSnapshotSchema, PART_REGISTRY } from '@fwx/parts-schema'
 import type { DroneDesignSnapshot } from '@fwx/parts-schema'
+import { drawStarterRectangle, drawStudioShape } from './part-studio-helpers'
 
 /**
  * Requires a running local Web app and its isolated API/database; no production writes.
@@ -193,7 +194,7 @@ async function saveExampleProgram(page: Page) {
 async function runSimulation(page: Page) {
   await page.getByRole('button', { name: '运行', exact: true }).click()
   await expect(page).toHaveURL(/\/simulator\/design-[^/]+$/)
-  await expect(page.getByText('视觉仿真 · 用于检查指令流程，不代表真实飞行结果', { exact: true })).toBeVisible()
+  await expect(page.getByText('视觉仿真 · 查看程序运行过程', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '运行', exact: true }).click()
   await expect(page.getByRole('button', { name: '停止', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: /模拟运行完成/ })).toBeVisible({ timeout: 45_000 })
@@ -347,9 +348,8 @@ test('custom part: draw, place without invented connectors, save, restore, and r
   const name = await registerDedicatedAccount(page)
   await page.goto('/part-studio')
   await expect(page.getByLabel('参考类型', { exact: true })).toHaveValue('mainboard')
-  await page.getByRole('button', { name: '添加图形', exact: true }).click()
-  await page.getByRole('button', { name: '圆孔', exact: true }).click()
-  await page.getByRole('button', { name: '添加图形', exact: true }).click()
+  await drawStarterRectangle(page)
+  await drawStudioShape(page, '圆孔', [61, 61], [69, 69])
   await page.getByLabel('零件名称', { exact: true }).fill(name)
   await expect(page.getByTestId('part-3d-preview')).toHaveAttribute('data-wood-ready', 'true')
   // Simulate only the failed write; the subsequent retry reaches the real
@@ -439,8 +439,10 @@ test('custom part: draw, place without invented connectors, save, restore, and r
     expect(exported.parts[0]!.position[0]).toBe(0.025)
     await reopened.getByRole('button', { name: '预览', exact: true }).click()
     await expect(reopened.getByRole('dialog', { name: '预览', exact: true })).toBeVisible()
-    await expect(reopened.getByText('自制零件仅自由摆放，未连接，未验证制造与飞行。', { exact: true })).toBeVisible()
-    await reopened.getByRole('button', { name: '我知道了', exact: true }).click()
+    const previewDialog = reopened.getByRole('dialog', { name: '预览', exact: true })
+    await expect(previewDialog.locator('canvas')).toBeVisible()
+    await expect(previewDialog).not.toContainText(/未验证|不代表|尚未连接/)
+    await previewDialog.getByRole('button', { name: '关闭预览', exact: true }).click()
     await reopened.goto(`/code/${original.id}`)
     await reopened.getByRole('button', { name: '从示例开始', exact: true }).click()
     await reopened.getByRole('button', { name: '保存', exact: true }).click()

@@ -18,4 +18,6 @@ it('presents the company, intact team photo, awards and contact details on one p
   expect(container.querySelector('#contact')?.textContent).toContain('ccccckd0211')
   expect(container.querySelector('#contact')?.textContent).toContain('如果有合作意向，请联系我们。')
   expect(container.textContent).not.toMatch(/G-Mark|重庆工程大学|世界第一|保证能飞/)
+  expect(container.textContent).toContain('线下内容包括木质结构拼装与无人机课程。')
+  expect(container.textContent).not.toMatch(/不能替代实机测试|未验证|不代表|需要验证/)
 })

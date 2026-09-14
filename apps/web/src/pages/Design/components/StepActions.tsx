@@ -86,16 +86,13 @@ export function StepActions({
       <div className="order-first w-full min-w-0 text-center md:order-none md:w-auto md:flex-1">
         {flightPassed ? (
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-600">
-            <CheckCircle2 size={16} /> 已通过全部已验证条件
+            <CheckCircle2 size={16} /> 检查通过
           </span>
         ) : flightSummary ? (
-          <div className="truncate text-sm">
+          <div className="text-sm">
             <span className="text-ink-900 font-medium">
               已通过 {flightSummary.passedCount}/{flightSummary.totalChecks} 项检查
             </span>
-            {!flightSummary.canTakeoff && flightSummary.primaryFix && (
-              <span className="text-[#E0653B]"> · {flightSummary.primaryFix}</span>
-            )}
           </div>
         ) : null}
       </div>

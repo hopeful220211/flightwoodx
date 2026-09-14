@@ -8,6 +8,7 @@
  * 只支持：单位 mm、闭合折线（首尾自动相连）、外轮廓 + 内孔、单层 CUT、板厚常量 2mm。
  */
 import makerjs from 'makerjs'
+import { JointGuidesSchema, USER_PART_THICKNESS_MM, type JointGuide } from '@fwx/parts-schema'
 
 // 一个平面点，单位 mm：[x, y]。
 export type Point2D = [number, number]
@@ -346,6 +347,81 @@ export function validatePart(part: Part2D): ValidationResult {
         pointStrictlyInsidePolygon(b[0]!, a)
       ) {
         return { ok: false, reason: `第 ${i + 1} 个孔与第 ${j + 1} 个孔重叠或相交` }
+      }
+    }
+  }
+  return { ok: true }
+}
+
+// Coordinates are serialized to 0.01mm. This matches coordinates, not a
+// configurable manufacturing tolerance; slot width remains derived from 2mm.
+const GUIDE_POSITION_TOLERANCE_MM = 0.01 + EPSILON
+
+function guidePointMatches(a: Point2D, b: Point2D): boolean {
+  return Math.abs(a[0] - b[0]) <= GUIDE_POSITION_TOLERANCE_MM && Math.abs(a[1] - b[1]) <= GUIDE_POSITION_TOLERANCE_MM
+}
+
+/** Only discard truly collinear subdivisions; never simplify extra cuts. */
+function guideRing(points: Point2D[]): Point2D[] {
+  return points.filter((point, index) => {
+    const previous = points[(index + points.length - 1) % points.length]!
+    const next = points[(index + 1) % points.length]!
+    return !pointOnSegment(point, previous, next)
+  })
+}
+
+function ringContainsSequence(ring: Point2D[], sequence: Point2D[]): boolean {
+  if (ring.length < sequence.length) return false
+  return ring.some((_, start) => [1, -1].some(direction => {
+    const candidate = sequence.map((_, index) => ring[(start + direction * index + ring.length) % ring.length]!)
+    if (!sequence.every((point, index) => guidePointMatches(point, candidate[index]!))) return false
+    // Coordinate tolerance must not double into a 0.02mm dimension allowance.
+    return [0, 1].every(axis => {
+      const extent = (points: Point2D[]) => Math.max(...points.map(point => point[axis]!)) - Math.min(...points.map(point => point[axis]!))
+      return Math.abs(extent(candidate) - extent(sequence)) <= GUIDE_POSITION_TOLERANCE_MM
+    })
+  }))
+}
+
+/** Check saved design labels against actual cuts; no connector is generated.
+ * Through-slots must be a whole rectangular hole. Edge-slots must preserve
+ * all three U sides and have their open mouth on the declared entry side.
+ */
+export function validateJointGuides(part: Part2D, guides: readonly JointGuide[]): ValidationResult {
+  const parsed = JointGuidesSchema.safeParse(guides)
+  if (!parsed.success) return { ok: false, reason: '槽设计标注参数无效或 id 重复' }
+  if (part?.holes !== undefined && (!Array.isArray(part.holes) || part.holes.length > 100)) {
+    return { ok: false, reason: '槽校验需要有效且未超出数量限制的孔序列' }
+  }
+  const rings = [part?.contour, ...(Array.isArray(part?.holes) ? part.holes : [])]
+  if (rings.some(ring => !Array.isArray(ring?.points)) || rings.reduce((sum, ring) => sum + (ring?.points.length ?? 0), 0) > MAX_SVG_TOTAL_POINTS) {
+    return { ok: false, reason: '槽校验需要有效且未超出点数限制的轮廓' }
+  }
+  const validity = validatePart(part)
+  if (!validity.ok) return validity
+  const contour = guideRing(part.contour.points)
+  const holes = (part.holes ?? []).map(hole => guideRing(hole.points))
+  const boxes: { x: number; y: number; w: number; h: number }[] = []
+  for (const guide of parsed.data) {
+    const { x, y } = guide
+    const w = guide.axis === 'x' ? guide.lengthMm : USER_PART_THICKNESS_MM
+    const h = guide.axis === 'y' ? guide.lengthMm : USER_PART_THICKNESS_MM
+    if (boxes.some(box => x < box.x + box.w - EPSILON && x + w > box.x + EPSILON && y < box.y + box.h - EPSILON && y + h > box.y + EPSILON)) {
+      return { ok: false, reason: '槽设计标注不能重叠' }
+    }
+    boxes.push({ x, y, w, h })
+    const corners: Point2D[] = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]
+    if (guide.kind === 'through-slot') {
+      if (!holes.some(hole => hole.length === 4 && ringContainsSequence(hole, corners))) {
+        return { ok: false, reason: '板内槽必须对应完整的 2 毫米宽矩形内孔' }
+      }
+    } else {
+      // The sequence starts at one mouth corner and traverses the three cut
+      // sides to the other mouth corner. Winding and ring start are irrelevant.
+      const start = guide.axis === 'x' ? (guide.entry === 'start' ? 0 : 2) : (guide.entry === 'start' ? 1 : 3)
+      const u = Array.from({ length: 4 }, (_, index) => corners[(start + index) % 4]!)
+      if (!ringContainsSequence(contour, u) || pointStrictlyInsidePolygon([x + w / 2, y + h / 2], part.contour.points)) {
+        return { ok: false, reason: '边缘槽必须保留完整的 2 毫米宽 U 形开口，且插入方向与开口一致' }
       }
     }
   }

@@ -265,7 +265,7 @@ export function ProjectHub() {
           <div>
             <p className="text-base font-bold">运行模拟</p>
             <p className="mt-0.5 text-xs text-sky-100">
-              {flyDisabled ? '请先在编程页编写程序，再运行模拟。' : '查看当前程序的模拟运行过程，不代表实机飞行结果。'}
+              {flyDisabled ? '请先在编程页编写程序，再运行模拟。' : '查看当前程序的模拟运行过程。'}
             </p>
           </div>
         </div>

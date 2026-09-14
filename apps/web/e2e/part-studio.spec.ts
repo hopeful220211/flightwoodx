@@ -1,5 +1,6 @@
 import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { join } from 'node:path'
+import { dragMillimetres, drawStarterRectangle, drawStudioShape, screenPoint } from './part-studio-helpers'
 
 /** Real local UI/geometry/WebGL only. These guest checks never create accounts
  * or write custom parts; the isolated-API core flow covers saving and assembly. */
@@ -44,7 +45,7 @@ async function enterGuestStudio(page: Page) {
     return state?.user?.isGuest === true && state.token === null && state.isAuthenticated === true
   }), 'Use a real token-free guest session, not an injected login').toBe(true)
   await page.goto('/part-studio')
-  await expect(page.getByRole('heading', { name: '零件绘制', level: 1, exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '二维设计', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: '保存', exact: true })).toBeDisabled()
 }
 
@@ -108,13 +109,13 @@ for (const viewport of [
     await page.setViewportSize(viewport)
     await enterGuestStudio(page)
     const save = page.getByRole('button', { name: '保存', exact: true })
-    const tools = page.getByRole('group', { name: '绘图工具', exact: true })
     const shapes = page.getByTestId('sketch-canvas').locator('[data-shape-id]')
     const compiled = page.getByTestId('compiled-sketch')
 
-    // A precise starter rectangle avoids requiring a one-stroke closed sketch.
-    await tools.getByRole('button', { name: '矩形', exact: true }).click()
-    await page.getByRole('button', { name: '添加图形', exact: true }).click()
+    // Two-point dragging creates a precise rectangle without a closed stroke.
+    await expect(page.getByRole('button', { name: '添加图形', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('combobox', { name: '选中图形', exact: true })).toHaveCount(0)
+    await drawStarterRectangle(page)
     await expect(shapes).toHaveCount(1)
     await expect(page.getByRole('spinbutton', { name: '宽（毫米）', exact: true })).toHaveValue('60')
     await expect(page.getByRole('spinbutton', { name: '高（毫米）', exact: true })).toHaveValue('40')
@@ -136,8 +137,7 @@ for (const viewport of [
     await expectWoodPreview(page, 80, 60)
 
     // A circular cut is an actual inner ring in the compiled SVG, not a red decal.
-    await tools.getByRole('button', { name: '圆孔', exact: true }).click()
-    await page.getByRole('button', { name: '添加图形', exact: true }).click()
+    await drawStudioShape(page, '圆孔', [61, 61], [69, 69])
     await expect(shapes).toHaveCount(2)
     await expect(page.getByRole('spinbutton', { name: '宽（毫米）', exact: true })).toHaveValue('8')
     await expect(page.getByRole('spinbutton', { name: '高（毫米）', exact: true })).toHaveValue('8')
@@ -146,10 +146,9 @@ for (const viewport of [
     expect((await compiled.getAttribute('d'))?.match(/M /g)).toHaveLength(2)
     const contourWithHole = await compiled.getAttribute('d')
 
-    // The default 2mm slot crosses the outer edge, changing the outer contour
+    // A freely drawn 2mm cut crosses the outer edge, changing the outer contour
     // without creating a second enclosed hole.
-    await tools.getByRole('button', { name: '孔 / 开口', exact: true }).click()
-    await page.getByRole('button', { name: '添加图形', exact: true }).click()
+    await drawStudioShape(page, '孔 / 开口', [74, 44], [76, 56])
     await expect(shapes).toHaveCount(3)
     await expect(page.getByRole('spinbutton', { name: '宽（毫米）', exact: true })).toHaveValue('2')
     await expect(page.getByRole('spinbutton', { name: '高（毫米）', exact: true })).toHaveValue('12')
@@ -175,7 +174,8 @@ for (const viewport of [
 
     // Reducing the reference must reject an oversized part, never rescale it.
     await setDimension(page, '参考宽', 40)
-    await expect(page.getByRole('alert')).toHaveText('实体超出圆形或椭圆参考范围，请调整尺寸或位置')
+    await expect(page.getByRole('alert')).toContainText('图形超出参考范围')
+    await expect(page.getByRole('alert')).toContainText('移回橙色参考框内，或增大参考尺寸。')
     await expect(save).toBeDisabled()
     await expect(page.getByTestId('part-3d-preview')).toHaveCount(0)
     await expect(shapes.first().locator('rect')).toHaveAttribute('width', '80')
@@ -205,8 +205,7 @@ for (const viewport of [
     await page.getByRole('combobox', { name: '参考类型', exact: true }).selectOption('landing')
     await expect(page.getByRole('spinbutton', { name: '参考宽（毫米）', exact: true })).toHaveValue('80')
     await expect(page.getByRole('spinbutton', { name: '参考高（毫米）', exact: true })).toHaveValue('50')
-    await tools.getByRole('button', { name: '圆形', exact: true }).click()
-    await page.getByRole('button', { name: '添加图形', exact: true }).click()
+    await drawStudioShape(page, '圆形', [20, 5], [60, 45])
     await expect(shapes).toHaveCount(1)
     await expect(shapes.first().locator('ellipse')).toHaveAttribute('rx', '20')
     await expect(shapes.first().locator('ellipse')).toHaveAttribute('ry', '20')
@@ -214,26 +213,6 @@ for (const viewport of [
     await expectNoOverflow(page)
     expect(failures).toEqual([])
   })
-}
-
-async function screenPoint(canvas: Locator, x: number, y: number) {
-  return canvas.evaluate((element, point) => {
-    const svg = element as SVGSVGElement
-    const matrix = svg.getScreenCTM()
-    if (!matrix) throw new Error('SVG screen transform is unavailable')
-    const screen = new DOMPoint(point.x, point.y).matrixTransform(matrix)
-    return { x: screen.x, y: screen.y }
-  }, { x, y })
-}
-
-async function dragMillimetres(page: Page, canvas: Locator, from: [number, number], to: [number, number]) {
-  await canvas.scrollIntoViewIfNeeded()
-  const start = await screenPoint(canvas, ...from)
-  const end = await screenPoint(canvas, ...to)
-  await page.mouse.move(start.x, start.y)
-  await page.mouse.down()
-  await page.mouse.move(end.x, end.y, { steps: 8 })
-  await page.mouse.up()
 }
 
 test('real SVG drawing supports drag rectangles, explicit polygon closure, vertex editing and mirror', async ({ page, context }) => {

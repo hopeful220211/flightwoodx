@@ -128,12 +128,136 @@ describe('millimetre sketch geometry', () => {
     expect(compileSketch([rectangle(), rectangle({ id: 'cut', operation: 'cut' })], reference, true).error).toMatch(/空|全部|剩余/)
   })
 
-  it('rejects missing solids and cuts wholly outside or merely touching the solid', () => {
+  it('rejects missing solids even when the sketch contains cutting tools', () => {
     expect(compileSketch([], reference, true).error).toMatch(/实体/)
     expect(compileSketch([rectangle({ operation: 'cut' })], reference, true).error).toMatch(/实体/)
-    for (const x of [120, 150]) {
-      expect(compileSketch([rectangle(), rectangle({ id: 'cut', operation: 'cut', x, width: 20 })], reference, true).error).toMatch(/切除.*实体|实体.*切除/)
+  })
+
+  it('reports a missing solid separately from other invalid sketches', () => {
+    for (const shapes of [[], [rectangle({ operation: 'cut' })]]) {
+      expect(compileSketch(shapes, reference, true).issue).toEqual({ code: 'no-solid', shapeIds: [] })
     }
+    expect(compileSketch([rectangle()], { width: 0, height: 160 }, true).issue).toEqual({ code: 'invalid-sketch', shapeIds: [] })
+  })
+
+  it('identifies the source solid outside a rectangular or elliptical reference', () => {
+    const outside = rectangle({ id: 'outside-solid', x: -2, mirror: true })
+    expect(compileSketch([rectangle(), outside], reference, true).issue).toEqual({ code: 'outside-reference', shapeIds: ['outside-solid'] })
+    const corner = rectangle({ id: 'corner-solid', x: 0, y: 0, width: 10, height: 10, mirror: true })
+    expect(compileSketch([corner], { ...reference, shape: 'ellipse' }, true).issue).toEqual({ code: 'outside-reference', shapeIds: ['corner-solid'] })
+    expect(compileSketch([{ ...outside, mirror: false }], reference, false).issue).toBeUndefined()
+  })
+
+  it('identifies an invalid source shape without changing its validation message', () => {
+    const invalid = rectangle({ id: 'invalid-radius', radius: 41 })
+    const result = compileSketch([invalid], reference, true)
+    expect(result.issue).toEqual({ code: 'invalid-shape', shapeIds: ['invalid-radius'] })
+    expect(result.error).toBe('圆角半径需在 0 与短边长度的一半之间')
+    expect(result.part).toBeNull()
+  })
+
+  it('reports final disconnected components without guessing which source caused them', () => {
+    const detached = [rectangle({ width: 20 }), rectangle({ id: 'other', x: 150, width: 20 })]
+    const split = [rectangle(), rectangle({ id: 'cut', operation: 'cut', x: 40, y: 10, width: 10, height: 100 })]
+    for (const shapes of [detached, split]) {
+      const result = compileSketch(shapes, reference, true)
+      expect(result.issue).toEqual({ code: 'disconnected', shapeIds: [], componentCount: 2 })
+      expect(result.error).toBe('存在多个不相连的实体，请连接形状后再生成一个零件')
+    }
+  })
+
+  it('reports complete removal without marking an unrelated cutting tool as invalid', () => {
+    const removeAll = rectangle({ id: 'remove-all', operation: 'cut' })
+    const result = compileSketch([rectangle(), removeAll], reference, true)
+    expect(result.issue).toEqual({ code: 'empty-result', shapeIds: [] })
+    expect(result.error).toBe('切除后没有剩余实体，请减小切除范围')
+    const inactive = rectangle({ id: 'inactive', operation: 'cut', x: -30, width: 10 })
+    const valid = compileSketch([rectangle(), inactive], reference, true)
+    expect(valid.part).not.toBeNull()
+    expect(valid.issue).toBeUndefined()
+  })
+
+  it.each([
+    { kind: 'rectangle' as const, width: 20, height: 20 },
+    { kind: 'rectangle' as const, width: 2, height: 30, radius: 1 },
+    { kind: 'ellipse' as const, width: 20, height: 20 },
+    { kind: 'polygon' as const, width: 20, height: 20, points: [[0, 0], [1, 0], [0.5, 1]] as Point2D[] },
+  ])('preserves the board and editable $kind cut when it misses the material', patch => {
+    const body = rectangle()
+    const cut = rectangle({ id: 'outside', operation: 'cut', x: 150, y: 40, ...patch })
+    const shapes = [body, cut]
+    const before = JSON.stringify(shapes)
+    expect(compileSketch(shapes, reference, true)).toEqual(compileSketch([body], reference, true))
+    expect(JSON.stringify(shapes)).toBe(before)
+  })
+
+  it.each([
+    { x: 120, y: 40 },
+    { x: 120, y: 100 },
+    { kind: 'ellipse' as const, x: 120, y: 40 },
+  ])('leaves the board unchanged for zero-area edge or point contact: %o', patch => {
+    const body = rectangle()
+    const cut = rectangle({ id: 'tangent', operation: 'cut', width: 20, height: 20, ...patch })
+    expect(compileSketch([body, cut], reference, true)).toEqual(compileSketch([body], reference, true))
+  })
+
+  it('uses actual material rather than overlapping bounding boxes to identify an inactive cut', () => {
+    const body = rectangle({ kind: 'ellipse' })
+    const cut = rectangle({ id: 'corner', operation: 'cut', width: 2, height: 2 })
+    expect(compileSketch([body, cut], reference, true)).toEqual(compileSketch([body], reference, true))
+  })
+
+  it('keeps applying real cuts before and after inactive cuts without changing the result', () => {
+    const body = rectangle()
+    const hole = rectangle({ id: 'hole', operation: 'cut', x: 40, y: 40, width: 20, height: 20 })
+    const slot = rectangle({ id: 'slot', operation: 'cut', x: 50, y: 10, width: 2, height: 20 })
+    const outside = rectangle({ id: 'outside', operation: 'cut', x: 150, width: 10 })
+    const expected = expectValid([body, hole, slot])
+    expect(compileSketch([outside, slot, body, hole], reference, true)).toEqual(expected)
+    expect(compileSketch([body, hole, outside, slot], reference, true)).toEqual(expected)
+    expect(partArea(expected.part!)).toBe(7580)
+  })
+
+  it('preserves an existing hole when an additional cut is fully inside already removed material', () => {
+    const body = rectangle()
+    const hole = rectangle({ id: 'hole', operation: 'cut', x: 40, y: 40, width: 20, height: 20 })
+    const duplicate = { ...hole, id: 'duplicate' }
+    const nested = rectangle({ id: 'nested', operation: 'cut', x: 45, y: 45, width: 5, height: 5 })
+    const expected = expectValid([body, hole])
+    expect(compileSketch([body, hole, duplicate, nested], reference, true)).toEqual(expected)
+  })
+
+  it('subtracts only the contacting mirrored copy and preserves the editable mirror setting', () => {
+    const body = rectangle()
+    const cut = rectangle({ id: 'mirror', operation: 'cut', x: 30, y: 40, width: 10, height: 10, mirror: true })
+    const before = JSON.stringify(cut)
+    const result = expectValid([body, cut])
+    expect(result.part!.holes).toHaveLength(1)
+    expect(partArea(result.part!)).toBe(7900)
+    expect(JSON.stringify(cut)).toBe(before)
+    expect(compileSketch([body, { ...cut, y: 130 }], reference, true)).toEqual(compileSketch([body], reference, true))
+  })
+
+  it('allows inactive cuts outside the reference while still enforcing the material boundary', () => {
+    const body = rectangle()
+    const outside = rectangle({ id: 'outside', operation: 'cut', x: -30, width: 10, mirror: true })
+    expect(compileSketch([body, outside], reference, true)).toEqual(compileSketch([body], reference, true))
+    const roundReference = { width: 200, height: 160, shape: 'ellipse' as const }
+    const fittedBody = rectangle({ x: 60, y: 50, width: 80, height: 60 })
+    const roundBoard = compileSketch([fittedBody], roundReference, true)
+    expect(roundBoard.error).toBeNull()
+    expect(compileSketch([fittedBody, outside], roundReference, true)).toEqual(roundBoard)
+    expect(compileSketch([rectangle({ x: -2 }), outside], reference, true).error).toMatch(/范围/)
+  })
+
+  it('does not let inactive cuts bypass self-intersection, disconnectedness or full-removal errors', () => {
+    const outside = rectangle({ id: 'outside', operation: 'cut', x: 150, width: 10 })
+    const selfIntersecting = { ...outside, kind: 'polygon' as const, points: [[0, 0], [1, 1], [0, 1], [1, 0]] as Point2D[] }
+    expect(compileSketch([rectangle(), selfIntersecting], reference, true).part).toBeNull()
+    expect(compileSketch([rectangle({ width: 20 }), rectangle({ id: 'other', x: 150, width: 20 }), outside], reference, true).error).toMatch(/不相连|多个|连续/)
+    const removeAll = rectangle({ id: 'all', operation: 'cut' })
+    expect(compileSketch([rectangle(), outside, removeAll], reference, true).error).toMatch(/空|全部|剩余/)
+    expect(compileSketch([rectangle(), removeAll, outside], reference, true).error).toMatch(/空|全部|剩余/)
   })
 
   it('enforces the selected drawing bounds, including mirrored geometry, without clipping', () => {
@@ -214,6 +338,7 @@ describe('millimetre sketch geometry', () => {
     for (let index = 0; index < 5; index++) {
       expect(compileSketch(shapes, reference, true)).toEqual(expected)
       compileSketch([...shapes, rectangle({ id: 'outside', operation: 'cut', x: 150, width: 10 })], reference, true)
+      compileSketch([...shapes, rectangle({ id: 'all', operation: 'cut', x: 0, y: 0, width: 200, height: 160 })], reference, true)
     }
     expect(Object.keys((paper.PaperScope as unknown as { _scopes: Record<string, unknown> })._scopes)).toHaveLength(scopes)
   })

@@ -1,5 +1,5 @@
 /**
- * exportBundle — 客户端「导出加工包」流水线（RFC-024 §4.2 / RFC-024-A §一.3、§三 Phase 1）。
+ * exportBundle — 客户端设计导出流水线（RFC-024 §4.2 / RFC-024-A §一.3、§三 Phase 1）。
  *
  * 点「确认导出」→ 前端直接生成一个 zip，交给用户下载。zip 内容：
  *   parts/<partId>.dxf + parts/<partId>.svg  每个「有 2D 闭合轮廓」的零件的切割图（@fwx/geometry 生成）
@@ -11,10 +11,7 @@
  * 分层：buildExportFiles 是纯函数（确定性、可单测，不碰 jszip/DOM）；downloadExportZip 只负责
  * 打包与触发浏览器下载。服务端 /export-cad 保留作备份通道，本流水线不依赖它。
  *
- * 已知料缺口（诚实、不硬造，RFC-024-A）：
- *  - 官方零件当前只有 3D 模型、无 2D 轮廓 → 全部进 pending2D，切割图待补数据源到位后自动生成。
- *  - 官方件的 boMRole/电子件（电机/桨/电池）种子 BOM 尚未落数据 → BOM 按类别分类，电子件由官方
- *    随件配齐（见 README）；一旦零件带上 2D 轮廓 / 电子件数据，本流水线无需改动即自动纳入。
+ * 当前默认解析器没有二维轮廓，零件进入 pending2D。BOM 只列出设计中的实际实例。
  */
 import {
   toDxf,
@@ -140,7 +137,7 @@ function collectBom(design: Design): BomRow[] {
 }
 
 function buildBomCsv(rows: BomRow[]): string {
-  const header = ['零件号', '名称', '类别', '角色', '数量', '单重(g)', '小计(g)']
+  const header = ['零件号', '名称', '类别', '角色', '数量', '目录估算单重(g)', '目录估算小计(g)']
   const lines = [header.map(csvCell).join(',')]
   let totalWeight = 0
   let totalCount = 0
@@ -150,14 +147,14 @@ function buildBomCsv(rows: BomRow[]): string {
     totalWeight += subtotal ?? 0
     totalCount += r.count
     lines.push(
-      [r.partNumber, r.name, CATEGORY_LABELS[r.category].zh, r.role, r.count, r.unitWeightG ?? '未核实', subtotal ?? '未核实']
+      [r.partNumber, r.name, CATEGORY_LABELS[r.category].zh, r.role, r.count, r.unitWeightG ?? '暂无数据', subtotal ?? '暂无数据']
         .map(csvCell)
         .join(','),
     )
   }
-  lines.push(['合计', '', '', '', totalCount, '', weightKnown ? +totalWeight.toFixed(1) : '未核实'].map(csvCell).join(','))
+  lines.push(['合计', '', '', '', totalCount, '', weightKnown ? +totalWeight.toFixed(1) : '暂无数据'].map(csvCell).join(','))
   lines.push('')
-  lines.push('# 当前清单只包含设计中可确认的结构件；电机、电调、螺旋桨和电池需按经确认的硬件清单另行核对。')
+  lines.push('# 清单包含当前设计中的零件与数量，重量按零件目录估算。')
   // 前缀 UTF-8 BOM，方便 Excel 正确识别中文
   return '﻿' + lines.join('\n') + '\n'
 }
@@ -176,25 +173,22 @@ function buildAssemblyMd(design: Design, rows: BomRow[]): string {
   out.push(`# ${design.name || '未命名无人机'} · 装配说明`)
   out.push('')
   if (design.parts.some(part => part.source)) {
-    out.push('自制零件仅自由摆放，未连接；本作品尚无可执行的制造或装配说明。')
-    out.push('来源和版本保留在 manifest.json，摆放位置保留在 design.json；不得据此推定卡扣兼容、结构或飞行安全。')
+    out.push('本设计含自由摆放、未连接的自制零件。本文件不含自制零件的装配步骤。')
+    out.push('来源和版本见 manifest.json，摆放位置见 design.json。')
     return out.join('\n') + '\n'
   }
   out.push('> 由 FlightWoodX 工作台自动生成 · 单位 mm · 板厚 2mm')
-  out.push('> 对照零件清单 `BOM.csv` 与切割件目录 `parts/`，按下面 5 步组装。')
+  out.push('> 以下按搭建步骤列出当前设计使用的零件，数量见 BOM.csv。')
   out.push('')
 
   for (const step of BUILD_STEPS) {
     const info = STEP_INFO[step]
     out.push(`## 第 ${info.number} 步 · ${info.label}`)
     out.push('')
-    out.push(info.description)
-    out.push('')
     const cats = STEP_CATEGORIES[step]
     if (cats.length === 0) {
       // REVIEW：终点，无零件安装
-      out.push('- 装配完成后，对照结构检查结果确认零件完整性与左右对称。')
-      out.push('- ⚠️ 当前导出不含经过确认的动力、电池、材料、公差或实飞参数，不能作为实飞或加工保证。')
+      out.push('- 对照 BOM.csv 检查零件数量与型号。')
       out.push('')
       continue
     }
@@ -268,7 +262,7 @@ export function buildExportFiles(
       }
     }
     pending2D.push(inst.partId)
-    manifestParts.push({ partId: inst.partId, count, has2D: false, ...(inst.source ? { source: inst.source, placement: 'unconnected', reason: '自制件制造与连接未验证' } : {}) })
+    manifestParts.push({ partId: inst.partId, count, has2D: false, ...(inst.source ? { source: inst.source, placement: 'unconnected', reason: '自制零件仅含来源与摆放记录，无切割图' } : {}) })
   }
 
   files.push({ path: 'BOM.csv', content: buildBomCsv(bom) })
@@ -300,22 +294,22 @@ function buildReadme(design: Design, generated: string[], pending2D: string[]): 
   const out: string[] = []
   out.push(`FlightWoodX 设计导出包 — ${design.name || '未命名无人机'}`)
   out.push('')
-  out.push('目录说明：')
-  out.push('  parts/       已生成的二维图（.dxf / .svg），单位 mm、板厚 2mm；加工前仍需在实际材料和软件中验证。')
-  out.push('  BOM.csv      当前设计中可确认的结构件与数量。')
-  out.push('  assembly.md  按 5 步搭建的装配说明。')
-  out.push('  manifest.json 机器可读清单（版本 / 单位 / 厚度 / 零件数 / 每件指纹）。')
+  out.push('本次文件：')
+  if (generated.length > 0) out.push('  parts/       已生成的二维图（.dxf / .svg），单位 mm、板厚 2mm。')
+  out.push('  BOM.csv      当前设计中的零件、数量和目录估算重量。')
+  const hasCustomParts = design.parts.some(part => part.source)
+  out.push(hasCustomParts ? '  assembly.md  自制零件的摆放说明。' : '  assembly.md  按搭建步骤列出的零件。')
+  out.push('  manifest.json 导出信息、零件清单及二维图索引。')
+  if (hasCustomParts) out.push('  design.json  完整设计记录，含零件位置、旋转和缩放。')
   out.push('')
-  out.push(`已生成切割图的零件：${generated.length} 种`)
-  if (design.parts.some(part => part.source)) out.push('自制件仍是未连接摆放；来源版本和位置已保留。缺失、改版或无权限的源记录不会被导出器替换，制造图与重量尚未核实。')
+  out.push(`已生成切割图：${generated.length} 种零件`)
+  if (hasCustomParts) out.push('自制零件的来源版本及摆放位置已保留，当前为未连接状态。')
   if (pending2D.length > 0) {
     out.push('')
-    out.push('以下零件暂无 2D 轮廓，当前导出不完整：')
+    out.push(`未包含切割图的零件（${pending2D.length} 种）：`)
     for (const id of pending2D) out.push(`  - ${id}`)
-    out.push('这些零件缺少可用的二维轮廓，本次无法导出对应切割图；加工前需另行准备并验证图纸。')
+    out.push('原因：缺少可导出的二维轮廓。')
   }
-  out.push('')
-  out.push('注：电子件、材料、公差、强度和真实飞行参数不在本导出的已验证范围内。')
   out.push('')
   return out.join('\n')
 }

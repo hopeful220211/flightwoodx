@@ -42,7 +42,7 @@ export function PlaceCustomPartDialog({ part, onClose }: { part: UserPart | null
       if (!store.addPartToActiveDesign(instance)) throw new Error('无法添加到当前作品，请检查作品结构和零件数量')
       const saved = await saveNow(store.getActiveDesign()!)
       if (useAuthStore.getState().token !== token) return
-      toast.push(saved ? 'success' : 'error', saved ? '自制零件已放入自由作品并保存；尚未连接' : '已放入本机草稿，账号保存失败，请在作品中重试保存')
+      toast.push(saved ? 'success' : 'error', saved ? '零件已放入自由作品并保存' : '已放入本机草稿，账号保存失败，请在作品中重试保存')
       onClose()
       navigate(`/design/${id}`)
     } catch (cause) {
@@ -51,7 +51,7 @@ export function PlaceCustomPartDialog({ part, onClose }: { part: UserPart | null
   }
   return <Modal open={!!part} onClose={() => { if (!busy) onClose() }} title="放入自由拼装">
     <div className="space-y-4 text-sm">
-      <p>自制零件仅可自由摆放，未连接，不代表已验证制造、结构或飞行。</p>
+      <p>放入后可调整位置和旋转。自制零件暂不支持自动连接。</p>
       <label className="block">选择作品<select aria-label="自制零件目标作品" className="mt-1 w-full rounded border p-2" value={destination} onChange={event => setDestination(event.target.value)}><option value="">新建自由作品</option>{designs.filter(design => design.buildMode === 'free').map(design => <option key={design.id} value={design.id}>{design.name}</option>)}</select></label>
       {!destination && <label className="block">作品名称<input aria-label="自由作品名称" maxLength={80} className="mt-1 w-full rounded border p-2" value={name} onChange={event => setName(event.target.value)} /></label>}
       {error && <p role="alert" className="text-red-700">{error}</p>}

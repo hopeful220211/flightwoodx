@@ -56,7 +56,7 @@ export function ExportPreviewPage() {
       <ExportHeroSection design={design} />
 
       {/* Section 2: Flight check report */}
-      {hasCustomParts ? <p className="mx-auto max-w-5xl px-4 py-8 text-amber-900">自制零件仅自由摆放，未连接。原始记录由账号权限和版本核验；本页不提供自制件的整机重量、材料、制造或飞行结论。可以返回工作台导出含来源引用的设计 JSON。</p> : <FlightCheckReport checks={checks} />}
+      {hasCustomParts ? <p className="mx-auto max-w-5xl px-4 py-8 text-ink-600">本设计含自由摆放、未连接的自制零件。返回工作台可导出位置和来源记录（JSON）。</p> : <FlightCheckReport checks={checks} />}
 
       {/* Section 3: Flight stats */}
       {!hasCustomParts && stats && <FlightStats stats={stats} />}

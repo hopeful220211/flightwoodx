@@ -27,6 +27,17 @@ const Socket = new Schema({
   rotation: { type: Number, required: true }, // 度
 }, { _id: false })
 
+// Generic slot position/direction only; these guides do not grant assembly connections.
+const JointGuide = new Schema({
+  id:       { type: String, required: true, trim: true, maxlength: 80, match: /^[A-Za-z0-9_-]+$/ },
+  kind:     { type: String, required: true, enum: ['edge-slot', 'through-slot'] },
+  x:        { type: Number, required: true, min: -2000, max: 2000 },
+  y:        { type: Number, required: true, min: -2000, max: 2000 },
+  lengthMm: { type: Number, required: true, min: 2, max: 2000 },
+  axis:     { type: String, required: true, enum: ['x', 'y'] },
+  entry:    { type: String, required: true, enum: ['start', 'end', 'front', 'back'] },
+}, { _id: false })
+
 const Manufacturability = new Schema({
   closed:       { type: Boolean, required: true },
   minFeatureMm: { type: Number, required: true, min: 0 },
@@ -47,6 +58,8 @@ const CustomPartSchema = new Schema({
   category: { type: String, enum: UserPartCategoryEnum.options, required: true },
   geometry: { type: Geometry, required: true },
   sockets:  { type: [Socket], default: [] },
+  // Omission is kept distinct from an explicit [] for older records and clients.
+  jointGuides: { type: [JointGuide], default: undefined },
   // 可制造性自检（§4.4 五项）。草稿阶段可缺，故不 required。
   manufacturability: { type: Manufacturability },
   // 对起飞检查的影响：面积×厚度×密度自动算出的重量（g）。

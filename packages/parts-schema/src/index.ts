@@ -112,6 +112,27 @@ export type UserPartSocket = z.infer<typeof UserPartSocketSchema>;
 // 板厚锁死为 2mm 单一板材（自绘/上传一律 2mm）。字面量常量，非枚举。
 export const USER_PART_THICKNESS_MM = 2 as const;
 
+// 槽的设计标注，不是官方卡扣或自动连接证明。窄边固定使用单一板厚。
+export const JointGuideSchema = z.object({
+  id: z.string().trim().min(1).max(80).regex(/^[A-Za-z0-9_-]+$/),
+  kind: z.enum(['edge-slot', 'through-slot']),
+  x: z.number().finite().min(-2_000).max(2_000),
+  y: z.number().finite().min(-2_000).max(2_000),
+  lengthMm: z.number().finite().min(USER_PART_THICKNESS_MM).max(2_000),
+  axis: z.enum(['x', 'y']),
+  entry: z.enum(['start', 'end', 'front', 'back']),
+}).strict().superRefine((guide, ctx) => {
+  const valid = guide.kind === 'edge-slot'
+    ? guide.entry === 'start' || guide.entry === 'end'
+    : guide.entry === 'front' || guide.entry === 'back';
+  if (!valid) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['entry'], message: '槽的插入方向与槽类型不符' });
+});
+export type JointGuide = z.infer<typeof JointGuideSchema>;
+export const JointGuidesSchema = z.array(JointGuideSchema).max(32).refine(
+  guides => new Set(guides.map(guide => guide.id)).size === guides.length,
+  '槽设计标注 id 不能重复',
+);
+
 // 几何：外轮廓 + 内孔（镂空）+ 固定厚度 + 包围盒。
 export const UserPartGeometrySchema = z.object({
   contour: SvgPathDataSchema,                       // 外轮廓（须封闭，封闭性由可制造性检查判定）
@@ -184,6 +205,7 @@ export const UserPartDefSchema = z.object({
   name: z.string().trim().min(1).max(40),
   category: UserPartCategoryEnum,                     // 只允许五种结构类，不含电机/螺旋桨
   geometry: UserPartGeometrySchema,
+  jointGuides: JointGuidesSchema.optional(),
   sockets: z
     .array(UserPartSocketSchema)
     .max(100)

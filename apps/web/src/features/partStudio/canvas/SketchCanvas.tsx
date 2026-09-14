@@ -1,25 +1,34 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import type { Part2D, Point2D } from '@fwx/geometry'
+import { USER_PART_THICKNESS_MM, type JointGuide } from '@fwx/parts-schema'
 import type { SketchReference, SketchShape } from '../sketch/model'
 import type { SketchTool } from './SketchTools'
-import { RESIZE_HANDLES, resizeShape, resolveSelectionHandle, type ResizeHandle } from './resizeShape'
+import { getResizeHandles, resizeShape, resolveSelectionHandle, type ResizeHandle } from './resizeShape'
+import { JointDirectionMark } from '../JointDirectionMark'
+
+export type SlotMode = 'cut' | 'edge-slot' | 'through-slot'
 
 export interface SketchCanvasProps {
   shapes: SketchShape[]
   reference: SketchReference
   part: Part2D | null
   tool: SketchTool
+  slotMode?: SlotMode
+  jointGuides?: readonly JointGuide[]
+  problemShapeIds?: readonly string[]
+  referenceInvalid?: boolean
   selectedId: string | null
   snap: boolean
   disabled: boolean
   onChange: (shapes: SketchShape[]) => void
   onSelect: (id: string | null) => void
   onPendingChange: (pending: boolean) => void
+  children?: ReactNode
 }
 
 type Gesture =
-  | { kind: 'draw'; tool: SketchTool; start: Point2D; end: Point2D }
+  | { kind: 'draw'; tool: SketchTool; slotMode?: SlotMode; start: Point2D; end: Point2D }
   | { kind: 'move'; shape: SketchShape; start: Point2D; end: Point2D }
   | { kind: 'vertex'; shape: SketchShape; index: number; start: Point2D; end: Point2D }
   | { kind: 'resize'; shape: SketchShape; handle: ResizeHandle; start: Point2D; end: Point2D; snap: boolean; lockAspect: boolean }
@@ -34,7 +43,7 @@ const tip: Record<SketchTool, string> = {
   polygon: '逐个点击顶点，Shift 锁定水平或垂直；按 Enter 或点击完成闭合，不需要点回起点。',
   freehand: '按住绘制辅助草图，再点击完成闭合；按约 1 mm 间距采点，最多 128 点。',
   'circle-hole': '拖出圆孔；红色区域将从实体中切除。',
-  slot: '沿开口方向拖动，生成宽 2 mm 的矩形切除；位置和长度可再调整。',
+  slot: '普通切孔：拖出矩形，调整宽、高；拼接时选择插槽工具。',
 }
 
 function line(points: Point2D[], close = true): string {
@@ -77,16 +86,19 @@ function shapeFromDrag(gesture: Gesture): SketchShape | null {
   const width = Math.abs(endX - x)
   const height = Math.abs(endY - y)
   const base = { id: 'drag-preview', kind: 'rectangle' as const, operation: 'add' as 'add' | 'cut', x: Math.min(x, endX), y: Math.min(y, endY), width, height, radius: 0 }
-  if (gesture.tool === 'slot') {
-    if (Math.max(width, height) < 0.1) return null
-    return width >= height ? { ...base, operation: 'cut', y: y - 1, height: 2 } : { ...base, operation: 'cut', x: x - 1, width: 2 }
+  if (gesture.tool === 'slot' && gesture.slotMode && gesture.slotMode !== 'cut') {
+    if (Math.max(width, height) < USER_PART_THICKNESS_MM) return null
+    const axis = width >= height ? 'x' : 'y'
+    const entry = gesture.slotMode === 'through-slot' ? 'front' : (axis === 'x' ? endX >= x : endY >= y) ? 'start' : 'end'
+    const joint = { kind: gesture.slotMode, axis, entry } as const
+    return axis === 'x' ? { ...base, operation: 'cut', y: y - USER_PART_THICKNESS_MM / 2, height: USER_PART_THICKNESS_MM, joint } : { ...base, operation: 'cut', x: x - USER_PART_THICKNESS_MM / 2, width: USER_PART_THICKNESS_MM, joint }
   }
   if (width < 0.1 || height < 0.1) return null
   if (gesture.tool === 'ellipse' || gesture.tool === 'circle-hole') {
     const diameter = Math.min(width, height)
     return { ...base, kind: 'ellipse', operation: gesture.tool === 'circle-hole' ? 'cut' : 'add', x: endX < x ? x - diameter : x, y: endY < y ? y - diameter : y, width: diameter, height: diameter }
   }
-  return base
+  return gesture.tool === 'slot' ? { ...base, operation: 'cut' } : base
 }
 
 function ShapeMark({ shape }: { shape: SketchShape }) {
@@ -95,10 +107,11 @@ function ShapeMark({ shape }: { shape: SketchShape }) {
   return <rect vectorEffect="non-scaling-stroke" x={shape.x} y={shape.y} width={shape.width} height={shape.height} rx={shape.radius} />
 }
 
-export function SketchCanvas({ shapes, reference, part, tool, selectedId, snap, disabled, onChange, onSelect, onPendingChange }: SketchCanvasProps) {
+export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', jointGuides = [], problemShapeIds = [], referenceInvalid = false, selectedId, snap, disabled, onChange, onSelect, onPendingChange, children }: SketchCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const shapesRef = useRef(shapes)
   const disabledRef = useRef(disabled)
+  const onSelectRef = useRef(onSelect)
   const gridId = useId().replaceAll(':', '')
   const [gesture, setGesture] = useState<Gesture | null>(null)
   const gestureRef = useRef<Gesture | null>(null)
@@ -128,7 +141,7 @@ export function SketchCanvas({ shapes, reference, part, tool, selectedId, snap, 
   const markSize = 6 / screenScale
 
   useEffect(() => { onPendingChange(pending) }, [onPendingChange, pending])
-  useLayoutEffect(() => { shapesRef.current = shapes; disabledRef.current = disabled }, [shapes, disabled])
+  useLayoutEffect(() => { shapesRef.current = shapes; disabledRef.current = disabled; onSelectRef.current = onSelect }, [shapes, disabled, onSelect])
   useEffect(() => {
     const svg = svgRef.current
     if (!svg) return
@@ -203,7 +216,7 @@ export function SketchCanvas({ shapes, reference, part, tool, selectedId, snap, 
     if (disabledRef.current) return
     let point = coordinate(event)
     if (!point) return
-    if (tool === 'select') { onSelect(null); return }
+    if (tool === 'select') { onSelectRef.current(null); return }
     if (shapesRef.current.length >= MAX_SHAPES) { setError('形状不能超过 32 个，请先删除不需要的形状。'); return }
     event.preventDefault()
     svgRef.current?.focus({ preventScroll: true })
@@ -219,7 +232,7 @@ export function SketchCanvas({ shapes, reference, part, tool, selectedId, snap, 
     if (draftRef.current.length) { setError('请先完成闭合或取消当前草图。'); return }
     setError(null)
     if (tool === 'freehand') updateDraft([point])
-    updateGesture({ kind: tool === 'freehand' ? 'freehand' : 'draw', tool, start: point, end: point })
+    updateGesture({ kind: tool === 'freehand' ? 'freehand' : 'draw', tool, slotMode, start: point, end: point })
     beginCapture(event)
   }
   function selectShape(event: PointerEvent<SVGGElement>, shape: SketchShape, vertex?: number) {
@@ -235,7 +248,7 @@ export function SketchCanvas({ shapes, reference, part, tool, selectedId, snap, 
     const point = coordinate(event)
     if (!point) return
     event.preventDefault()
-    onSelect(shape.id)
+    onSelectRef.current(shape.id)
     setError(null)
     updateGesture(vertex === undefined ? { kind: 'move', shape: committed, start: point, end: point } : { kind: 'vertex', shape: committed, index: vertex, start: point, end: point })
     beginCapture(event)
@@ -304,11 +317,24 @@ export function SketchCanvas({ shapes, reference, part, tool, selectedId, snap, 
     onSelect(shape.id)
     resetPending()
     setError(null)
+    svgRef.current?.focus({ preventScroll: true })
   }
   function keyDown(event: KeyboardEvent<SVGSVGElement>) {
     if (disabled) return
-    if (event.key === 'Escape') { event.preventDefault(); cancel(); return }
+    if (event.key === 'Escape') { event.preventDefault(); if (pending) cancel(); else onSelect(null); return }
     if (event.key === 'Enter' && draft.length) { event.preventDefault(); finish(); return }
+    // Keep rule-based creation accessible without an add-shape button.
+    if (event.key === 'Enter' && !pending && ['rectangle', 'ellipse', 'circle-hole', 'slot'].includes(tool)) {
+      event.preventDefault()
+      if (shapes.length >= MAX_SHAPES) { setError('形状不能超过 32 个，请先删除不需要的形状。'); return }
+      const cut = tool === 'circle-hole' || tool === 'slot'
+      const width = Math.min(cut ? 8 : 60, reference.width * 0.5, reference.height * 0.5)
+      const height = tool === 'rectangle' ? Math.min(40, reference.height * 0.5) : tool === 'slot' ? slotMode === 'cut' ? 2 : 0 : width
+      const start: Point2D = [(reference.width - width) / 2, (reference.height - height) / 2]
+      const shape = shapeFromDrag({ kind: 'draw', tool, slotMode, start, end: [start[0] + width, start[1] + height] })
+      if (shape) { shape.id = crypto.randomUUID(); onChange([...shapes, shape]); onSelect(shape.id); setError(null) }
+      return
+    }
     if (pending || tool !== 'select' || !selected) return
     const delta: Record<string, Point2D> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
     const direction = delta[event.key]
@@ -318,24 +344,18 @@ export function SketchCanvas({ shapes, reference, part, tool, selectedId, snap, 
     onChange(shapes.map(shape => shape.id === selected.id ? { ...shape, x: shape.x + direction[0] * step, y: shape.y + direction[1] * step } : shape))
   }
   const handles = editingVertices && selection ? vertices(selection) : []
-  return <div className="relative flex w-full flex-col overflow-hidden rounded-lg border border-sky-100 bg-slate-50">
-    <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-sky-100 bg-white px-3 text-xs text-slate-500">
-      <span>二维设计 · 单位 mm</span>
-      <button type="button" disabled={disabled || pending || tool !== 'select' || selected?.kind !== 'polygon'}
-        className={`shrink-0 rounded-md border border-sky-200 px-2 py-1 text-sky-800 disabled:opacity-40 ${tool === 'select' && selected?.kind === 'polygon' ? '' : 'invisible'}`}
-        onClick={() => { setVertexEditingId(editingVertices ? null : selectedId); svgRef.current?.focus({ preventScroll: true }) }}>{editingVertices ? '缩放图形' : '编辑顶点'}</button>
-      <span>{reference.shape === 'ellipse' ? reference.width === reference.height ? `圆形参考 Ø ${reference.width} mm` : `椭圆参考 ${reference.width} × ${reference.height} mm` : `参考范围 ${reference.width} × ${reference.height} mm`} · 网格 {gridStep} mm</span>
-    </div>
+  return <div className="w-full bg-slate-50">
+    <div data-testid="sketch-stage" className="relative h-[clamp(680px,calc(100dvh-224px),1000px)] pb-[124px]">
     <svg ref={svgRef} data-testid="sketch-canvas" aria-label="二维零件绘制画布" aria-describedby={`${gridId}-tip`} role="application" tabIndex={0}
       viewBox={`${-margin} ${-margin} ${viewWidth} ${viewHeight}`} preserveAspectRatio="xMidYMid meet"
-      className="h-[360px] w-full shrink-0 outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-sky-400 sm:h-[420px]"
-      style={{ touchAction: 'none', minHeight: 300, cursor: tool === 'select' ? 'default' : 'crosshair' }}
+      className="block h-full w-full outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-sky-400"
+      style={{ touchAction: 'none', cursor: tool === 'select' ? 'default' : 'crosshair' }}
       onPointerDown={start} onPointerMove={move} onPointerUp={end}
       onPointerCancel={event => { if (gestureRef.current && event.pointerId === activePointerId.current) { resetPending(); setError('绘制已中断，未保存这次操作，请重新绘制。') } }} onKeyDown={keyDown}>
       <defs><pattern id={gridId} width={gridStep} height={gridStep} patternUnits="userSpaceOnUse"><path d={`M ${gridStep} 0 L 0 0 0 ${gridStep}`} fill="none" stroke="#dbe8f3" strokeWidth={0.5} vectorEffect="non-scaling-stroke" /></pattern></defs>
       <rect x={-margin} y={-margin} width={viewWidth} height={viewHeight} fill="#f7faff" />
-      <rect data-testid={reference.shape === 'ellipse' ? undefined : 'reference-outline'} width={reference.width} height={reference.height} fill={`url(#${gridId})`} stroke="#a9c5df" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="4 4" />
-      {reference.shape === 'ellipse' && <ellipse data-testid="reference-outline" cx={reference.width / 2} cy={reference.height / 2} rx={reference.width / 2} ry={reference.height / 2} fill="none" stroke="#559ac9" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="6 4" pointerEvents="none" />}
+      <rect data-testid={reference.shape === 'ellipse' ? undefined : 'reference-outline'} width={reference.width} height={reference.height} fill={`url(#${gridId})`} stroke={referenceInvalid && reference.shape !== 'ellipse' ? '#b45309' : '#a9c5df'} strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="4 4" />
+      {reference.shape === 'ellipse' && <ellipse data-testid="reference-outline" cx={reference.width / 2} cy={reference.height / 2} rx={reference.width / 2} ry={reference.height / 2} fill="none" stroke={referenceInvalid ? '#b45309' : '#559ac9'} strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="6 4" pointerEvents="none" />}
       <path d={`M ${reference.width / 2} 0 V ${reference.height}`} stroke="#aac4dd" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="6 4" pointerEvents="none" />
       <g fill="#607990" fontSize={2.3 * displayScale} pointerEvents="none">
         {Array.from({ length: Math.floor(reference.width / tickStep) + 1 }, (_, index) => <text key={`x${index}`} x={index * tickStep} y={-margin * 0.35} textAnchor="middle">{index * tickStep}</text>)}
@@ -354,6 +374,10 @@ export function SketchCanvas({ shapes, reference, part, tool, selectedId, snap, 
             <ShapeMark shape={current} />
           </g>
           {shape.mirror && <g transform={`translate(${reference.width} 0) scale(-1 1)`} fill="none" stroke={shape.operation === 'cut' ? '#dc5252' : '#79accf'} strokeWidth={1} strokeDasharray="4 4" pointerEvents="none" aria-hidden="true"><ShapeMark shape={current} /></g>}
+          {!gesture && problemShapeIds.includes(shape.id) && <>
+            <g data-problem-shape-id={shape.id} fill="none" stroke="#b45309" strokeWidth={2} strokeDasharray="5 3" pointerEvents="none" aria-hidden="true"><ShapeMark shape={current} /></g>
+            {shape.mirror && <g data-problem-shape-id={shape.id} transform={`translate(${reference.width} 0) scale(-1 1)`} fill="none" stroke="#b45309" strokeWidth={2} strokeDasharray="5 3" pointerEvents="none" aria-hidden="true"><ShapeMark shape={current} /></g>}
+          </>}
           {focusedId === shape.id && focusedId !== selectedId && <rect data-testid="shape-focus-outline" x={current.x} y={current.y} width={current.width} height={current.height} fill="none" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="3 3" pointerEvents="none" />}
         </g>
       })}
@@ -362,7 +386,8 @@ export function SketchCanvas({ shapes, reference, part, tool, selectedId, snap, 
         {draft.length > 1 && <path d={line([draft[draft.length - 1]!, draft[0]!], false)} fill="none" stroke="#7197b6" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="4 4" />}
         {draft.map(([x, y], index) => <circle key={index} cx={x} cy={y} r={0.65 * displayScale} fill={index === 0 ? '#16a34a' : '#1479c0'} />)}</g>}
       {tool === 'select' && selection && <rect data-testid="selection-outline" x={selection.x} y={selection.y} width={selection.width} height={selection.height} fill="none" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
-      {tool === 'select' && selected && selection && !editingVertices && RESIZE_HANDLES.map(handle => {
+      {selection?.joint && <JointDirectionMark guide={(!gesture && jointGuides.find(guide => guide.id === selection.id)) || { id: selection.id, ...selection.joint, x: selection.x, y: selection.y, lengthMm: selection.joint.axis === 'x' ? selection.width : selection.height }} />}
+      {tool === 'select' && selected && selection && !editingVertices && getResizeHandles(selected).map(handle => {
         const x = selection.x + handle.x * selection.width
         const y = selection.y + handle.y * selection.height
         return <g key={handle.id} data-resize-handle={handle.id} onPointerDown={event => startResize(event, selected)} style={{ cursor: handle.cursor }}>
@@ -375,14 +400,23 @@ export function SketchCanvas({ shapes, reference, part, tool, selectedId, snap, 
         <circle cx={x} cy={y} r={markSize / 2} fill="white" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
       </g>)}
     </svg>
+    {children}
+    {draft.length > 0 && <div className="absolute bottom-[128px] left-3 z-20 flex max-w-[calc(100%-24px)] flex-wrap items-center gap-2 rounded-lg border border-sky-100 bg-white p-2 shadow-sm">
+      <button type="button" onClick={finish} disabled={disabled || gesture !== null || draft.length < 3 || overflow} className="rounded-lg bg-sky-600 px-3 py-2 text-sm text-white disabled:opacity-40">完成闭合</button>
+      <button type="button" onClick={cancel} disabled={disabled} className="rounded-lg border border-sky-200 px-3 py-2 text-sm text-sky-900 disabled:opacity-40">取消绘制</button>
+      <span className="text-xs text-slate-500">{draft.length} / 128 个顶点</span>
+    </div>}
+    </div>
     <div className="shrink-0 border-t border-sky-100 bg-white px-3 py-2">
-      <p id={`${gridId}-tip`} className="text-xs leading-relaxed text-slate-500">{tip[tool]}</p>
+      <div className="flex min-h-8 flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+        <span>{reference.shape === 'ellipse' ? reference.width === reference.height ? `圆形参考 Ø ${reference.width} mm` : `椭圆参考 ${reference.width} × ${reference.height} mm` : `参考范围 ${reference.width} × ${reference.height} mm`}</span>
+        <span>{shapes.length} / 32 个图形 · 网格 {gridStep} mm</span>
+        <button type="button" disabled={disabled || pending || tool !== 'select' || selected?.kind !== 'polygon'}
+          className={`shrink-0 rounded-md border border-sky-200 px-2 py-1 text-sky-800 disabled:opacity-40 ${tool === 'select' && selected?.kind === 'polygon' ? '' : 'invisible'}`}
+          onClick={() => { setVertexEditingId(editingVertices ? null : selectedId); svgRef.current?.focus({ preventScroll: true }) }}>{editingVertices ? '缩放图形' : '编辑顶点'}</button>
+      </div>
+      <p id={`${gridId}-tip`} className="text-xs leading-relaxed text-slate-500">{tool === 'slot' && slotMode !== 'cut' ? slotMode === 'edge-slot' ? '边缘插槽：从板外向板内拖动，箭头表示插入方向；槽宽固定 2 mm，需形成完整边缘凹口。' : '板内插槽：在板内拖动，槽宽固定 2 mm；另一零件的插片从板面插入。' : tip[tool]}{['rectangle', 'ellipse', 'circle-hole', 'slot'].includes(tool) && ' 画布聚焦后按 Enter 可创建默认图形。'}</p>
       {error && <p role="alert" className="mt-1 text-xs leading-relaxed text-red-700">{error}</p>}
-      {draft.length > 0 && <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={finish} disabled={disabled || gesture !== null || draft.length < 3 || overflow} className="rounded-lg bg-sky-600 px-3 py-2 text-sm text-white disabled:opacity-40">完成闭合</button>
-        <button type="button" onClick={cancel} disabled={disabled} className="rounded-lg border border-sky-200 px-3 py-2 text-sm text-sky-900 disabled:opacity-40">取消绘制</button>
-        <span className="text-xs text-slate-500">{draft.length} / 128 个顶点</span>
-      </div>}
     </div>
   </div>
 }

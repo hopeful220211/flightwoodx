@@ -248,6 +248,9 @@ importers:
 
   packages/geometry:
     dependencies:
+      '@fwx/parts-schema':
+        specifier: workspace:*
+        version: link:../parts-schema
       makerjs:
         specifier: ^0.19.2
         version: 0.19.2

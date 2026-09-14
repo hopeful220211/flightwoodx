@@ -217,15 +217,10 @@ export function DesignPage() {
     toast.push(added ? 'success' : 'error', added ? '已添加零件' : '未找到可用连接点，零件未添加')
   }
 
-  const checks = useMemo(() => {
-    if (usedCount === 0) return [{ level: 'warning', text: '尚未添加零件，请从零件库选择。' }]
-    const issues: Array<{ level: 'warning' | 'error' | 'info'; text: string }> = []
-    if (!usedParts.some((p) => (partById.get(p.partId)?.category ?? 'other') === 'mainboard'))
-      issues.push({ level: 'error', text: usedParts.some(part => part.source && part.category === 'mainboard') ? '未安装官方主板；自制主机身尚未验证连接。' : '缺少主板：建议至少选择一个主板零件。' })
-    if (usedParts.some(part => part.source)) issues.push({ level: 'warning', text: '自制零件仅自由摆放，尚未连接；未验证制造、结构或飞行。' })
-    if (issues.length === 0) issues.push({ level: 'info', text: '基础装配检查通过：可以继续检查连接与左右对称。' })
-    return issues
-  }, [partById, usedCount, usedParts])
+  // Free placement is a normal editing state, not a failed assembly check.
+  // Only suggest a mainboard when actual official parts need one for connection.
+  const needsOfficialMainboard = usedParts.some(part => !part.source && partById.has(part.partId))
+    && !usedParts.some(part => !part.source && partById.get(part.partId)?.category === 'mainboard')
 
   const categoryItems = [
     { value: 'mainboard', label: '主板' },
@@ -296,7 +291,7 @@ export function DesignPage() {
               <div className="truncate text-sm font-extrabold text-ink-900 dark:text-white">{activeDesign?.name ?? '我的第一架无人机'}</div>
               <div className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
                 已使用 {usedCount} 个零件 · {hasCustomParts ? `官方件预估 ${totalWeight}g（不含自制件）` : `预估重量 ${totalWeight}g`}
-                <span className="ml-2" role={saveStatus === 'error' ? 'alert' : 'status'}>{saveStatus === 'error' ? '账号保存失败，请重试' : saveStatus === 'saving' ? '正在保存…' : token ? '已保存到账号' : '本机草稿'}</span>
+                <span className="ml-2 inline-block whitespace-nowrap" role={saveStatus === 'error' ? 'alert' : 'status'}>{saveStatus === 'error' ? '账号保存失败，请重试' : saveStatus === 'saving' ? '正在保存…' : token ? '已保存到账号' : '本机草稿'}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -448,16 +443,16 @@ export function DesignPage() {
         )}
       </div>
 
-      {/* 右侧：检查浮动面板（可收起） */}
+      {/* 右侧：已使用零件（可收起） */}
       <div className={cn('absolute right-4 top-44 sm:top-28 bottom-16 z-40 transition-transform duration-300', isInspectorOpen ? 'w-[min(288px,calc(100vw-2rem))]' : 'w-12')}>
         {isInspectorOpen ? (
           <Card hoverable={false} className="max-h-full overflow-y-auto">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-sm font-extrabold">检查</div>
+              <div className="text-sm font-extrabold">已使用零件</div>
               <button
                 type="button"
                 className="touch-target inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-sky-50 dark:hover:bg-slate-900"
-                aria-label="收起检查面板"
+                aria-label="收起零件列表"
                 onClick={() => setIsInspectorOpen(false)}
               >
                 <PanelRightClose size={18} />
@@ -465,30 +460,18 @@ export function DesignPage() {
             </div>
 
             <div className="mt-3 space-y-3">
-              <div className="rounded-lg bg-white/60 p-3 text-sm dark:bg-slate-950/40">
-                <div className="text-sm font-extrabold">设计检查</div>
-                <div className="mt-2 space-y-2">
-                  {checks.map((c, idx) => (
-                    <div
-                      key={idx}
-                      className={cn(
-                        'rounded-lg border px-3 py-2 text-sm',
-                        c.level === 'error'
-                          ? 'border-error/30 bg-error/5'
-                          : c.level === 'warning'
-                            ? 'border-warning/30 bg-warning/5'
-                            : 'border-sky-400/30 bg-sky-50/60 dark:bg-sky-900/20',
-                      )}
-                    >
-                      {c.text}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {needsOfficialMainboard && <div className="border-l-2 border-sky-400 pl-3 text-sm">
+                <p role="status" className="text-slate-700 dark:text-slate-200">请先添加主板，再连接官方零件。</p>
+                <button type="button" className="mt-1 min-h-11 text-sm font-semibold text-sky-700 underline underline-offset-4" onClick={() => {
+                  setCategory('mainboard')
+                  setQuery('')
+                  setIsPartsLibraryOpen(true)
+                  if (window.innerWidth < 1024) setIsInspectorOpen(false)
+                }}>选择主板</button>
+              </div>}
 
               <div className="rounded-lg bg-white/60 p-3 text-sm dark:bg-slate-950/40">
-                <div className="text-sm font-extrabold">已使用零件</div>
-                <div className="mt-2 space-y-1">
+                <div className="space-y-1">
                   {usedParts.length ? (
                     usedParts.map((inst) => {
                       const part = partById.get(inst.partId)
@@ -529,7 +512,7 @@ export function DesignPage() {
           <button
             type="button"
             className="flex h-20 w-12 items-center justify-center rounded-lg bg-white/70 shadow-sm backdrop-blur hover:bg-white/90 dark:bg-slate-950/60 dark:hover:bg-slate-950/80"
-            aria-label="展开检查面板"
+            aria-label="展开零件列表"
             onClick={() => { setIsInspectorOpen(true); if (window.innerWidth < 1024) setIsPartsLibraryOpen(false) }}
           >
             <PanelRightOpen size={20} />
@@ -577,11 +560,10 @@ export function DesignPage() {
 
       <Modal open={previewHintOpen} onClose={() => setPreviewHintOpen(false)} title="预览">
         <div className="space-y-3 text-sm text-slate-700 dark:text-slate-200">
-          {hasCustomParts && <p>自制零件仅自由摆放，未连接，未验证制造与飞行。</p>}
           <div className="h-80 rounded bg-slate-50"><Canvas aria-label="自由作品三维预览" camera={{ position: [0.3, 0.3, 0.4], near: 0.001 }}><SceneLighting /><OrbitControls makeDefault /><Suspense fallback={<Html center>正在加载零件…</Html>}><Bounds fit clip observe margin={1.5}><AssembledDrone parts={usedParts} autoRotate={false} /></Bounds></Suspense></Canvas></div>
           <div className="flex justify-end">
             <Button variant="outline" onClick={() => setPreviewHintOpen(false)}>
-              我知道了
+              关闭预览
             </Button>
           </div>
         </div>

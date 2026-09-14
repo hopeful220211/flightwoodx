@@ -17,6 +17,7 @@
 
 ## 已结束记录
 
+- [`completed/2026-09-14-concise-contextual-copy.md`](./completed/2026-09-14-concise-contextual-copy.md)：全站简短功能文案、按需错误反馈和导出结果折叠，748项自动测试及72项全站浏览器回归通过，未发布。
 - [`completed/2026-09-14-part-studio-selection.md`](./completed/2026-09-14-part-studio-selection.md)：固定绘制参数区与画布、细选框和鼠标/触控缩放，634项自动测试及49项全站浏览器回归通过，未发布。
 - [`completed/2026-09-13-part-studio-dimensioned-editor.md`](./completed/2026-09-13-part-studio-dimensioned-editor.md)：毫米规则绘图、参考范围、真实2mm板厚与共享木纹、主机身类别及保存恢复；599项自动测试和14项浏览器回归通过，未发布，实物配合未验证。
 - [`completed/2026-09-13-plain-site-copy.md`](./completed/2026-09-13-plain-site-copy.md)：冻结首页顶部，其余页面改为功能说明；文案规则、局部换行修正、505项自动测试、19项浏览器回归及27次页面尺寸检查通过，未发布。

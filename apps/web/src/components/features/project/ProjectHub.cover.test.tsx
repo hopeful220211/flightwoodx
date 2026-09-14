@@ -115,7 +115,8 @@ it('describes program execution as simulation and states unavailable actions', a
     },
   } }))
   expect(container.textContent).toContain('运行模拟')
-  expect(container.textContent).toContain('查看当前程序的模拟运行过程，不代表实机飞行结果。')
+  expect(container.textContent).toContain('查看当前程序的模拟运行过程。')
+  expect(container.textContent).not.toMatch(/不代表实机|未验证|需要验证/)
   expect(container.textContent).toContain('历史查看、分支与版本恢复暂未开放')
   expect(container.textContent).not.toContain('让它飞起来')
 })

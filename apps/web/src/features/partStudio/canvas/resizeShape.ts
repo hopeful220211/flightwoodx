@@ -1,4 +1,5 @@
 import type { Point2D } from '@fwx/geometry'
+import { USER_PART_THICKNESS_MM } from '@fwx/parts-schema'
 import type { SketchShape } from '../sketch/model'
 
 export type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
@@ -11,6 +12,16 @@ export const RESIZE_HANDLES: { id: ResizeHandle; x: number; y: number; cursor: s
   { id: 'sw', x: 0, y: 1, cursor: 'nesw-resize' }, { id: 'w', x: 0, y: 0.5, cursor: 'ew-resize' },
 ]
 
+/** Joint slots keep the stock-thickness dimension fixed; only the two length
+ * ends can be resized. Ordinary cuts retain all eight handles.
+ */
+export function getResizeHandles(shape: SketchShape): typeof RESIZE_HANDLES {
+  if (!shape.joint) return RESIZE_HANDLES
+  return RESIZE_HANDLES.filter(handle => shape.joint!.axis === 'x'
+    ? handle.id === 'e' || handle.id === 'w'
+    : shape.joint!.axis === 'y' && (handle.id === 'n' || handle.id === 's'))
+}
+
 /** Generous targets may overlap on small holes/slots. Resolve their nearest
  * visible anchor geometrically, never by SVG paint order, and keep the central
  * half of the box available for moving the shape.
@@ -18,9 +29,9 @@ export const RESIZE_HANDLES: { id: ResizeHandle; x: number; y: number; cursor: s
 export function resolveSelectionHandle(shape: SketchShape, point: Point2D): ResizeHandle | 'move' | null {
   if (![shape.x, shape.y, shape.width, shape.height, ...point].every(Number.isFinite) || shape.width <= 0 || shape.height <= 0) return null
   if (Math.abs((point[0] - shape.x) / shape.width - 0.5) < 0.25 && Math.abs((point[1] - shape.y) / shape.height - 0.5) < 0.25) return 'move'
-  let closest: ResizeHandle = 'nw'
+  let closest: ResizeHandle | null = null
   let distance = Infinity
-  for (const handle of RESIZE_HANDLES) {
+  for (const handle of getResizeHandles(shape)) {
     const next = Math.hypot(point[0] - shape.x - handle.x * shape.width, point[1] - shape.y - handle.y * shape.height)
     if (next < distance) { closest = handle.id; distance = next }
   }
@@ -40,6 +51,16 @@ export function resizeShape(shape: SketchShape, handle: ResizeHandle, delta: Poi
   if (![x, y, originalWidth, originalHeight, radius, ...delta].every(Number.isFinite)
     || originalWidth < MIN_SIZE || originalHeight < MIN_SIZE || originalWidth > MAX_SIZE || originalHeight > MAX_SIZE
     || Math.abs(x) > MAX_SIZE || Math.abs(y) > MAX_SIZE || radius < 0) return null
+  if (shape.joint) {
+    const { kind, axis, entry } = shape.joint
+    const correctEntry = kind === 'edge-slot' ? entry === 'start' || entry === 'end'
+      : kind === 'through-slot' && (entry === 'front' || entry === 'back')
+    const shortSide = axis === 'x' ? originalHeight : originalWidth
+    const longSide = axis === 'x' ? originalWidth : originalHeight
+    if (shape.kind !== 'rectangle' || shape.operation !== 'cut' || radius !== 0 || !correctEntry
+      || shortSide !== USER_PART_THICKNESS_MM || longSide < USER_PART_THICKNESS_MM
+      || !getResizeHandles(shape).some(candidate => candidate.id === handle)) return null
+  }
   const horizontal = handle.includes('e') ? 1 : handle.includes('w') ? -1 : 0
   const vertical = handle.includes('s') ? 1 : handle.includes('n') ? -1 : 0
   if ((!horizontal || delta[0] === 0) && (!vertical || delta[1] === 0)) return shape
@@ -56,12 +77,13 @@ export function resizeShape(shape: SketchShape, handle: ResizeHandle, delta: Poi
   let width = dimension(x, originalWidth, horizontal, delta[0])
   let height = dimension(y, originalHeight, vertical, delta[1])
   // Also respect model origin bounds while keeping the opposite anchor fixed.
+  const minimum = shape.joint ? USER_PART_THICKNESS_MM : MIN_SIZE
   const limits = (anchor: number, fraction: number): [number, number] => fraction === 0
-    ? [MIN_SIZE, MAX_SIZE]
-    : [Math.max(MIN_SIZE, (anchor - MAX_SIZE) / fraction), Math.min(MAX_SIZE, (anchor + MAX_SIZE) / fraction)]
+    ? [minimum, MAX_SIZE]
+    : [Math.max(minimum, (anchor - MAX_SIZE) / fraction), Math.min(MAX_SIZE, (anchor + MAX_SIZE) / fraction)]
   const [minWidth, maxWidth] = limits(anchorX, anchorFractionX)
   const [minHeight, maxHeight] = limits(anchorY, anchorFractionY)
-  if (options.lockAspect) {
+  if (options.lockAspect && !shape.joint) {
     const widthScale = width / originalWidth
     const heightScale = height / originalHeight
     const requestedScale = !horizontal ? heightScale : !vertical ? widthScale

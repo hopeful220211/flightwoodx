@@ -29,7 +29,7 @@ export function StepPartPanel({ currentStep, onPartClick, onPartDragStart, pendi
     return (
       <div className="p-4">
         <h3 className="text-sm font-bold text-gray-700 mb-2">第 {info.number} 步 · {info.label}</h3>
-        <p className="text-xs text-gray-500">核对零件、连接和位置对称性；不验证实物结构或飞行。</p>
+        <p className="text-xs text-gray-500">核对零件、连接和左右位置。</p>
       </div>
     )
   }

@@ -34,21 +34,21 @@ export function calculateStats(parts: PartInstance[]): DesignStats {
 }
 
 export function getWeightLabel(g: number, missingCount = 0): { text: string; ok: boolean } {
-  if (!Number.isFinite(g) || g < 0) return { text: '缺少目录质量数据', ok: false }
-  return { text: missingCount > 0 ? `目录估算不完整：${missingCount} 个零件缺少质量数据` : '仅目录估算，非整机实测重量', ok: false }
+  if (!Number.isFinite(g) || g < 0) return { text: '暂无重量数据', ok: false }
+  return { text: missingCount > 0 ? `${missingCount} 个零件缺少重量数据` : '根据零件目录估算', ok: false }
 }
 
 export function getThrustLabel(ratio: number | null): { text: string; ok: boolean } {
-  if (ratio === null) return { text: '数据不全', ok: false }
-  return { text: '推重比尚需实测核验', ok: false }
+  if (ratio === null) return { text: '暂无动力数据', ok: false }
+  return { text: '推重比记录', ok: false }
 }
 
 export function getSymmetryLabel(pct: number): { text: string; ok: boolean } {
-  if (pct === 100) return { text: '坐标与型号镜像匹配，非质量平衡结论', ok: true }
-  return { text: '部分坐标或型号未匹配，需核对设计', ok: false }
+  if (pct === 100) return { text: '位置与型号左右对称', ok: true }
+  return { text: '请检查左右两侧的位置和型号', ok: false }
 }
 
 export function getFlightTimeLabel(min: number | null): { text: string; ok: boolean } {
-  if (min === null) return { text: '数据不全', ok: false }
-  return { text: '续航数据尚需实测核验', ok: false }
+  if (min === null) return { text: '暂无续航数据', ok: false }
+  return { text: '续航记录', ok: false }
 }

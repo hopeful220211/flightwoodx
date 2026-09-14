@@ -36,7 +36,6 @@ export function FlightStats({ stats }: FlightStatsProps) {
       <div className="mx-auto max-w-5xl px-4">
         <ScrollReveal>
           <h2 className="font-display text-3xl lg:text-[40px] font-semibold text-ink-900">设计参数</h2>
-          <p className="mt-3 text-sm text-ink-600">目录质量与设计坐标仅作结构参考；整机质量、动力和续航尚未经过实测验证。</p>
         </ScrollReveal>
 
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">

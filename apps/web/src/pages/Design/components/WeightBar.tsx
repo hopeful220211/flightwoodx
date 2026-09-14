@@ -29,7 +29,7 @@ export function WeightBar() {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="mt-1 text-[11px] text-gray-500">{estimate.missingCount > 0 ? `${estimate.missingCount} 个零件缺少质量数据；` : ''}不是整机实测重量，不代表飞行安全。</p>
+      {estimate.missingCount > 0 && <p className="mt-1 text-xs text-gray-500">{estimate.missingCount} 个零件缺少质量数据</p>}
     </div>
   )
 }

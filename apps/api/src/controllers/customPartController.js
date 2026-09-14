@@ -8,7 +8,7 @@ const CustomPart = require('../models/CustomPart')
 const { writeAudit } = require('../lib/audit')
 // 单一事实来源：从 @fwx/parts-schema 的 CJS 构建消费 v2 契约，不在 api 内重复定义
 const { UserPartDefSchema } = require('@fwx/parts-schema/runtime-cjs')
-const { svgGeometryToPart2D } = require('@fwx/geometry/runtime-cjs')
+const { svgGeometryToPart2D, validateJointGuides } = require('@fwx/geometry/runtime-cjs')
 
 // Mongoose 文档（lean 或实体）→ 前端契约 UserPartDTO。形状 = @fwx/parts-schema 的 UserPart（v2）。
 function toUserPartDTO(doc) {
@@ -28,6 +28,12 @@ function toUserPartDTO(doc) {
       bboxMm: g.bboxMm ? { w: g.bboxMm.w, h: g.bboxMm.h } : undefined,
     },
     sockets: (doc.sockets || []).map((s) => ({ type: s.type, x: s.x, y: s.y, rotation: s.rotation })),
+    ...(doc.jointGuides === undefined ? {} : {
+      jointGuides: doc.jointGuides.map((guide) => ({
+        id: guide.id, kind: guide.kind, x: guide.x, y: guide.y,
+        lengthMm: guide.lengthMm, axis: guide.axis, entry: guide.entry,
+      })),
+    }),
     manufacturability: m
       ? { closed: m.closed, minFeatureMm: m.minFeatureMm, withinBoard: m.withinBoard, passed: m.passed }
       : undefined,
@@ -51,7 +57,7 @@ function toUserPartDTO(doc) {
 
 // 校验请求体 → 返回 { ok:true, data } 或 { ok:false, message, issues }。
 // category 限五种结构类、geometry 闭合轮廓 + 厚度锁 2mm、sockets/manufacturability/flightImpact 合法 —— 全在 v2 zod 契约里。
-function validateDef(body) {
+function validateDef(body, preservedJointGuides) {
   const parsed = UserPartDefSchema.safeParse(body)
   if (!parsed.success) {
     return { ok: false, message: '零件定义不合法（请检查类别是否为结构件、轮廓/厚度/卡扣是否合法）', issues: parsed.error.issues.slice(0, 3) }
@@ -64,6 +70,15 @@ function validateDef(body) {
   }
   if (!verifiedGeometry) {
     return { ok: false, message: '零件几何不合法（轮廓和孔必须闭合、无自交且孔位于轮廓内）' }
+  }
+
+  const guides = parsed.data.jointGuides === undefined ? preservedJointGuides : parsed.data.jointGuides
+  if (guides !== undefined) {
+    if (parsed.data.jointGuides === undefined && !UserPartDefSchema.safeParse({ ...parsed.data, jointGuides: guides }).success) {
+      return { ok: false, message: '原插槽指引格式不合法，请重新确认插槽指引' }
+    }
+    const checked = validateJointGuides(verifiedGeometry, guides)
+    if (!checked.ok) return { ok: false, message: '插槽指引与零件几何不一致，请检查位置和插入方向' }
   }
 
   // 闭合性已由服务端复核；最小筋宽和板材边界尚未实现服务端复核，不能信任客户端的通过结论。
@@ -147,14 +162,45 @@ exports.update = async (req, res) => {
   }
   const v = validateDef(req.body)
   if (!v.ok) return res.status(400).json({ error: v.message, details: v.issues })
-  try {
-    const doc = await CustomPart.findOneAndUpdate(
-      { _id: req.params.id, ownerId: req.userId },
-      { $set: { ownerId: req.userId, ...v.data } },
-      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true },
-    ).lean()
 
-    const dto = toUserPartDTO(doc)
+  // An older client omitting guides must not erase them or move the geometry
+  // underneath unverified guides. Check the same revision that we later update.
+  const writeUpdate = async (allowUpsert) => {
+    const filter = { _id: req.params.id, ownerId: req.userId }
+    let upsert = allowUpsert
+    let guarded = false
+    if (v.data.jointGuides === undefined) {
+      const existing = await CustomPart.findOne(filter).select('jointGuides updatedAt').lean()
+      if (!existing && !allowUpsert) return { missing: true }
+      if (existing) {
+        const checked = validateDef(req.body, existing.jointGuides)
+        if (!checked.ok) return { invalid: checked }
+        filter.updatedAt = existing.updatedAt
+        // Date timestamps have millisecond precision; matching the guide array
+        // also prevents two same-millisecond edits from bypassing this check.
+        filter.jointGuides = existing.jointGuides === undefined ? { $exists: false } : existing.jointGuides
+        upsert = false
+        guarded = true
+      }
+    }
+    const doc = await CustomPart.findOneAndUpdate(
+      filter,
+      { $set: { ownerId: req.userId, ...v.data } },
+      { new: true, upsert, runValidators: true, setDefaultsOnInsert: true },
+    ).lean()
+    if (!doc) return guarded ? { conflict: true } : { missing: true }
+    return { doc }
+  }
+  const sendWriteFailure = (result) => {
+    if (result.invalid) return res.status(400).json({ error: result.invalid.message, details: result.invalid.issues })
+    if (result.conflict) return res.status(409).json({ error: '零件已被更新，请刷新后重试保存' })
+    return res.status(404).json({ error: '零件不存在' })
+  }
+  try {
+    const result = await writeUpdate(true)
+    if (!result.doc) return sendWriteFailure(result)
+
+    const dto = toUserPartDTO(result.doc)
     await writeAudit({
       actor: req.userId,
       action: 'custom-parts:update',
@@ -168,13 +214,9 @@ exports.update = async (req, res) => {
     // 把自己的 $set 真正落库（而非返回别人刚插入的旧值，避免丢写）；非本人则 404。
     if (error && error.code === 11000) {
       try {
-        const reapplied = await CustomPart.findOneAndUpdate(
-          { _id: req.params.id, ownerId: req.userId },
-          { $set: { ownerId: req.userId, ...v.data } },
-          { new: true, runValidators: true },
-        ).lean()
-        if (reapplied) {
-          const dto = toUserPartDTO(reapplied)
+        const result = await writeUpdate(false)
+        if (result.doc) {
+          const dto = toUserPartDTO(result.doc)
           await writeAudit({
             actor: req.userId,
             action: 'custom-parts:update',
@@ -183,7 +225,7 @@ exports.update = async (req, res) => {
           })
           return res.json({ success: true, data: dto })
         }
-        return res.status(404).json({ error: '零件不存在' })
+        return sendWriteFailure(result)
       } catch (retryError) {
         console.error('[custom-parts] Update retry error:', retryError)
         return res.status(500).json({ error: '保存自制零件失败' })

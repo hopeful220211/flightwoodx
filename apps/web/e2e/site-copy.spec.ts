@@ -29,7 +29,8 @@ for (const viewport of [
       const features = page.locator('section').filter({ has: page.getByRole('heading', { name: '平台功能', exact: true }) })
       await features.scrollIntoViewIfNeeded()
       await expect(features.getByRole('heading', { level: 3 })).toHaveText(['自主设计', '木质拼接', '飞行测试'])
-      await expect(features).toContainText('模拟结果不代表实机飞行表现')
+      await expect(features).toContainText('在模拟环境中查看运行过程并调整程序。')
+      await expect(features).not.toContainText(/不代表|未验证|需要验证/)
       await expect.poll(() => features.locator('img').evaluateAll(images => images.every(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0))).toBe(true)
       if (process.env.FWX_UI_CAPTURE_DIR) {
         await features.screenshot({ path: join(process.env.FWX_UI_CAPTURE_DIR, `features-${viewport.width}.png`), animations: 'disabled' })

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it, vi } from 'vitest'
 import { UserPartSchema, type UserPart } from '@fwx/parts-schema'
 import { useAuthStore } from '../../stores/authStore'
@@ -9,7 +10,18 @@ import { makeCustomInstance } from './customAssembly'
 const query = vi.hoisted(() => ({ data: undefined as UserPart | undefined, isError: false, error: null as Error | null, isFetching: true, refetch: vi.fn() }))
 vi.mock('./useCustomAssemblyPart', () => ({ useCustomAssemblyPart: () => query }))
 vi.mock('@react-three/drei', () => ({ Html: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, useBounds: () => null }))
-import { CustomAssemblyPart } from './CustomAssemblyPart'
+import { CustomAssemblyPart, CustomPartInspector } from './CustomAssemblyPart'
+
+it('labels placement mode without adding unrelated warnings to the inspector', () => {
+  const container = document.createElement('div')
+  container.innerHTML = renderToStaticMarkup(<CustomPartInspector instance={{
+    instanceId: 'inspector', partId: 'custom:test', category: 'joint', position: [0, 0, 0], rotation: [0, 0, 0],
+  }} />)
+  expect(container.textContent).toContain('自由摆放')
+  expect(container.textContent).not.toMatch(/未验证|未连接|制造与飞行/)
+  expect(container.querySelector('[role="alert"]')).not.toBeNull()
+  expect(container.querySelectorAll('input')).toHaveLength(3)
+})
 
 it('reports ready only after source revalidation and mesh mount, and reports later source failure', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)

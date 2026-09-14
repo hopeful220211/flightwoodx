@@ -11,7 +11,21 @@ function part(id: string, partId: string, category: PartInstance['category'], pa
 const hub = part('hub', 'core_hub_01', 'mainboard')
 const check = (parts: PartInstance[], id: string) => runAllChecks(parts).find(item => item.id === id)!
 
-describe('export checks report evidence, not physical flight approval', () => {
+describe('export checks describe current design data', () => {
+  it('keeps existing check levels while using short titles and specific actions', () => {
+    const results = runAllChecks([hub])
+    expect(results.map(({ id, level }) => [id, level])).toEqual([
+      ['mainboard', 'pass'], ['armCount', 'warning'], ['armSameType', 'warning'],
+      ['armSymmetry', 'warning'], ['motorCount', 'warning'], ['connectorPairs', 'pass'],
+      ['landingGear', 'warning'], ['guard', 'warning'], ['guardSameType', 'warning'],
+      ['guardSymmetry', 'warning'], ['weightBalance', 'warning'], ['totalWeight', 'warning'],
+    ])
+    expect(check([hub], 'mainboard').title).toBe('主板 1 个')
+    expect(check([], 'mainboard').fixHint).toBe('返回第 1 步选择主板')
+    expect(check([hub], 'weightBalance').title).toBe('暂无重心数据')
+    expect(JSON.stringify(results)).not.toMatch(/未验证|不代表|不证明|不从数量推断|实物|实测重量|飞行稳定性/)
+  })
+
   it('reports three landing records without inventing a flight or hardware threshold', () => {
     const parts = [hub, ...[1, 2, 3].map(n => part(`landing-${n}`, 'arm_01', 'landing', 'hub'))]
     expect(check(parts, 'armCount').title).toContain('3')
@@ -52,7 +66,7 @@ describe('export checks report evidence, not physical flight approval', () => {
   it('does not equate mean coordinates with the aircraft center of gravity', () => {
     for (const parts of [[], [hub], [hub, part('arm', 'arm_01', 'landing', 'hub')]]) {
       expect(check(parts, 'weightBalance').level).toBe('warning')
-      expect(check(parts, 'weightBalance').title).toContain('未验证')
+      expect(check(parts, 'weightBalance').title).toBe('暂无重心数据')
       expect(check(parts, 'weightBalance').title).not.toContain('合理')
     }
   })
@@ -67,7 +81,8 @@ describe('export checks report evidence, not physical flight approval', () => {
     const valid = check([hub, part('arm', 'arm_01', 'landing', 'hub')], 'connectorPairs')
     expect(valid.level).toBe('pass')
     expect(valid.title).not.toContain('所有连接点都已配对')
-    expect(valid.detail).toContain('未验证')
+    expect(valid.title).toBe('零件连接可追溯到主板')
+    expect(valid.detail).toBeUndefined()
   })
 
   it('does not mark absent parts or incomparable symmetry as verified', () => {

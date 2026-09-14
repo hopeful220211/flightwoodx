@@ -1,9 +1,45 @@
 import { describe, expect, it } from 'vitest'
 import type { SketchShape } from '../sketch/model'
 import { resizeShape, resolveSelectionHandle, type ResizeHandle } from './resizeShape'
+import * as resizeMath from './resizeShape'
 
 const shape: SketchShape = { id: 'part', kind: 'rectangle', operation: 'add', x: 20, y: 30, width: 40, height: 20, radius: 8 }
 const plain = { snap: false, lockAspect: false }
+const slot: SketchShape = { ...shape, operation: 'cut', width: 20, height: 2, radius: 0, joint: { kind: 'edge-slot', axis: 'x', entry: 'start' } }
+
+describe('nominal 2 mm joint slot resize', () => {
+  it('only exposes the two long-axis ends and resolves only those targets', () => {
+    expect(resizeMath).toHaveProperty('getResizeHandles')
+    expect(resizeMath.getResizeHandles(slot).map(handle => handle.id)).toEqual(['e', 'w'])
+    expect(resizeMath.getResizeHandles({ ...slot, width: 2, height: 20, joint: { kind: 'through-slot', axis: 'y', entry: 'front' } }).map(handle => handle.id)).toEqual(['n', 's'])
+    expect(resizeMath.getResizeHandles(shape)).toHaveLength(8)
+    expect(resolveSelectionHandle(slot, [slot.x, slot.y])).toBe('w')
+    expect(resolveSelectionHandle(slot, [slot.x + slot.width, slot.y])).toBe('e')
+    expect(resolveSelectionHandle(slot, [slot.x + slot.width / 2, slot.y + 1])).toBe('move')
+  })
+
+  it('ignores Shift ratio lock and cross-axis motion without changing the 2 mm width', () => {
+    expect(resizeShape(slot, 'e', [10, 100], { ...plain, lockAspect: true })).toMatchObject({ x: 20, y: 30, width: 30, height: 2, radius: 0, joint: slot.joint })
+    const vertical: SketchShape = { ...slot, width: 2, height: 20, joint: { kind: 'through-slot', axis: 'y', entry: 'back' } }
+    expect(resizeShape(vertical, 'n', [100, -10], { ...plain, lockAspect: true })).toMatchObject({ x: 20, y: 20, width: 2, height: 30 })
+  })
+
+  it('snaps the long edge, preserves its opposite end, and limits length without flipping', () => {
+    const fractional = { ...slot, x: 20.25, width: 20.5 }
+    expect(resizeShape(fractional, 'e', [2.4, 99], { snap: true, lockAspect: true })).toMatchObject({ x: 20.25, y: 30, width: 22.75, height: 2 })
+    expect(resizeShape(slot, 'w', [100, 0], plain)).toMatchObject({ x: 38, width: 2, height: 2 })
+    expect(resizeShape(slot, 'e', [9000, 0], plain)).toMatchObject({ x: 20, width: 2000, height: 2 })
+  })
+
+  it('rejects other handles or invalid joint shapes instead of silently repairing them', () => {
+    for (const handle of ['nw', 'n', 'ne', 'se', 's', 'sw'] as const) expect(resizeShape(slot, handle, [1, 1], plain)).toBeNull()
+    for (const patch of [{ kind: 'ellipse' as const }, { operation: 'add' as const }, { radius: 0.5 }, { height: 3 }, { width: 1 }, { width: NaN }]) {
+      expect(resizeShape({ ...slot, ...patch }, 'e', [1, 0], plain)).toBeNull()
+    }
+    expect(resizeShape({ ...slot, joint: { kind: 'through-slot', axis: 'x', entry: 'start' } }, 'e', [1, 0], plain)).toBeNull()
+    expect(resizeShape(slot, 'e', [NaN, 0], plain)).toBeNull()
+  })
+})
 
 describe('millimetre resize math', () => {
   it('resolves overlapping small-shape targets by nearest anchor and reserves the centre for moving', () => {

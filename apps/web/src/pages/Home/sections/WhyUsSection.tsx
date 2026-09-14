@@ -18,7 +18,7 @@ const cards = [
     img: '/optimized/picture/learning_kids/EX4A6264 1.webp',
     title: '飞行测试',
     subtitle: '编排动作，模拟运行',
-    desc: '用图形化积木编排飞行动作，在模拟环境中查看运行过程并调整程序。模拟结果不代表实机飞行表现。',
+    desc: '用图形化积木编排飞行动作，在模拟环境中查看运行过程并调整程序。',
   },
 ]
 

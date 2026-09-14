@@ -83,8 +83,13 @@ describe('buildExportFiles', () => {
     expect(result.pending2D).toEqual([custom.partId])
     const manifest = JSON.parse(result.files.find(file => file.path === 'manifest.json')!.content)
     expect(manifest.parts[0]).toMatchObject({ source, has2D: false, placement: 'unconnected' })
-    expect(result.files.find(file => file.path === 'BOM.csv')!.content).toContain('未核实')
+    expect(result.files.find(file => file.path === 'BOM.csv')!.content).toContain('暂无数据')
     expect(result.files.find(file => file.path === 'assembly.md')!.content).toContain('未连接')
+    const readme = result.files.find(file => file.path === 'README.txt')!.content
+    expect(readme).toContain('design.json')
+    expect(readme).toContain('自制零件的来源版本及摆放位置已保留')
+    expect(readme).not.toMatch(/制造图与重量尚未核实|不得据此|另行验证|parts\//)
+    expect(result.files.find(file => file.path === 'assembly.md')!.content).toContain('来源和版本见 manifest.json，摆放位置见 design.json。')
     const nextSource = { ...source, updatedAt: '2026-09-07T00:00:01.000Z' }
     const mixed = buildExportFiles({ ...design([custom, { ...custom, instanceId: 'new-revision', source: nextSource }]), buildMode: 'free' })
     const variants = JSON.parse(mixed.files.find(file => file.path === 'manifest.json')!.content).parts
@@ -115,8 +120,21 @@ describe('buildExportFiles', () => {
 
   it('states missing drawing limits without promising automatic future completion', () => {
     const readme = result.files.find(file => file.path === 'README.txt')!.content
-    expect(readme).toContain('这些零件缺少可用的二维轮廓，本次无法导出对应切割图；加工前需另行准备并验证图纸。')
-    expect(readme).not.toMatch(/正在补齐|补齐后重新导出即会自动/)
+    expect(readme).toContain('已生成切割图：1 种零件')
+    expect(readme).toContain('未包含切割图的零件（1 种）：')
+    expect(readme).toContain('  - core_hub_01')
+    expect(readme).toContain('原因：缺少可导出的二维轮廓。')
+    expect(readme).toContain('parts/')
+    expect(readme).not.toMatch(/正在补齐|补齐后重新导出即会自动|另行|验证|加工保证|design.json/)
+  })
+
+  it('lists only files actually included when no drawing is available', () => {
+    const { files, generatedParts } = buildExportFiles(design([inst('core_hub_01', 'mainboard')]), undefined, FIXED_NOW)
+    expect(generatedParts).toEqual([])
+    const readme = files.find(file => file.path === 'README.txt')!.content
+    expect(readme).toContain('已生成切割图：0 种零件')
+    expect(readme).not.toContain('parts/')
+    expect(files.find(file => file.path === 'assembly.md')!.content).not.toContain('parts/')
   })
 
   it('zip 结构齐全：BOM/装配说明/manifest/README 都在', () => {
@@ -142,21 +160,27 @@ describe('buildExportFiles', () => {
     expect(sq.bboxMm.h).toBeCloseTo(20, 1)
   })
 
-  it('BOM.csv 列出零件数量、并明确电子件不在已确认范围', () => {
+  it('BOM.csv states its actual design scope and labels catalogue weight estimates', () => {
     const bom = result.files.find((f) => f.path === 'BOM.csv')!.content
     expect(bom).toContain('零件号')
     expect(bom).toContain('数量')
     // core_hub_01 出现 2 件
     expect(bom).toMatch(/core_hub_01|主板/)
-    expect(bom).toContain('当前清单只包含设计中可确认的结构件')
-    expect(bom).toContain('电机、电调、螺旋桨和电池')
-    expect(bom).toContain('另行核对')
+    expect(bom).toContain('目录估算单重(g)')
+    expect(bom).toContain('目录估算小计(g)')
+    expect(bom).toContain('清单包含当前设计中的零件与数量，重量按零件目录估算。')
+    expect(bom).not.toMatch(/只包含.*结构件|另行核对|已确认范围/)
+    const motorBom = buildExportFiles(design([inst('motor-record', 'MOTOR')])).files.find(file => file.path === 'BOM.csv')!.content
+    expect(motorBom).toContain('motor-record')
+    expect(motorBom).toContain('电子件')
   })
 
   it('装配说明按 5 步生成', () => {
     const md = result.files.find((f) => f.path === 'assembly.md')!.content
     expect(md).toContain('第 1 步 · 主板')
     expect(md).toContain('第 5 步 · 结构检查')
+    expect(md).toContain('对照 BOM.csv 检查零件数量与型号。')
+    expect(md).not.toMatch(/不能作为|不含经过确认|4-8 个|1\/2\/4 个/)
   })
 
   it('确定性：同输入两次生成的 DXF 与 manifest 一致', () => {

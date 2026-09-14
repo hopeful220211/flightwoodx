@@ -32,6 +32,24 @@ describe('官方零件注册表', () => {
 })
 
 describe('用户零件契约', () => {
+  it('保留可选槽设计标注，旧零件不生成标注或连接', () => {
+    const guide = { id: 'slot-1', kind: 'through-slot', x: 5, y: 5, lengthMm: 10, axis: 'x', entry: 'front' }
+    expect(UserPartDefSchema.parse(validUserPart)).not.toHaveProperty('jointGuides')
+    const parsed = UserPartDefSchema.parse({ ...validUserPart, jointGuides: [guide] })
+    expect(parsed).toHaveProperty('jointGuides', [guide])
+    expect(parsed.sockets).toEqual([])
+  })
+
+  it('拒绝无效槽标注、重复id、额外宽度及超量标注', () => {
+    const guide = { id: 'slot-1', kind: 'edge-slot', x: 0, y: 5, lengthMm: 10, axis: 'x', entry: 'start' }
+    for (const patch of [{ id: '' }, { id: 'x'.repeat(81) }, { id: '../slot' }, { lengthMm: 1.99 }, { lengthMm: 2001 }, { x: NaN }, { y: Infinity }, { x: 2001 }, { kind: 'hole' }, { axis: 'z' }, { entry: 'front' }, { widthMm: 3 }, { connected: true }]) {
+      expect(UserPartDefSchema.safeParse({ ...validUserPart, jointGuides: [{ ...guide, ...patch }] }).success).toBe(false)
+    }
+    expect(UserPartDefSchema.safeParse({ ...validUserPart, jointGuides: [{ ...guide, kind: 'through-slot', entry: 'end' }] }).success).toBe(false)
+    expect(UserPartDefSchema.safeParse({ ...validUserPart, jointGuides: [guide, guide] }).success).toBe(false)
+    expect(UserPartDefSchema.safeParse({ ...validUserPart, jointGuides: Array.from({ length: 33 }, (_, i) => ({ ...guide, id: `s-${i}` })) }).success).toBe(false)
+  })
+
   it('接受主板与原有四类结构件，全部固定为 2mm 且不生成卡扣', () => {
     expect(UserPartCategoryEnum.options).toEqual(['mainboard', 'guard', 'joint', 'deco', 'landing'])
     for (const category of ['mainboard', 'guard', 'joint', 'deco', 'landing']) {

@@ -12,7 +12,7 @@ const STEP_HELP: Record<BuildStep, string> = {
   ARM: '本步骤安装起落架。选择零件后，检查其与主板的连接位置。',
   GUARD: '保护板有不同形状和连接方式。选择零件后，查看它与已装部件的位置关系。',
   DECO: '可添加装饰件或衔接件，并检查连接位置。本步骤可以跳过。',
-  REVIEW: '核对已装零件、连接与位置对称性。检查结果不代表实物结构安全或真实飞行表现。',
+  REVIEW: '核对零件、连接与左右位置，需要修改时返回对应步骤。',
 }
 
 export function StepGuide({ currentStep, canAdvance, advanceReason }: StepGuideProps) {

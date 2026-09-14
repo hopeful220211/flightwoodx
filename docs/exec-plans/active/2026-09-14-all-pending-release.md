@@ -32,6 +32,18 @@
 
 ## 结果
 
+### 2026-09-14 接续全部更新发布
+
+- 用户再次明确要求全部更新上线。目标仍为同一任务工作树 `flightwoodx-review`，开发分支 `codex/home-hero-honors-2026-09-13`，开始 HEAD 为 `ea1f8ca`；包含其后85项修改和23个新增文件，不仅发布旧候选。
+- 当日公网 `release.json` 与远端 `production` 均为 `e9f32aac00340eca4834586d1acc382613a7eb61`，健康接口返回 `OK / connected`。GitHub认证有效；前一候选 `ea1f8ca` 的远端8项CI已确认全部通过，但不替代新候选检查。
+- 当前源码已完成748项本地自动测试和72项真实Chrome浏览器测试，原始日志分别为 `/tmp/fwx-concise-copy-ci.log` 与 `/tmp/fwx-concise-all-browser.log`。独立只读复核确认全部目标功能及资产在树中，源媒体与构建副本摘要一致。此次提交需包含新增 `packages/geometry/tsup.config.ts` 与全部新组件/测试。
+- 后端审查确认：新 `mainboard` 与 `jointGuides` 必须先由API支持；无必需数据迁移、环境或索引修改。正式旧 `customparts` 仍须按候选几何规则只读核对。API仅替换自身，保留Mongo、上传卷、JWT、网络和当前nginx挂载；然后沿用原前端发布器，无需放宽权限。
+- 原阿里云控制台已登录，已通过现有ECS页面进入Workbench，使用原先已启用的免密连接；未新建或扩大权限。当前仍在发布准备，尚未切换正式服务。
+
+### 新增待发布修改
+
+在`ea1f8ca`推送后，用户继续要求修复板外孔槽清空预览并重排绘制布局。新增本地改动见[绘制空间记录](../completed/2026-09-14-part-studio-workspace.md)，已通过完整CI653项与真实Chrome全站56项测试。因此下面`ea1f8ca`及其远端CI仅代表前一候选，不能直接作为本轮最新发布结果。后续应以包含新增修改的确切提交发布；合法后端管理会话要求不变。
+
 本次重新运行完整 `FWX_TEST_MONGO_URI=mongodb://127.0.0.1:27028 pnpm run ci` 成功：634项测试、API无跳过，类型、lint、harness、密钥扫描、安全审计和构建通过；日志 `/tmp/fwx-all-release-ci.log`。入口仍为 `index-DDUCIilk.js`。真实Chrome、隔离本地API/Mongo上的全套浏览器回归49/49通过（3.1分钟），包括390×844、768×1024、1440×900与触控操作；日志 `/tmp/fwx-all-release-browser.log`。补充文档后harness及diff检查再次通过。
 
-尚未提交或部署。前后端均需要此次发布；没有数据库迁移、新索引或新环境变量。后续记录以真实远端结果补充。
+已将全部139项文件改动提交为 `ea1f8ca6ec72e79548c861bffa362bc7a25e4d93`，推送原开发分支；[确切提交的远端CI](https://github.com/hopeful220211/flightwoodx/actions/runs/34777408713)已排队，尚未得到结果。未推进`production`、未部署。前后端均需要此次发布；没有数据库迁移、新索引或新环境变量。等待用户登录阿里云以取得合法后台更新会话，后续必须先核验存量自制件和备份，不能只推静态站。

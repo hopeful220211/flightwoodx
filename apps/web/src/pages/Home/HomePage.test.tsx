@@ -27,7 +27,7 @@ it('describes design, wooden assembly and flight testing without promising real-
     },
     {
       title: '飞行测试', subtitle: '编排动作，模拟运行',
-      description: '用图形化积木编排飞行动作，在模拟环境中查看运行过程并调整程序。模拟结果不代表实机飞行表现。',
+      description: '用图形化积木编排飞行动作，在模拟环境中查看运行过程并调整程序。',
     },
   ])
   expect(Array.from(container.querySelectorAll('img'), image => image.getAttribute('src'))).toEqual([
@@ -35,7 +35,7 @@ it('describes design, wooden assembly and flight testing without promising real-
     '/optimized/picture/learning_kids/EX4A6148.webp',
     '/optimized/picture/learning_kids/EX4A6264 1.webp',
   ])
-  expect(container.textContent).not.toMatch(/不是模拟器|真会飞|设计完就能试飞|官方配齐|不用一根钉子/)
+  expect(container.textContent).not.toMatch(/不是模拟器|真会飞|设计完就能试飞|官方配齐|不用一根钉子|不代表|需要验证|尚未验证/)
 })
 
 it('uses the requested hero title and introduction without changing the capability line', () => {

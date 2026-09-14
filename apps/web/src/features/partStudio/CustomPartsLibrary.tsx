@@ -23,7 +23,7 @@ export function CustomPartsLibrary() {
   })
   return <div className="space-y-3 text-xs">
     <Link to="/part-studio" className="block rounded border border-sky-200 p-2 text-center text-sky-700">绘制零件</Link>
-    <p className="text-amber-800">自制零件仅自由摆放，未连接，未验证制造与飞行。</p>
+    <p className="text-slate-600">选择零件，放入自由拼装。</p>
     {!token ? <p>登录原账号后可读取我的零件。</p> : query.isError ? <p role="alert">零件列表读取失败。<button className="underline" onClick={() => void query.refetch()}>重试</button></p> : query.isPending ? <p role="status">正在读取零件…</p> : <>
       {query.data.items.length === 0 && <p>暂无自制零件，先在工坊画一个并保存。</p>}
       {query.data.items.map(part => <button type="button" key={part.id} className="flex w-full items-center gap-2 rounded border p-2 text-left hover:bg-sky-50" onClick={() => setTarget(part)} aria-label={`放入自由拼装：${part.name}`}>

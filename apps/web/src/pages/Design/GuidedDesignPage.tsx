@@ -16,6 +16,7 @@ import { checkBeforeAdd, checkDualMainboard } from '../../utils/realtimeChecks'
 import type { Violation } from '../../utils/realtimeChecks'
 import { ReviewStep } from './components/steps/ReviewStep'
 import { flightReadiness } from '../../utils/flightReadiness'
+import { getAssemblyIssue } from './assemblyFeedback'
 import type { Part, PartInstance } from '../../types/design'
 
 export function GuidedDesignPage() {
@@ -154,10 +155,11 @@ export function GuidedDesignPage() {
     const r = flightReadiness(activeDesign.parts)
     if (r.canTakeoff) {
       setPassedSnapshot(activeDesign.parts)
-      toast.push('success', '已通过全部已验证条件')
+      toast.push('success', '检查通过')
     } else {
       setPassedSnapshot(null)
-      toast.push('error', r.primaryFix ?? '检查条件未满足，请查看检查结果')
+      const issue = getAssemblyIssue(r)
+      toast.push(issue ? 'error' : 'info', issue?.message ?? '装配检查完成')
     }
   }, [activeDesign, toast])
 

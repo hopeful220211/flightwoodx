@@ -11,20 +11,21 @@ interface MyPartsStripProps {
   parts: UserPartDTO[]
   onDelete: (id: string) => void
   onUse: (part: UserPartDTO) => void
+  onInspect?: (part: UserPartDTO) => void
 }
 
-export function MyPartsStrip({ parts, onDelete, onUse }: MyPartsStripProps) {
+export function MyPartsStrip({ parts, onDelete, onUse, onInspect }: MyPartsStripProps) {
   return (
     <section className="shrink-0 border-t border-[#E2ECF7] bg-white px-5 py-3">
       <h2 className="mb-2 text-sm font-semibold text-slate-700">
         我的零件 <span className="font-normal text-slate-400">（{parts.length}）</span>
       </h2>
       {parts.length === 0 ? (
-        <p className="text-xs text-slate-400">登录后保存的零件会列在这里。先绘制闭合轮廓，输入名称并保存。</p>
+        <p className="text-xs text-slate-400">登录后保存的零件会显示在这里。</p>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-1">
           {parts.map((p) => (
-            <PartChip key={p.id} part={p} onDelete={onDelete} onUse={onUse} />
+            <PartChip key={p.id} part={p} onDelete={onDelete} onUse={onUse} onInspect={onInspect} />
           ))}
         </div>
       )}
@@ -32,7 +33,7 @@ export function MyPartsStrip({ parts, onDelete, onUse }: MyPartsStripProps) {
   )
 }
 
-function PartChip({ part, onDelete, onUse }: { part: UserPartDTO; onDelete: (id: string) => void; onUse: (part: UserPartDTO) => void }) {
+function PartChip({ part, onDelete, onUse, onInspect }: { part: UserPartDTO; onDelete: (id: string) => void; onUse: (part: UserPartDTO) => void; onInspect?: (part: UserPartDTO) => void }) {
   const { contour, holes, bboxMm } = part.geometry
   const w = bboxMm?.w || 1
   const h = bboxMm?.h || 1
@@ -58,6 +59,7 @@ function PartChip({ part, onDelete, onUse }: { part: UserPartDTO; onDelete: (id:
         {USER_PART_CATEGORY_LABELS[part.category]}
       </p>
       <button type="button" onClick={() => onUse(part)} className="mt-2 w-full rounded bg-sky-100 px-1 py-2 text-xs text-sky-800" aria-label={`放入自由拼装：${part.name}`}>放入自由拼装</button>
+      {!!part.jointGuides?.length && onInspect && <button type="button" onClick={() => onInspect(part)} className="mt-1 min-h-10 w-full rounded text-xs text-red-700 hover:bg-red-50" aria-label={`查看插槽：${part.name}`}>查看插槽（{part.jointGuides.length}）</button>}
       <button
         type="button"
         onClick={() => onDelete(part.id)}

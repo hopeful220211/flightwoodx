@@ -204,12 +204,11 @@ function SimulatorWorkspace({ designId: id }: { designId?: string }) {
         <div className="w-px" aria-hidden="true" />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sky-100 bg-sky-50/70 px-4 py-2 text-xs text-ink-600">
-        <span>视觉仿真 · 用于检查指令流程，不代表真实飞行结果{!design?.parts.length && ' · 未选择零件，显示指令预览模型'}</span>
+        <span>视觉仿真 · {design?.parts.length ? '查看程序运行过程' : '指令预览模型'}</span>
         <Link className="font-medium text-sky-700 underline" to={id ? `/code/${id}` : '/design'}>返回积木编程</Link>
       </div>
 
       {/* 3D Scene */}
-      {design?.parts.some(part => part.source) && <p className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900">自制零件仅自由摆放，未连接；此处只检查程序指令，不验证自制件的制造、结构或飞行。</p>}
       <div className="relative min-h-0 flex-1">
         <FlightScene telemetry={telemetry} obstacles={DEFAULT_OBSTACLES} trail={trail} ledColor={ledColor} parts={design?.parts} />
         {(loading || loadError || !draft?.commandProgram?.commands.length) && !running && (

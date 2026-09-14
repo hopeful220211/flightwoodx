@@ -49,6 +49,11 @@ function expectLabelsAndHoles() {
   }
 }
 
+it('uses one short sentence for the saved-parts empty state', async () => {
+  await act(async () => root.render(<MyPartsStrip parts={[]} onUse={vi.fn()} onDelete={vi.fn()} />))
+  expect(container.querySelector('p')?.textContent).toBe('登录后保存的零件会显示在这里。')
+})
+
 it('my parts displays all five structural labels and cutout thumbnails without changing use or delete actions', async () => {
   const onUse = vi.fn(), onDelete = vi.fn()
   await act(async () => root.render(<MyPartsStrip parts={parts} onUse={onUse} onDelete={onDelete} />))
@@ -62,6 +67,8 @@ it('my parts displays all five structural labels and cutout thumbnails without c
 it('assembly library shows the same labels and holes and opens placement for a custom mainboard', async () => {
   await act(async () => root.render(<MemoryRouter><CustomPartsLibrary /></MemoryRouter>))
   expectLabelsAndHoles()
+  expect(container.textContent).toContain('选择零件，放入自由拼装。')
+  expect(container.textContent).not.toMatch(/未验证|不代表|仅自由摆放|尚未连接/)
   await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="放入自由拼装：测试零件0"]')!.click())
   expect(container.querySelector('[role="dialog"]')?.textContent).toBe(parts[0].name)
 })
