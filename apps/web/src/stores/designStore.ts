@@ -7,6 +7,7 @@ import { canAdvanceStep, getNextStep, getPrevStep, STEP_CATEGORIES, BUILD_STEPS,
 import { STORAGE_KEYS } from '../constants/storageKeys'
 import { partsData } from '../data/parts'
 import { checkBeforeAdd } from '../utils/realtimeChecks'
+import { trackEvent } from '../features/analytics/client'
 
 // RFC-022 兼容：搭建步骤由 6 步删成 5 步（移除 MOTOR）。删步之前存下的设计——无论来自
 // localStorage 还是后端快照——可能带着 currentStep='MOTOR' 或越界的 stepReached；原样读回会让
@@ -79,7 +80,7 @@ interface DesignState {
   /** 已删除作品的 id「墓碑」：同步回填时永远跳过，杜绝删了又被服务器拉回来复活 */
   deletedIds: string[]
   getDesignById: (id: string) => Design | undefined
-  createDesign: (name: string, mode?: 'guided' | 'free') => string
+  createDesign: (name: string, mode?: 'guided' | 'free', origin?: 'explicit' | 'automatic') => string
   deleteDesign: (id: string) => void
   setActiveDesignId: (id: string | null) => void
   getActiveDesign: () => Design | undefined
@@ -122,7 +123,7 @@ export const useDesignStore = create<DesignState>()(
       highlightedSocket: null,
       draggingPartId: null,
       getDesignById: (id) => get().designs.find((d) => d.id === id),
-      createDesign: (name, mode = 'guided') => {
+      createDesign: (name, mode = 'guided', origin = 'explicit') => {
         const newId = `design-${crypto.randomUUID()}`
         const newDesign: Design = {
           schemaVersion: 1,
@@ -135,6 +136,7 @@ export const useDesignStore = create<DesignState>()(
           parts: [],
         }
         set((state) => ({ designs: [...state.designs, newDesign] }))
+        trackEvent('design_created', { designId: newId, origin, mode })
         return newId
       },
       deleteDesign: (id) => {
@@ -181,6 +183,8 @@ export const useDesignStore = create<DesignState>()(
         const parsed = DroneDesignSnapshotSchema.safeParse({ ...design, parts: [...design.parts, newInstance], updatedAt: new Date().toISOString() })
         if (!parsed.success) return false
         set(state => ({ designs: state.designs.map(d => d.id === design.id ? parsed.data : d) }))
+        trackEvent('assembly_part_added', { designId: design.id, source: part.source?.kind === 'custom' ? 'custom' : 'official', mode: design.buildMode })
+        trackEvent('design_edit_started', { designId: design.id, area: 'assembly' }, { onceKey: `edit:assembly:${design.id}` })
         return true
       },
       removePartFromActiveDesign: (instanceId) => {
@@ -201,6 +205,8 @@ export const useDesignStore = create<DesignState>()(
         })
       },
       updatePartInActiveDesign: (instanceId, updates) => {
+        const before = get().getActiveDesign()
+        const previousPart = before?.parts.find(part => part.instanceId === instanceId)
         set((state) => {
           const activeId = state.activeDesignId
           if (!activeId) return state
@@ -216,6 +222,9 @@ export const useDesignStore = create<DesignState>()(
             ),
           }
         })
+        if (before && previousPart && Object.entries(updates).some(([key, value]) => JSON.stringify(previousPart[key as keyof PartInstance]) !== JSON.stringify(value))) {
+          trackEvent('design_edit_started', { designId: before.id, area: 'assembly' }, { onceKey: `edit:assembly:${before.id}` })
+        }
       },
       // --- Guided build flow ---
       advanceStep: () => {
@@ -244,6 +253,7 @@ export const useDesignStore = create<DesignState>()(
               : d
           ),
         }))
+        trackEvent('assembly_step_completed', { designId: design.id, step: BUILD_STEPS.indexOf(design.currentStep) }, { onceKey: `step:${design.id}:${design.currentStep}` })
         return true
       },
 

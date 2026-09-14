@@ -1,5 +1,6 @@
 import type { CommandProgram } from '@fwx/shared'
 import { createProgram, getDroneDesigns, getProgram, updateDroneDesign, updateProgram } from './api'
+import { trackEvent } from '../features/analytics/client'
 
 /** Resolve the binding every time; a browser's cached Program id is not the design's authority. */
 export async function loadDesignProgram(designId: string) {
@@ -43,5 +44,6 @@ export async function saveDesignProgram(input: {
   const binding = await updateDroneDesign(design.id, { programId: saved.data.id })
   assertSession()
   if (!binding.success) throw new Error(binding.error || '程序与作品绑定失败')
+  trackEvent('program_bound', { designId: input.designId, programId: saved.data.id, destination: 'account' })
   return saved.data
 }

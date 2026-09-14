@@ -5,6 +5,7 @@ import { clearDesignStore } from './designStore'
 import { clearProgramStore } from './programStore'
 import { useProfileStore } from './profileStore'
 import { createGuestSession, getGuestSession, clearGuestSession } from '../utils/guestSession'
+import { resetAnalyticsIdentity, trackEvent } from '../features/analytics/client'
 
 export interface User {
   id: string
@@ -41,6 +42,11 @@ function accountUser(u: UserResponse): User {
 // A sign-out or newer sign-in invalidates every earlier authentication request.
 let sessionRequestVersion = 0
 
+function trackAuthFailure(status?: number) {
+  const reason = status === undefined ? 'network' : status === 401 || status === 403 ? 'unauthorized' : status >= 500 ? 'server' : status >= 400 ? 'validation' : 'unknown'
+  trackEvent('operation_failed', { operation: 'auth', reason })
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -60,11 +66,13 @@ export const useAuthStore = create<AuthState>()(
         }
 
         const requestVersion = ++sessionRequestVersion
+        trackEvent('auth_started', { method: 'register' })
         const result = await apiRegister({ username, email, password })
         if (requestVersion !== sessionRequestVersion) return { success: false, message: '登录状态已变化，请重试' }
 
         if (result.success && result.data) {
           const user = accountUser(result.data.user)
+          if (get().user?.id !== user.id) resetAnalyticsIdentity({ flushPending: true })
           if (get().user?.id !== user.id) useProfileStore.getState().clear()
           if (get().user && !get().user?.isGuest && get().user?.id !== user.id) {
             clearDesignStore()
@@ -74,6 +82,7 @@ export const useAuthStore = create<AuthState>()(
           set({ user, token: result.data.token, isAuthenticated: true })
           return { success: true, message: '注册成功' }
         } else {
+          trackAuthFailure(result.status)
           return { success: false, message: result.error || '注册失败' }
         }
       },
@@ -84,11 +93,13 @@ export const useAuthStore = create<AuthState>()(
         }
 
         const requestVersion = ++sessionRequestVersion
+        trackEvent('auth_started', { method: 'login' })
         const result = await apiLogin({ email, password })
         if (requestVersion !== sessionRequestVersion) return { success: false, message: '登录状态已变化，请重试' }
 
         if (result.success && result.data) {
           const user = accountUser(result.data.user)
+          if (get().user?.id !== user.id) resetAnalyticsIdentity({ flushPending: true })
           if (get().user?.id !== user.id) useProfileStore.getState().clear()
           if (get().user && !get().user?.isGuest && get().user?.id !== user.id) {
             clearDesignStore()
@@ -98,12 +109,14 @@ export const useAuthStore = create<AuthState>()(
           set({ user, token: result.data.token, isAuthenticated: true })
           return { success: true, message: '登录成功' }
         } else {
+          trackAuthFailure(result.status)
           return { success: false, message: result.error || '登录失败' }
         }
       },
 
       logout: () => {
         sessionRequestVersion += 1
+        resetAnalyticsIdentity()
         clearGuestSession()
         useProfileStore.getState().clear()
         sessionStorage.removeItem('adminAccessKey')
@@ -116,6 +129,7 @@ export const useAuthStore = create<AuthState>()(
 
       enterGuestMode: () => {
         sessionRequestVersion += 1
+        resetAnalyticsIdentity()
         useProfileStore.getState().clear()
         if (get().user && !get().user?.isGuest) {
           clearDesignStore()
@@ -133,6 +147,7 @@ export const useAuthStore = create<AuthState>()(
 
       exitGuestMode: () => {
         sessionRequestVersion += 1
+        resetAnalyticsIdentity()
         clearGuestSession()
         useProfileStore.getState().clear()
         set({ user: null, token: null, isAuthenticated: false })
@@ -148,9 +163,11 @@ export const useAuthStore = create<AuthState>()(
           // A late restore must not overwrite a more recent sign-in or sign-out.
           if (get().token !== state.token || requestVersion !== sessionRequestVersion) return
           if (result.success && result.data) {
+            if (get().user?.id !== result.data.id) resetAnalyticsIdentity()
             set({ user: accountUser(result.data), isAuthenticated: true })
           } else if (result.status === 401 || result.status === 403) {
             // Preserve the draft and account identity until reauthentication.
+            resetAnalyticsIdentity()
             set({ token: null, isAuthenticated: false })
           }
           return
@@ -160,6 +177,7 @@ export const useAuthStore = create<AuthState>()(
         // Try restoring guest session
         const guestSession = getGuestSession()
         if (guestSession) {
+          if (state.user && !state.user.isGuest) resetAnalyticsIdentity()
           const guestUser: User = {
             id: guestSession.guestId,
             username: guestSession.nickname,

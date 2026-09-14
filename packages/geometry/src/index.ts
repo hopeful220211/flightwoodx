@@ -383,6 +383,36 @@ function ringContainsSequence(ring: Point2D[], sequence: Point2D[]): boolean {
   }))
 }
 
+/** Curved/diagonal board edges may meet the two straight slot sides at
+ * different depths. Match consecutive sides and the fixed bottom exactly;
+ * lengthMm spans the farther mouth endpoint to that bottom.
+ */
+function ringContainsEdgeSlot(ring: Point2D[], u: Point2D[], guide: JointGuide): boolean {
+  const axis = guide.axis === 'x' ? 0 : 1
+  const cross = axis === 0 ? 1 : 0
+  const sign = guide.entry === 'start' ? 1 : -1
+  const bottom = u[1]![axis]
+  const near = (a: number, b: number) => Math.abs(a - b) <= GUIDE_POSITION_TOLERANCE_MM
+  return ring.some((_, start) => [1, -1].some(direction => {
+    const candidate = u.map((_, index) => ring[(start + direction * index + ring.length) % ring.length]!)
+    if (!guidePointMatches(candidate[1]!, u[1]!) || !guidePointMatches(candidate[2]!, u[2]!)) return false
+    if (!near(Math.abs(candidate[1]![cross] - candidate[2]![cross]), USER_PART_THICKNESS_MM)) return false
+    if (![0, 3].every(index => near(candidate[index]![cross], u[index]![cross])
+      && near(candidate[index]![cross], candidate[index === 0 ? 1 : 2]![cross])
+      && sign * (bottom - candidate[index]![axis]) >= USER_PART_THICKNESS_MM - GUIDE_POSITION_TOLERANCE_MM)) return false
+    const mouth = sign === 1 ? Math.min(candidate[0]![axis], candidate[3]![axis]) : Math.max(candidate[0]![axis], candidate[3]![axis])
+    const lowSide = Math.min(u[1]![cross], u[2]![cross])
+    const highSide = Math.max(u[1]![cross], u[2]![cross])
+    // A bite in a side wall must not be mistaken for a shorter mouth. Any
+    // additional contour vertex in/on the slot corridor signals that damage.
+    if (ring.some(point => !candidate.includes(point)
+      && sign * (point[axis] - mouth) > GUIDE_POSITION_TOLERANCE_MM
+      && sign * (bottom - point[axis]) > GUIDE_POSITION_TOLERANCE_MM
+      && point[cross] >= lowSide - EPSILON && point[cross] <= highSide + EPSILON)) return false
+    return near(mouth, u[0]![axis]) && near(sign * (bottom - mouth), guide.lengthMm)
+  }))
+}
+
 /** Check saved design labels against actual cuts; no connector is generated.
  * Through-slots must be a whole rectangular hole. Edge-slots must preserve
  * all three U sides and have their open mouth on the declared entry side.
@@ -420,7 +450,7 @@ export function validateJointGuides(part: Part2D, guides: readonly JointGuide[])
       // sides to the other mouth corner. Winding and ring start are irrelevant.
       const start = guide.axis === 'x' ? (guide.entry === 'start' ? 0 : 2) : (guide.entry === 'start' ? 1 : 3)
       const u = Array.from({ length: 4 }, (_, index) => corners[(start + index) % 4]!)
-      if (!ringContainsSequence(contour, u) || pointStrictlyInsidePolygon([x + w / 2, y + h / 2], part.contour.points)) {
+      if (!ringContainsEdgeSlot(contour, u, guide) || pointStrictlyInsidePolygon([x + w / 2, y + h / 2], part.contour.points)) {
         return { ok: false, reason: '边缘槽必须保留完整的 2 毫米宽 U 形开口，且插入方向与开口一致' }
       }
     }

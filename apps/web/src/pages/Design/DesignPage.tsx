@@ -73,7 +73,7 @@ export function DesignPage() {
 
   useEffect(() => {
     if (!activeDesignId) {
-      const id = createDesign('我的第一架无人机', 'free')
+      const id = createDesign('我的第一架无人机', 'free', 'automatic')
       setActiveDesignId(id)
     }
   }, [activeDesignId, createDesign, setActiveDesignId])

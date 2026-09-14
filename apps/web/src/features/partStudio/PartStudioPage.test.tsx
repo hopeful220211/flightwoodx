@@ -19,12 +19,15 @@ const originalSelf = vi.hoisted(() => {
 })
 Object.defineProperty(globalThis, 'self', { configurable: true, value: originalSelf })
 const canvas = vi.hoisted(() => ({ current: null as SketchCanvasProps | null }))
+const tracked = vi.hoisted(() => vi.fn())
+vi.mock('../analytics/client', () => ({ trackEvent: tracked }))
 vi.mock('./canvas/SketchCanvas', () => ({ SketchCanvas: (props: SketchCanvasProps & { children?: ReactNode }) => { canvas.current = props; return <div>毫米画布{props.children}</div> } }))
 vi.mock('./preview3d/ExtrudePreview', () => ({ ExtrudePreview: ({ geometry }: { geometry: unknown }) => <div data-testid="extrude-preview">{JSON.stringify(geometry)}</div> }))
 const save = vi.hoisted(() => vi.fn(async (_def: UserPartDef) => ({ success: false, error: '测试网络失败' })))
 vi.mock('../../utils/api', async importOriginal => ({ ...await importOriginal<object>(), createCustomPart: save, listCustomParts: async () => ({ success: true, data: { items: [] } }) }))
 
 async function mount() {
+  tracked.mockClear()
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const container = document.createElement('div')
@@ -59,11 +62,52 @@ it('starts with canvas drawing tools and shows no add button, shape dropdown or 
   } finally { await ui.close() }
 })
 
+it('offers a distinct insertion icon and directly enters edge-slot creation without a menu', async () => {
+  const ui = await mount()
+  try {
+    const insert = ui.button('插接口')
+    expect(insert).toBeDefined()
+    expect(insert.querySelector('svg')?.innerHTML).not.toBe(ui.button('孔 / 开口').querySelector('svg')?.innerHTML)
+    await act(async () => insert.click())
+    expect(canvas.current?.tool).toBe('insert-slot')
+    expect(ui.container.querySelector('[aria-label="开孔方式"]')).toBeNull()
+    const created = await completeCanvasShape({ operation: 'cut', x: 64, y: 45, width: 2, height: 15, joint: { kind: 'edge-slot', axis: 'y', entry: 'start' } })
+    expect(canvas.current?.tool).toBe('select')
+    expect(canvas.current?.selectedId).toBe(created.id)
+  } finally { await ui.close() }
+})
+
+it('shows short hover names for every bottom tool, including disabled actions, and dismisses them after use', async () => {
+  const ui = await mount()
+  try {
+    const toolbar = ui.container.querySelector('[data-testid="sketch-toolbar"]')!
+    for (const button of toolbar.querySelectorAll('button')) {
+      const name = button.getAttribute('aria-label')!
+      await act(async () => button.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
+      const tooltip = ui.container.querySelector('[role="tooltip"]')
+      expect(tooltip?.textContent).toBe(name === '孔 / 开口' ? '矩形开孔' : name)
+      expect(button.getAttribute('title')).toBeNull()
+      expect(button.getAttribute('aria-describedby')).toBe(tooltip?.id)
+      await act(async () => button.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body })))
+      expect(ui.container.querySelector('[role="tooltip"]')).toBeNull()
+    }
+    await act(async () => ui.button('插接口').focus())
+    expect(ui.container.querySelector('[role="tooltip"]')?.textContent).toBe('插接口')
+    await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+    expect(ui.container.querySelector('[role="tooltip"]')).toBeNull()
+    await act(async () => ui.button('插接口').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
+    await act(async () => ui.button('插接口').click())
+    expect(ui.container.querySelector('[role="tooltip"]')).toBeNull()
+    expect(canvas.current?.tool).toBe('insert-slot')
+  } finally { await ui.close() }
+})
+
 it('keeps empty and unfinished previews free of instruction cards', async () => {
   const ui = await mount()
   const feedback = () => ui.container.querySelector('[aria-label="预览提示"]')
   try {
     expect(feedback()).toBeNull()
+    expect(tracked).not.toHaveBeenCalledWith('sketch_preview_state_changed', expect.anything())
     await act(async () => canvas.current!.onPendingChange(true))
     expect(feedback()).toBeNull()
     expect(ui.container.querySelector('[role="alert"]')).toBeNull()
@@ -91,10 +135,16 @@ it('explains disconnected material in the preview and recovers automatically aft
     expect(ui.button('保存').disabled).toBe(true)
     expect(canvas.current?.shapes.map(shape => shape.id)).toEqual([first.id, second.id])
     expect(ui.container.querySelector('[data-testid="extrude-preview"]')).toBeNull()
+    expect(tracked).toHaveBeenCalledWith('sketch_preview_state_changed', { state: 'blocked', reason: 'disconnected' })
+    const blockedCount = tracked.mock.calls.filter(call => call[0] === 'sketch_preview_state_changed').length
+    await act(async () => canvas.current!.onSelect(first.id))
+    expect(tracked.mock.calls.filter(call => call[0] === 'sketch_preview_state_changed')).toHaveLength(blockedCount)
     await act(async () => canvas.current!.onChange([first, { ...second, x: 50 }]))
     expect(ui.container.querySelector('[aria-label="预览提示"]')).toBeNull()
     expect(ui.button('保存').disabled).toBe(false)
     expect(ui.container.querySelector('[data-testid="extrude-preview"]')?.textContent).toContain('"w":35')
+    expect(tracked).toHaveBeenCalledWith('sketch_preview_state_changed', { state: 'recovered', reason: 'disconnected' })
+    expect(tracked).toHaveBeenCalledWith('design_edit_started', { area: 'sketch' }, { onceKey: 'edit:sketch' })
   } finally { await ui.close() }
 })
 
@@ -153,7 +203,7 @@ it('does not repeat manufacturing and flight disclaimers around the drawing work
 it('uses red for cut tools in idle and selected states while additive tools stay blue', async () => {
   const ui = await mount()
   try {
-    for (const label of ['圆孔', '孔 / 开口']) {
+    for (const label of ['圆孔', '孔 / 开口', '插接口']) {
       const cut = ui.button(label)
       expect(cut.classList.contains('text-red-600')).toBe(true)
       expect(cut.classList.contains('hover:bg-red-50')).toBe(true)
@@ -186,6 +236,9 @@ it.each([
     await act(async () => { canvas.current!.onPendingChange(false); canvas.current!.onSelect(null) })
     expect(canvas.current?.tool).toBe(tool)
     const created = await completeCanvasShape(overrides as Partial<SketchShape>)
+    const shapeKind = tool === 'freehand' ? 'freehand' : tool === 'polygon' ? 'polygon' : tool === 'ellipse' || tool === 'circle-hole' ? 'circle' : 'rect'
+    const operation = created.operation === 'cut' ? 'subtract' : 'add'
+    expect(tracked).toHaveBeenCalledWith('sketch_shape_committed', { shapeKind, operation, jointKind: 'none' }, { onceKey: `shape:${shapeKind}:${operation}:none` })
     expect(canvas.current?.tool).toBe('select')
     expect(canvas.current?.selectedId).toBe(created.id)
     expect(ui.button('选择').getAttribute('aria-pressed')).toBe('true')
@@ -248,6 +301,8 @@ it('distinguishes ordinary cuts and fixed-width slots, preserving the board for 
     expect(ui.button('保存').disabled).toBe(true)
     expect(ui.container.querySelector('[data-testid="extrude-preview"]')?.textContent).toContain('"w":60')
     expect(ui.container.textContent).toContain('插槽')
+    // This placement prevents saving its connector, but the board still previews.
+    expect(tracked).not.toHaveBeenCalledWith('sketch_preview_state_changed', expect.anything())
   } finally { await ui.close() }
 })
 

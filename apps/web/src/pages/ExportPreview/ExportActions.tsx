@@ -6,6 +6,7 @@ import { useToast } from '../../components/common/Toast'
 import { downloadExportZip } from '../../utils/exportBundle'
 import type { CheckResult } from '../../utils/exportChecks'
 import type { Design } from '../../types/design'
+import { trackEvent } from '../../features/analytics/client'
 
 interface ExportActionsProps {
   checks: CheckResult[]
@@ -27,6 +28,7 @@ export function ExportActions({ checks, design }: ExportActionsProps) {
     try {
       // 前端生成设计导出包（DXF/SVG + BOM + 装配说明 + manifest）并下载，无需服务端。
       const { generatedParts, pending2D } = await downloadExportZip(design)
+      trackEvent('export_prepared', { designId: design.id, availableCount: generatedParts.length, missingCount: pending2D.length })
       const msg =
         pending2D.length > 0
           ? `设计记录与零件清单已下载（切割图：${generatedParts.length} 种；缺少二维轮廓：${pending2D.length} 种零件）`
@@ -35,6 +37,7 @@ export function ExportActions({ checks, design }: ExportActionsProps) {
       setExported(true)
       setTimeout(() => setExported(false), 3000)
     } catch (e) {
+      trackEvent('operation_failed', { operation: 'export', reason: 'unknown' })
       toast.push('error', e instanceof Error ? e.message : '导出失败')
     } finally {
       setExporting(false)

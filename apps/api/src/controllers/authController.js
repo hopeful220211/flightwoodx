@@ -1,6 +1,7 @@
 const User = require('../models/User')
 const jwt = require('jsonwebtoken')
 const { toAuthUser, usernameError, passwordError, profileUpdates, accountWriteError } = require('../lib/authUser')
+const { recordBusinessEvent } = require('../lib/analytics')
 
 // 生成 JWT Token；tokenVersion 用于改密后撤销此前会话。
 function generateToken(user, jwtSecret) {
@@ -59,6 +60,7 @@ exports.register = async (req, res) => {
     await user.save()
 
     const token = generateToken(user, req.app.locals.config.jwtSecret)
+    recordBusinessEvent(req, 'auth_completed', { method: 'register' }, { key: `register:${user._id}`, authUserId: String(user._id), authRole: user.role, route: 'auth' })
 
     res.status(201).json({
       message: '注册成功！',
@@ -107,6 +109,7 @@ exports.login = async (req, res) => {
     await user.save()
 
     const token = generateToken(user, req.app.locals.config.jwtSecret)
+    recordBusinessEvent(req, 'auth_completed', { method: 'login' }, { authUserId: String(user._id), authRole: user.role, route: 'auth' })
 
     res.json({
       message: '登录成功！',

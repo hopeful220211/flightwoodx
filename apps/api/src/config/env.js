@@ -25,6 +25,14 @@ function createConfig(env = process.env) {
   const adminAccessKey = env.ADMIN_ACCESS_KEY || ''
   const storageDriver = env.STORAGE_DRIVER || 'disk'
   const port = parseInteger(env.PORT, 3000, 'PORT', { min: 1, max: 65535 })
+  const analyticsEnabled = env.ANALYTICS_ENABLED === 'true'
+  const analyticsSecret = env.ANALYTICS_SECRET || ''
+  if (analyticsEnabled && (Buffer.byteLength(analyticsSecret) < 32 || PLACEHOLDER_SECRET.test(analyticsSecret) || analyticsSecret === jwtSecret)) {
+    throw new Error('ANALYTICS_SECRET must be an independent non-placeholder secret of at least 32 bytes')
+  }
+  if (env.ANALYTICS_ENABLED && !['true', 'false'].includes(env.ANALYTICS_ENABLED)) throw new Error('ANALYTICS_ENABLED must be true or false')
+  const excludedAnalyticsUsers = (env.ANALYTICS_EXCLUDED_USER_IDS || '').split(',').map(id => id.trim()).filter(Boolean)
+  if (excludedAnalyticsUsers.some(id => !/^[a-f0-9]{24}$/i.test(id))) throw new Error('ANALYTICS_EXCLUDED_USER_IDS must contain MongoDB user IDs')
 
   if (nodeEnv !== 'test') {
     if (Buffer.byteLength(jwtSecret) < 32 || PLACEHOLDER_SECRET.test(jwtSecret)) {
@@ -89,6 +97,13 @@ function createConfig(env = process.env) {
     mongoUri: env.MONGODB_URI || '',
     jwtSecret,
     adminAccessKey,
+    analytics: Object.freeze({
+      enabled: analyticsEnabled,
+      secret: analyticsSecret,
+      environment: ['production', 'test'].includes(nodeEnv) ? nodeEnv : 'development',
+      retentionDays: 90,
+      excludedUserIds: Object.freeze(excludedAnalyticsUsers),
+    }),
     corsOrigins: Object.freeze(corsOrigins),
     // 安全默认是不信任代理。部署在一层反向代理后时显式设 TRUST_PROXY_HOPS=1。
     trustProxyHops: parseInteger(env.TRUST_PROXY_HOPS, 0, 'TRUST_PROXY_HOPS', { min: 0, max: 8 }),

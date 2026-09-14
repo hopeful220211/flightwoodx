@@ -1,6 +1,7 @@
 import type { CommandProgram, DroneDesign, ParametricBodyParams } from '@fwx/shared'
 import type { DroneDesignSnapshot, UserPartDef, UserPartDTO } from '@fwx/parts-schema'
 import type { PartInstance } from '../types/design'
+import { getAnalyticsHeaders } from '../features/analytics/client'
 
 // API 基础配置
 const API_URL = (
@@ -83,6 +84,7 @@ export async function apiFetch<T = unknown>(
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...(!endpoint.startsWith('/admin') && !endpoint.startsWith('/analytics') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes((options.method || 'GET').toUpperCase()) ? getAnalyticsHeaders() : {}),
     ...(options.headers as Record<string, string>),
   }
 

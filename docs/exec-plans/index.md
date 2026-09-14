@@ -10,13 +10,16 @@
 
 ## 当前计划
 
-- [`active/2026-09-14-all-pending-release.md`](./active/2026-09-14-all-pending-release.md)：此前全部未发布功能的前后端配套发布、备份与正式验收。
 - [`active/2026-09-07-review-readiness.md`](./active/2026-09-07-review-readiness.md)：评审前现有官网功能、界面与线上验证修复。
 
 进行中的计划放在 `docs/exec-plans/active/`，结束后按实际结果移入 `completed/`。目录位置不能替代文档状态和验证证据。
 
 ## 已结束记录
 
+- [`completed/2026-09-14-product-analytics.md`](./completed/2026-09-14-product-analytics.md)：第一方可选统计、成功结果、授权撤回与管理员汇总/CSV；845项自动测试和实际浏览器验收通过，未发布。
+- [`completed/2026-09-14-privacy-pages.md`](./completed/2026-09-14-privacy-pages.md)：隐私政策目录、完整说明、精简提示与身份隔离；861项自动测试、6项Chrome用例通过，未发布。
+- [`completed/2026-09-14-release-efficiency.md`](./completed/2026-09-14-release-efficiency.md)：固定发布规则和命令、同提交CI复用、并行检查及计时，827项自动测试通过；云端工作流未上传启用。
+- [`completed/2026-09-14-all-pending-release.md`](./completed/2026-09-14-all-pending-release.md)：全部已完成功能正式发布为c7b69d7；备份恢复、API11步及公网三尺寸36组验收通过。下列功能记录中的未发布为各轮当时状态，当前上线结果以本条为准。
 - [`completed/2026-09-14-concise-contextual-copy.md`](./completed/2026-09-14-concise-contextual-copy.md)：全站简短功能文案、按需错误反馈和导出结果折叠，748项自动测试及72项全站浏览器回归通过，未发布。
 - [`completed/2026-09-14-part-studio-selection.md`](./completed/2026-09-14-part-studio-selection.md)：固定绘制参数区与画布、细选框和鼠标/触控缩放，634项自动测试及49项全站浏览器回归通过，未发布。
 - [`completed/2026-09-13-part-studio-dimensioned-editor.md`](./completed/2026-09-13-part-studio-dimensioned-editor.md)：毫米规则绘图、参考范围、真实2mm板厚与共享木纹、主机身类别及保存恢复；599项自动测试和14项浏览器回归通过，未发布，实物配合未验证。

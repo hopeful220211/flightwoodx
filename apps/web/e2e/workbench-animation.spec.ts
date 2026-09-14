@@ -57,6 +57,12 @@ async function expectTimeStopped(video: Locator) {
   expect(drift, 'A paused animation must not advance in the background').toBeLessThan(0.02)
 }
 
+async function expectNoPlaybackControls(frame: Locator, video: Locator) {
+  await expect(frame.getByRole('button')).toHaveCount(0)
+  await expect(frame.getByRole('button', { name: '暂停演示动画', exact: true })).toHaveCount(0)
+  expect(await video.evaluate((element: HTMLVideoElement) => element.controls)).toBe(false)
+}
+
 async function openHomepage(page: Page) {
   await page.goto('/')
   await expect(page).toHaveTitle('FlightWoodX - 木质无人机设计平台')
@@ -70,15 +76,14 @@ async function openHomepage(page: Page) {
 
 async function revealAnimation(frame: Locator) {
   await frame.evaluate(element => element.scrollIntoView({ block: 'center', behavior: 'instant' }))
-  // Wait for the existing entry transition before Playwright scrolls a nested button.
-  // Otherwise its actionability scroll can leave the frame and change Pause to Play.
+  // Wait for the existing entry transition before measuring or interacting with the frame.
   await expect.poll(() => frame.evaluate(element => {
     const reveal = element.parentElement!.parentElement!
     const style = getComputedStyle(reveal)
     return style.opacity === '1'
       && (style.transform === 'none' || new DOMMatrixReadOnly(style.transform).isIdentity)
   })).toBe(true)
-  await expect(frame.getByRole('button')).toBeInViewport({ ratio: 1 })
+  await expect(frame).toBeInViewport({ ratio: 0.9 })
 }
 
 for (const viewport of [
@@ -86,7 +91,7 @@ for (const viewport of [
   { width: 768, height: 1024 },
   { width: 1440, height: 900 },
 ]) {
-  test(`workbench animation plays inline, pauses and loops at ${viewport.width}×${viewport.height}`, async ({ page }) => {
+  test(`workbench animation plays inline without controls and loops at ${viewport.width}×${viewport.height}`, async ({ page }) => {
     const observed = observePage(page)
     await page.setViewportSize(viewport)
     await page.emulateMedia({ reducedMotion: 'no-preference' })
@@ -102,8 +107,8 @@ for (const viewport of [
     const untransformedRatio = await frame.evaluate(element => element.clientWidth / element.clientHeight)
     expect(untransformedRatio).toBeCloseTo(1440 / 1001, 2)
     await revealAnimation(frame)
-    await expect(frame.getByRole('button', { name: '暂停演示动画', exact: true })).toBeVisible()
     await expectTimeAdvancing(video)
+    await expectNoPlaybackControls(frame, video)
     const before = (await frame.boundingBox())!
     expect(before.x).toBeGreaterThanOrEqual(0)
     expect(before.x + before.width).toBeLessThanOrEqual(viewport.width)
@@ -121,18 +126,16 @@ for (const viewport of [
     expect(await video.evaluate((element: HTMLVideoElement) => element.duration)).toBeCloseTo(11.49, 1)
     await expect(page.getByRole('dialog')).toHaveCount(0)
 
-    await frame.getByRole('button', { name: '暂停演示动画', exact: true }).click()
-    await expectTimeStopped(video)
-    const pausedAt = await video.evaluate((element: HTMLVideoElement) => element.currentTime)
-    const play = frame.getByRole('button', { name: '播放演示动画', exact: true })
-    if (viewport.width === 768) await play.press('Enter')
-    else await play.click()
-    await expectTimeAdvancing(video, pausedAt)
+    const beforeClick = await video.evaluate((element: HTMLVideoElement) => element.currentTime)
+    await video.click()
+    await expectTimeAdvancing(video, beforeClick)
+    await expectNoPlaybackControls(frame, video)
 
     // Seek near the real asset's end and observe the browser's native loop wrap.
     await video.evaluate((element: HTMLVideoElement) => { element.currentTime = element.duration - 0.15 })
     await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime), { timeout: 20_000 }).toBeLessThan(1)
     await expectTimeAdvancing(video)
+    await expectNoPlaybackControls(frame, video)
     const after = (await frame.boundingBox())!
     expect(Math.abs(before.width - after.width)).toBeLessThan(1)
     expect(Math.abs(before.height - after.height)).toBeLessThan(1)
@@ -144,15 +147,10 @@ for (const viewport of [
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
     await expect(frame).not.toBeInViewport()
     await expectTimeStopped(video)
+    const offscreenAt = await video.evaluate((element: HTMLVideoElement) => element.currentTime)
     await revealAnimation(frame)
-    await expectTimeAdvancing(video)
-    await frame.getByRole('button', { name: '暂停演示动画', exact: true }).click()
-    await expectTimeStopped(video)
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
-    await expect(frame).not.toBeInViewport()
-    await revealAnimation(frame)
-    await expectTimeStopped(video)
-    await expect(frame.getByRole('button', { name: '播放演示动画', exact: true })).toBeVisible()
+    await expectTimeAdvancing(video, offscreenAt)
+    await expectNoPlaybackControls(frame, video)
 
     const section = frame.locator('xpath=ancestor::section')
     await expect(section.getByRole('heading', { name: '设计工作台', exact: true })).toBeVisible()
@@ -175,18 +173,24 @@ test('reduced-motion preference keeps the workbench poster still until manual pl
   expect(observed.mediaRequests).toEqual([])
   await frame.getByRole('button', { name: '播放演示动画', exact: true }).press('Enter')
   await expectTimeAdvancing(video)
-  await frame.getByRole('button', { name: '暂停演示动画', exact: true }).press('Enter')
+  await expectNoPlaybackControls(frame, video)
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
   await expectTimeStopped(video)
+  const offscreenAt = await video.evaluate((element: HTMLVideoElement) => element.currentTime)
+  await revealAnimation(frame)
+  await expectTimeAdvancing(video, offscreenAt)
+  await expectNoPlaybackControls(frame, video)
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(observed.failures).toEqual([])
 })
 
-test('workbench playback follows live motion preference changes without overriding manual pause', async ({ page }) => {
+test('workbench playback follows live motion preference changes without showing pause controls', async ({ page }) => {
   const observed = observePage(page)
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   const { frame, video } = await openHomepage(page)
   await revealAnimation(frame)
   await expectTimeAdvancing(video)
+  await expectNoPlaybackControls(frame, video)
 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await expectTimeStopped(video)
@@ -194,14 +198,15 @@ test('workbench playback follows live motion preference changes without overridi
   const pausedAt = await video.evaluate((element: HTMLVideoElement) => element.currentTime)
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await expectTimeAdvancing(video, pausedAt)
+  await expectNoPlaybackControls(frame, video)
 
-  await frame.getByRole('button', { name: '暂停演示动画', exact: true }).click()
-  await expectTimeStopped(video)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await expectTimeStopped(video)
-  await page.emulateMedia({ reducedMotion: 'no-preference' })
-  await expectTimeStopped(video)
   await expect(frame.getByRole('button', { name: '播放演示动画', exact: true })).toBeVisible()
+  const pausedAgainAt = await video.evaluate((element: HTMLVideoElement) => element.currentTime)
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await expectTimeAdvancing(video, pausedAgainAt)
+  await expectNoPlaybackControls(frame, video)
   expect(observed.failures).toEqual([])
 })
 
@@ -227,6 +232,7 @@ test('failed workbench media retains a poster and can retry in place', async ({ 
   await frame.getByRole('button', { name: '重新加载演示动画', exact: true }).press('Enter')
   await expect(video).toBeVisible()
   await expectTimeAdvancing(video)
+  await expectNoPlaybackControls(frame, video)
   await expect(frame.getByRole('status')).toHaveCount(0)
   const after = (await frame.boundingBox())!
   expect(Math.abs(before.width - after.width)).toBeLessThan(1)

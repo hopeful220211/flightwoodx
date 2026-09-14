@@ -5,11 +5,14 @@ const helmet = require('helmet')
 const { createRateLimits } = require('./middleware/rateLimits')
 const { notFound, errorHandler } = require('./middleware/errorHandler')
 const { getUploadDir } = require('./lib/storage')
+const { createAnalyticsService } = require('./lib/analytics')
+const { createAnalyticsRouter } = require('./routes/analytics')
 
 function createApp(config) {
   const app = express()
   app.locals.config = config
   app.locals.rateLimits = createRateLimits(config)
+  app.locals.analytics = createAnalyticsService(config)
   app.set('trust proxy', config.trustProxyHops)
 
   app.use((req, res, next) => {
@@ -21,6 +24,8 @@ function createApp(config) {
   })
   app.use(helmet())
   app.use(cors({ origin: config.corsOrigins, credentials: true }))
+  // Independent body/rate budget: analytics cannot consume editor autosave quota.
+  app.use('/api/analytics', createAnalyticsRouter(config))
   app.use(app.locals.rateLimits.global)
   app.use(express.json({ limit: config.jsonBodyLimitBytes }))
   app.use(express.urlencoded({ extended: true, limit: config.jsonBodyLimitBytes }))

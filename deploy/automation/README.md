@@ -2,7 +2,7 @@
 
 > 状态：首次服务器安装、受限 SSH、GitHub 自动发布及真实回退恢复已验证
 >
-> 更新时间：2026-09-08
+> 更新时间：2026-09-14
 >
 > 适用范围：此 GitHub 仓库到 FlightWoodX 现有 ECS 的前端发布
 >
@@ -10,26 +10,38 @@
 
 ## 使用方法
 
-工作在独立 `codex/` 分支，保留当前生产分支的历史。用户要求发布时：
+每次上传、更新或上线必须先遵循[固定发布规则](release-procedure.md)。统一入口为 `pnpm release`（只读计划）、`pnpm release:check`（完整本地 CI）和 `pnpm release --publish`（已授权的前端发布）。工作在独立 `codex/` 分支，保留当前生产分支的历史。
+
+程序执行的顺序：
 
 1. 运行项目检查，将改动提交并推送开发分支。
 2. 核对该确切 SHA 的 8 个 CI 作业全部通过。不能用旧提交或别的分支的结果代替。
 3. 确认 `production` 仍是所基于的生产版本；只做普通 fast-forward 推送，不强推、不绕过保护。
-4. `production` 推送触发 CI；浏览器测试后的同一份构建归档在所有检查成功后发送到 ECS。不从服务器当前 Git 分支拉取或重新构建。
+4. `production` 推送触发 CI。若同一 SHA 在可信开发分支已有八项成功检查和有效归档，核对来源后复用，八项必需作业显式记录复用成功；否则执行完整检查。发布前重新校验源作业、产物 ID、ZIP 摘要和归档摘要，发送浏览器测试后的同一份归档；不在生产重新构建。
 5. 等待 `Publish tested frontend` 成功，核对正式网址、`release.json` 的 SHA、入口摘要与实际修改；更新 `CURRENT_STATUS.md`。GitHub 绿色不代替人工页面验收。
 
-GitHub CLI 示例（在已验证、干净的目标开发工作树，且 HEAD 的检查全部通过后）：
+正常操作只使用统一入口，不手工重复上述步骤：
 
 ```bash
-git fetch origin production
-git merge-base --is-ancestor origin/production HEAD
-git push origin HEAD:production
-gh run list --branch production --limit 3
+pnpm release
+pnpm release --publish
 ```
 
 `production` 是独立发布分支，默认分支仍为 `main`，不将历史 main 或任意开发分支自动合并上线。生产环境名为 `ecs-production`，部署分支只允许 `production`；分支保护要求 8 个工程/浏览器/容器检查，管理员同样受限，禁止强推与删除。部署的并发组不取消正在切换的版本。普通开发分支不能获取生产密钥。
 
 换电脑开发无需复制部署私钥：登录有权限的 GitHub 账号，接续 [当前状态](../../CURRENT_STATUS.md) 指定的分支即可。开发分支只推送代码不会自动上线；推进受保护的 `production` 才会发布。首次安装已经完成，不要重复执行 bootstrap。
+
+## 发布流程本身的升级
+
+首次启用本次优化属于工作流升级，`pnpm release --publish` 会按设计阻止它作为普通前端更新发布。需要用户明确授权上传或启用此工作流后，按以下固定步骤执行一次：
+
+1. `pnpm release` 记录当前差异及正式基线；独立审查工作流、证据验证器和发布客户端，确认未放宽生产环境、分支保护和服务器权限。
+2. 完成本地完整CI，提交并普通推送开发分支，等待该确切SHA的八项真实GitHub检查和归档上传通过；没有成功结果不继续。
+3. 用 `ci-evidence.mjs` 只读核验该SHA的完整证据，并在受控运行器验证实际归档下载及摘要。核验生产分支和正式站仍是原版本；有变化重新计算差异，不覆盖。
+4. 在已明确授权的升级中，普通快进 `production` 到该确切SHA，不强推。生产环境保持原限制；等待实际 `Publish tested frontend`、正式版本与入口摘要确认。
+5. 记录来源作业、复用结果和耗时。日常前端更新此后恢复统一自动入口，不重复首次安装或这次升级步骤。
+
+以上只适用于经过审查的仓库工作流/客户端升级。若修改了服务器 `server.py`、`bootstrap.py`、配置、后端或数据迁移，仍须先取得对应授权并在已有管理通道单独安装验证；不能仅推进生产分支代替安装。
 
 ## 首次安装
 
@@ -85,6 +97,7 @@ SSH 协议只接受 `status`、`publish <40位SHA> <64位归档摘要>`（归档
 ## 验证与证据
 
 - `node --test scripts/web-release*.test.mjs`：归档与坏输入、受限 SSH、密钥文件权限/清理、工作流限制、真实解包及发布/回退故障模拟。
+- `node --test scripts/release-*.test.mjs scripts/check-release.test.mjs`：固定入口、改动范围、CI 证据复用、拒绝错误来源、并行检查与计时。云端工作流优化的实际启用与耗时以最新状态记录为准。
 - `python3 -B deploy/automation/test_server.py` 和 `test_bootstrap.py`：隔离临时文件、模拟容器；不能代替真实 ECS 验收。
 - `pnpm run harness`、完整 `pnpm run ci` 和当前提交的 GitHub 作业仍为必经检查。
 - 远端既有 `Tests` 作业固定 Python 3.10，覆盖当前 Ubuntu 22.04 服务器解释器版本；不能只用本机较新 Python 的结果证明兼容。

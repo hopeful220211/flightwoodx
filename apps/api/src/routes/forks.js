@@ -1,4 +1,5 @@
 const express = require('express')
+const { recordBusinessEvent } = require('../lib/analytics')
 const mongoose = require('mongoose')
 const { authenticate } = require('../middleware/auth')
 const CommunityPost = require('../models/CommunityPost')
@@ -183,6 +184,7 @@ router.post('/posts/:id/fork', authenticate, async (req, res) => {
       { $inc: { reuseCount: 1 } },
     ).catch(() => {})
 
+    recordBusinessEvent(req, 'design_remixed', { designId: String(newProject.designId), sourceId: String(sourceProject.designId) }, { key: `remix:${newProject._id}`, route: 'community_post' })
     res.status(201).json({ projectId: String(newProject._id), alreadyForked: false })
   } catch (error) {
     // 并发请求可能同时通过预查；唯一索引只允许一个项目落库，输家返回赢家的项目。

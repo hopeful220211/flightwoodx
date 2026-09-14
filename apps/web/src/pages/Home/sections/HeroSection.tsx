@@ -4,6 +4,7 @@ import { Button } from '../../../components/common/Button'
 import { HeroHonors } from './hero/HeroHonors'
 import { HeroDrone3D } from './hero/HeroDrone3D'
 import { CloudLayer } from '../components/CloudLayer'
+import { trackEvent } from '../../../features/analytics/client'
 
 function AnimatedEntry({ children, delay = 0, className = '' }: {
   children: React.ReactNode
@@ -43,7 +44,7 @@ export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
                 <AnimatedEntry delay={120}>
                   <h1
                     className="leading-[0.95] tracking-tight text-sky-900"
-                    style={{ fontSize: 'clamp(64px, 9vw, 130px)', fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900 }}
+                    style={{ fontSize: 'clamp(64px, 9vw, 130px)', fontFamily: 'Montserrat, "Arial Black", Arial, sans-serif', fontWeight: 900, fontSynthesis: 'none' }}
                   >
                     FLIGHT
                   </h1>
@@ -51,7 +52,7 @@ export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
                 <AnimatedEntry delay={220}>
                   <h1
                     className="leading-[0.95] tracking-tight text-sky-500"
-                    style={{ fontSize: 'clamp(64px, 9vw, 130px)', fontFamily: '"Arial Black", Arial, sans-serif', fontWeight: 900 }}
+                    style={{ fontSize: 'clamp(64px, 9vw, 130px)', fontFamily: 'Montserrat, "Arial Black", Arial, sans-serif', fontWeight: 900, fontSynthesis: 'none' }}
                   >
                     WOOD X
                   </h1>
@@ -78,7 +79,7 @@ export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
               <AnimatedEntry delay={640} className="flex flex-col gap-3 sm:flex-row">
                 <Button
                   size="lg"
-                  onClick={() => navigate('/design')}
+                  onClick={() => { trackEvent('home_cta_clicked', { placement: 'hero', destination: 'design' }); navigate('/design') }}
                   rightIcon={<ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
                   className="group px-8"
                 >

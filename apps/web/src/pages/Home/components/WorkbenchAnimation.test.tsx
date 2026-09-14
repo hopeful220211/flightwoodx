@@ -62,22 +62,23 @@ it('defers playback until visible, resumes in view and stops on unmount', async 
   expect(pause).toHaveBeenCalledOnce()
 })
 
-it('keeps the same frame and preserves manual pause when scrolling away and back', async () => {
+it('plays as a looping image without pause controls and keeps the same frame after scrolling', async () => {
   motion.inView = true
   await render()
   const frame = video().parentElement
-  expect(button().getAttribute('aria-label')).toBe('暂停演示动画')
-  await act(async () => button().click())
-  expect(button().getAttribute('aria-label')).toBe('播放演示动画')
+  expect(button()).toBeNull()
+  expect(video().controls).toBe(false)
+  expect(video().loop).toBe(true)
+  await act(async () => video().click())
+  expect(button()).toBeNull()
   vi.mocked(video().play).mockClear()
   motion.inView = false
   await render()
   motion.inView = true
   await render()
-  expect(video().play).not.toHaveBeenCalled()
-  await act(async () => button().click())
   expect(video().play).toHaveBeenCalledOnce()
   expect(video().parentElement).toBe(frame)
+  expect(button()).toBeNull()
 })
 
 it('uses a still frame for reduced motion until playback is requested', async () => {
@@ -87,6 +88,7 @@ it('uses a still frame for reduced motion until playback is requested', async ()
   expect(video().play).not.toHaveBeenCalled()
   await act(async () => button().click())
   expect(video().play).toHaveBeenCalledOnce()
+  expect(button()).toBeNull()
 })
 
 it('pauses when the tab is hidden and resumes when visible', async () => {
@@ -97,20 +99,20 @@ it('pauses when the tab is hidden and resumes when visible', async () => {
   expect(button().getAttribute('aria-label')).toBe('播放演示动画')
   vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
   await act(async () => document.dispatchEvent(new Event('visibilitychange')))
-  expect(button().getAttribute('aria-label')).toBe('暂停演示动画')
+  expect(button()).toBeNull()
 })
 
 it('responds to motion preference changes and removes its listener on unmount', async () => {
   motion.inView = true
   const remove = vi.spyOn(preference, 'removeEventListener')
   await render()
-  expect(button().getAttribute('aria-label')).toBe('暂停演示动画')
+  expect(button()).toBeNull()
   motion.reduced = true
   await act(async () => preference.dispatchEvent(new Event('change')))
   expect(button().getAttribute('aria-label')).toBe('播放演示动画')
   motion.reduced = false
   await act(async () => preference.dispatchEvent(new Event('change')))
-  expect(button().getAttribute('aria-label')).toBe('暂停演示动画')
+  expect(button()).toBeNull()
   await act(async () => root.render(null))
   expect(remove).toHaveBeenCalledWith('change', expect.any(Function))
 })
@@ -118,17 +120,15 @@ it('responds to motion preference changes and removes its listener on unmount', 
 it('keeps a poster and retry button after a loading error and reloads the same source', async () => {
   motion.inView = true
   await render()
-  button().focus()
   await act(async () => video().dispatchEvent(new Event('error')))
   expect(video().hidden).toBe(true)
   expect(container.querySelector('img')?.getAttribute('src')).toBe('/resource/videos/design-workbench-loop.webp')
   expect(container.querySelector('[role="status"]')?.textContent).toContain('演示加载失败')
   expect(button().getAttribute('aria-label')).toBe('重新加载演示动画')
-  expect(document.activeElement).toBe(button())
   await act(async () => button().click())
   expect(video().load).toHaveBeenCalledOnce()
   expect(video().hidden).toBe(false)
-  expect(button().getAttribute('aria-label')).toBe('暂停演示动画')
+  expect(button()).toBeNull()
 })
 
 it('leaves a manual play button when autoplay is denied', async () => {
@@ -138,7 +138,7 @@ it('leaves a manual play button when autoplay is denied', async () => {
   expect(container.querySelector('[role="status"]')).toBeNull()
   expect(button().getAttribute('aria-label')).toBe('播放演示动画')
   await act(async () => button().click())
-  expect(button().getAttribute('aria-label')).toBe('暂停演示动画')
+  expect(button()).toBeNull()
 })
 
 it('ignores a stale rejected play request after the animation leaves view', async () => {

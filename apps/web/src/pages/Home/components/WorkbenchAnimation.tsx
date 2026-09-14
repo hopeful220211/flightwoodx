@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useInView } from 'framer-motion'
-import { Pause, Play, RotateCcw } from 'lucide-react'
+import { Play, RotateCcw } from 'lucide-react'
 
 const videoSource = '/resource/videos/design-workbench-loop.mp4'
 const posterSource = '/resource/videos/design-workbench-loop.webp'
@@ -49,16 +49,16 @@ export function WorkbenchAnimation() {
     }
   }, [shouldPlay])
 
-  const togglePlayback = () => {
+  const startPlayback = () => {
     if (failed) {
       videoRef.current?.load()
       setFailed(false)
-      setChoice('play')
-    } else setChoice(playing ? 'pause' : 'play')
+    }
+    setChoice('play')
   }
 
-  const label = failed ? '重新加载演示动画' : playing ? '暂停演示动画' : '播放演示动画'
-  const Icon = failed ? RotateCcw : playing ? Pause : Play
+  const label = failed ? '重新加载演示动画' : '播放演示动画'
+  const Icon = failed ? RotateCcw : Play
 
   return (
     <div ref={frameRef} role="group" aria-label="设计工作台演示动画" className="relative aspect-[1440/1001] w-full bg-white">
@@ -85,15 +85,15 @@ export function WorkbenchAnimation() {
           </p>
         </>
       )}
-      <button
+      {!playing && <button
         type="button"
-        onClick={togglePlayback}
+        onClick={startPlayback}
         aria-label={label}
         title={label}
         className="absolute bottom-2 right-2 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-sky-900 shadow-sm ring-1 ring-sky-200 hover:bg-sky-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
       >
         <Icon size={18} aria-hidden="true" />
-      </button>
+      </button>}
     </div>
   )
 }

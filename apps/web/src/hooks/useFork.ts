@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { apiFetch } from '../utils/api'
+import { trackOperationFailure } from '../utils/productEvents'
 
 /**
  * 复用（fork）一个开放复用的社区作品。
@@ -9,13 +10,18 @@ import { apiFetch } from '../utils/api'
 export function useForkPost() {
   return useMutation({
     mutationFn: async (postId: string): Promise<{ projectId: string }> => {
-      const res = await apiFetch<{ projectId: string }>(`/community/posts/${postId}/fork`, {
-        method: 'POST',
-      })
-      if (!res.success || !res.data?.projectId) {
-        throw new Error(res.error || '复用失败')
+      let failureStatus: number | undefined
+      try {
+        const res = await apiFetch<{ projectId: string }>(`/community/posts/${postId}/fork`, { method: 'POST' })
+        if (!res.success || !res.data?.projectId) {
+          failureStatus = res.status
+          throw new Error(res.error || '复用失败')
+        }
+        return { projectId: res.data.projectId }
+      } catch (error) {
+        trackOperationFailure('remix', failureStatus)
+        throw error
       }
-      return { projectId: res.data.projectId }
     },
   })
 }

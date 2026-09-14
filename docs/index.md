@@ -29,12 +29,15 @@
 - [`ARCHITECTURE.md`](../ARCHITECTURE.md)：当前运行时组件、正式数据来源和主要数据流。
 - [`CURRENT_STATUS.md`](../CURRENT_STATUS.md)：最近一次有日期、commit、命令和人工证据的状态快照。
 - [`deploy/automation/README.md`](../deploy/automation/README.md)：受保护生产分支、前端发布、回退与凭据维护的操作说明。
+- [`deploy/automation/release-procedure.md`](../deploy/automation/release-procedure.md)：每次上传、更新、上线必用的程序入口、证据复用和计时规则。
 
 当前事实只在上述文件更新。其他文档应链接它们，不复制一份并行状态。
 
 ## 产品规格
 
 - [`product-specs/core-flow.md`](./product-specs/core-flow.md)：定义核心流程、逐段验收条件和证据边界；未决产品数值仍需负责人确认。
+- [`product-specs/analytics.md`](./product-specs/analytics.md)：可选使用统计的事件位置、指标口径、隐私选择、接口与开启流程。
+- [`exec-plans/completed/2026-09-14-privacy-pages.md`](./exec-plans/completed/2026-09-14-privacy-pages.md)：公开隐私页面、提示生命周期、国内政策依据和验证记录；正文与页面在 `apps/web/src/pages/Privacy/`。
 
 后续规格应写目标行为、非目标和验收方法；实现进度仍写入 `CURRENT_STATUS.md`。
 
@@ -48,6 +51,7 @@
 
 ## 执行计划
 
+- [`exec-plans/completed/2026-09-14-release-efficiency.md`](./exec-plans/completed/2026-09-14-release-efficiency.md)：固定发布程序、可信同版本产物复用与检查计时的本地验收；云端工作流待上传启用。
 - [`exec-plans/index.md`](./exec-plans/index.md)：计划格式、状态规则和索引。
 - [`exec-plans/completed/2026-09-08-automated-web-release.md`](./exec-plans/completed/2026-09-08-automated-web-release.md)：受限前端自动发布、首次授权、三奖更正上线及真实回退恢复记录。
 - [`exec-plans/active/2026-09-07-review-readiness.md`](./exec-plans/active/2026-09-07-review-readiness.md)：官网、拼装、编程、保存、鉴权与已发布修复的记录；剩余正式业务验收以当前状态为准。

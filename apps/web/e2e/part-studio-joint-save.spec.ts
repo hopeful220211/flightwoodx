@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { expect, test, type BrowserContext, type Page, type Response } from '@playwright/test'
 import { UserPartDefSchema, UserPartSchema, type UserPartDTO } from '@fwx/parts-schema'
 import { svgGeometryToPart2D, validateJointGuides } from '@fwx/geometry'
-import { dragMillimetres, drawStarterRectangle } from './part-studio-helpers'
+import { dragMillimetres, drawStarterRectangle, drawStudioShape } from './part-studio-helpers'
 
 /** Dedicated local test account only. One injected failed POST is followed by
  * real API/database writes and read-back. No production URL, external request,
@@ -59,8 +59,11 @@ async function register(page: Page) {
 
 async function drawJoint(page: Page, kind: '板内插槽' | '边缘插槽', from: [number, number], to: [number, number]) {
   const tools = page.getByRole('group', { name: '绘图工具', exact: true })
-  await tools.getByRole('button', { name: '孔 / 开口', exact: true }).click()
-  await page.getByRole('region', { name: '开孔方式', exact: true }).getByRole('button', { name: kind, exact: true }).click()
+  if (kind === '边缘插槽') await tools.getByRole('button', { name: '插接口', exact: true }).click()
+  else {
+    await tools.getByRole('button', { name: '孔 / 开口', exact: true }).click()
+    await page.getByRole('region', { name: '开孔方式', exact: true }).getByRole('button', { name: kind, exact: true }).click()
+  }
   const canvas = page.getByTestId('sketch-canvas')
   const count = await canvas.locator('[data-shape-id]').count()
   await dragMillimetres(page, canvas, from, to)
@@ -117,6 +120,34 @@ async function inspectSaved(page: Page, part: UserPartDTO, captureWidth?: number
   if (captureWidth !== undefined) expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Closing the modal must preserve the page width').toBe(true)
 }
 
+test('curved-edge insertion preserves its bottom in the real API and database', async ({ page, context }) => {
+  await localOnly(context)
+  const failures = observe(page)
+  const name = await register(page)
+  await page.goto('/part-studio')
+  await drawStudioShape(page, '圆形', [35, 35], [95, 95])
+  await drawStudioShape(page, '插接口', [80, 39.05], [80, 55])
+  await page.getByLabel('零件名称', { exact: true }).fill(name)
+  const writing = page.waitForResponse(response => isCustomPart(response, 'POST'))
+  await page.getByRole('button', { name: '保存', exact: true }).click()
+  const response = await writing
+  expect(response.status()).toBe(201)
+  const created = UserPartSchema.parse((await response.json()).data)
+  expect(created.jointGuides).toHaveLength(1)
+  const guide = created.jointGuides![0]!
+  expect(guide).toMatchObject({ kind: 'edge-slot', axis: 'y', entry: 'start' })
+  expect(guide.y + guide.lengthMm).toBeCloseTo(20, 2)
+  expect(validateJointGuides(svgGeometryToPart2D(created.geometry), created.jointGuides!).ok).toBe(true)
+  // Finish the save-triggered list refresh before observing the reload request.
+  await expect(page.getByRole('button', { name: `查看插槽：${name}`, exact: true })).toBeVisible()
+  const reading = page.waitForResponse(response => isCustomPart(response, 'GET')).then(response => response.json())
+  await page.reload()
+  const restored = UserPartSchema.array().parse((await reading).data.items).find(item => item.id === created.id)!
+  expect(restored.geometry).toEqual(created.geometry)
+  expect(restored.jointGuides).toEqual(created.jointGuides)
+  expect(failures).toEqual([])
+})
+
 test('joint slots: real save retry preserves geometry, direction and account-only restoration', async ({ page, context, browser, baseURL }) => {
   await localOnly(context)
   let forcedFailure = false
@@ -130,7 +161,7 @@ test('joint slots: real save retry preserves geometry, direction and account-onl
   await expect(page.getByLabel('插入方向', { exact: true })).toHaveValue('front')
   await drawJoint(page, '板内插槽', [55, 55], [55, 65])
   await page.getByLabel('插入方向', { exact: true }).selectOption('back')
-  await drawJoint(page, '边缘插槽', [75, 40], [75, 55])
+  await drawJoint(page, '边缘插槽', [75, 45], [75, 55])
   const canvas = page.getByTestId('sketch-canvas')
   const compiled = page.getByTestId('compiled-sketch')
   const finalContour = await compiled.getAttribute('d')
