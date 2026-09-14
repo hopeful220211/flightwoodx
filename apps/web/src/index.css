@@ -3,6 +3,15 @@
 @import 'misans/lib/Normal/MiSans-Semibold.min.css';
 @import 'misans/lib/Normal/MiSans-Bold.min.css';
 
+/* Self-hosted static Black face: never substitute a locally installed version. */
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/montserrat-latin-900-normal-v5.2.6.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: 'DingTalk JinBuTi';
   src: url('/fonts/DingTalkJinBuTi.ttf') format('truetype');
