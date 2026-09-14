@@ -59,6 +59,46 @@ it('starts with canvas drawing tools and shows no add button, shape dropdown or 
   } finally { await ui.close() }
 })
 
+it('offers a distinct insertion icon and directly enters edge-slot creation without a menu', async () => {
+  const ui = await mount()
+  try {
+    const insert = ui.button('插接口')
+    expect(insert).toBeDefined()
+    expect(insert.querySelector('svg')?.innerHTML).not.toBe(ui.button('孔 / 开口').querySelector('svg')?.innerHTML)
+    await act(async () => insert.click())
+    expect(canvas.current?.tool).toBe('insert-slot')
+    expect(ui.container.querySelector('[aria-label="开孔方式"]')).toBeNull()
+    const created = await completeCanvasShape({ operation: 'cut', x: 64, y: 45, width: 2, height: 15, joint: { kind: 'edge-slot', axis: 'y', entry: 'start' } })
+    expect(canvas.current?.tool).toBe('select')
+    expect(canvas.current?.selectedId).toBe(created.id)
+  } finally { await ui.close() }
+})
+
+it('shows short hover names for every bottom tool, including disabled actions, and dismisses them after use', async () => {
+  const ui = await mount()
+  try {
+    const toolbar = ui.container.querySelector('[data-testid="sketch-toolbar"]')!
+    for (const button of toolbar.querySelectorAll('button')) {
+      const name = button.getAttribute('aria-label')!
+      await act(async () => button.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
+      const tooltip = ui.container.querySelector('[role="tooltip"]')
+      expect(tooltip?.textContent).toBe(name === '孔 / 开口' ? '矩形开孔' : name)
+      expect(button.getAttribute('title')).toBeNull()
+      expect(button.getAttribute('aria-describedby')).toBe(tooltip?.id)
+      await act(async () => button.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body })))
+      expect(ui.container.querySelector('[role="tooltip"]')).toBeNull()
+    }
+    await act(async () => ui.button('插接口').focus())
+    expect(ui.container.querySelector('[role="tooltip"]')?.textContent).toBe('插接口')
+    await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+    expect(ui.container.querySelector('[role="tooltip"]')).toBeNull()
+    await act(async () => ui.button('插接口').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
+    await act(async () => ui.button('插接口').click())
+    expect(ui.container.querySelector('[role="tooltip"]')).toBeNull()
+    expect(canvas.current?.tool).toBe('insert-slot')
+  } finally { await ui.close() }
+})
+
 it('keeps empty and unfinished previews free of instruction cards', async () => {
   const ui = await mount()
   const feedback = () => ui.container.querySelector('[aria-label="预览提示"]')
@@ -153,7 +193,7 @@ it('does not repeat manufacturing and flight disclaimers around the drawing work
 it('uses red for cut tools in idle and selected states while additive tools stay blue', async () => {
   const ui = await mount()
   try {
-    for (const label of ['圆孔', '孔 / 开口']) {
+    for (const label of ['圆孔', '孔 / 开口', '插接口']) {
       const cut = ui.button(label)
       expect(cut.classList.contains('text-red-600')).toBe(true)
       expect(cut.classList.contains('hover:bg-red-50')).toBe(true)

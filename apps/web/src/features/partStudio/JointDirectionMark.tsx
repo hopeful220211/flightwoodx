@@ -6,7 +6,7 @@ export function jointEntryLabel(guide: Pick<JointGuide, 'kind' | 'axis' | 'entry
 }
 
 /** Annotation only: this arrow is not a cut line or an assembly connector. */
-export function JointDirectionMark({ guide }: { guide: JointGuide }) {
+export function JointDirectionMark({ guide, scale = 1 }: { guide: JointGuide; scale?: number }) {
   const t = USER_PART_THICKNESS_MM
   const cx = guide.x + (guide.axis === 'x' ? guide.lengthMm : t) / 2
   const cy = guide.y + (guide.axis === 'y' ? guide.lengthMm : t) / 2
@@ -19,5 +19,9 @@ export function JointDirectionMark({ guide }: { guide: JointGuide }) {
   const a = mouth - sign * 7
   const b = mouth + sign * Math.min(guide.lengthMm / 2, 4)
   const d = guide.axis === 'x' ? `M ${a} ${cy} H ${b} m ${-sign * 2} -2 l ${sign * 2} 2 l ${-sign * 2} 2` : `M ${cx} ${a} V ${b} m -2 ${-sign * 2} l 2 ${sign * 2} l 2 ${-sign * 2}`
-  return <path data-testid="joint-direction" aria-label={jointEntryLabel(guide)} d={d} pointerEvents="none" fill="none" stroke="#b91c1c" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+  const bottom = (guide.axis === 'x' ? guide.x : guide.y) + (sign === 1 ? guide.lengthMm : 0)
+  return <g pointerEvents="none">
+    <path data-testid="joint-direction" aria-label={jointEntryLabel(guide)} d={d} fill="none" stroke="#b91c1c" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+    <circle data-testid="joint-bottom" aria-label="槽底对接点" cx={guide.axis === 'x' ? bottom : cx} cy={guide.axis === 'y' ? bottom : cy} r={3 / scale} fill="#1479c0" stroke="white" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+  </g>
 }

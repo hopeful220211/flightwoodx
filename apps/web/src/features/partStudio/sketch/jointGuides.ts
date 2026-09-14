@@ -50,8 +50,10 @@ function edgeGuide(shape: SketchShape, contour: Point2D[]): JointGuide | null {
         || (near(b[1], side) && near(a[1], side + USER_PART_THICKNESS_MM)))) continue
     const before = ring[(index + ring.length - 1) % ring.length]!
     const after = ring[(index + 2) % ring.length]!
-    if (!near(before[1], a[1]) || !near(after[1], b[1]) || !near(before[0], after[0])) continue
-    const mouth = before[0]
+    if (!near(before[1], a[1]) || !near(after[1], b[1])) continue
+    const mouths = [before[0], after[0]]
+    if (mouths.some(value => (joint.entry === 'start' ? bottom - value : value - bottom) < USER_PART_THICKNESS_MM - EPSILON)) continue
+    const mouth = joint.entry === 'start' ? Math.min(...mouths) : Math.max(...mouths)
     const depth = rounded(joint.entry === 'start' ? bottom - mouth : mouth - bottom)
     if (mouth < begin - EPSILON || mouth > begin + length + EPSILON || depth < USER_PART_THICKNESS_MM) continue
     const origin = rounded(joint.entry === 'start' ? mouth : bottom)
