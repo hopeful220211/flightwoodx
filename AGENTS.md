@@ -6,6 +6,8 @@
 
 开始任务时依次读取：
 
+例行上传或发布已完成的改动，先执行 `pnpm release`，按[固定发布规则](deploy/automation/release-procedure.md)检查当前工作树、差异及当前提交证据；不重复开启产品调研、功能修改或历史全站审查。涉及继续开发、修复或发布程序变更时，仍按以下开发入口执行。
+
 1. 本文件；
 2. [`docs/index.md`](docs/index.md)、[`ARCHITECTURE.md`](ARCHITECTURE.md)、[`CURRENT_STATUS.md`](CURRENT_STATUS.md)；
 3. 当前任务的产品规格、质量规则、接口契约和目录内 `AGENTS.md`；
@@ -75,7 +77,7 @@ RFC、页面或 mock 的存在不代表功能完成。合并、推送、部署�
 7. 同步规格、状态、执行计划、风险和决策记录。
 8. 交付改动、证据、残余风险、回滚方式和下一步。
 
-用户要求发布前端时，遵循 [`deploy/automation/README.md`](deploy/automation/README.md)：验证确切提交的 CI 后推进受保护的 `production` 分支，等待自动发布及正式页面回读。不得把源码推送、CI 通过或初始化脚本生成当作已上线，也不得把后端、数据库、权限或部署器升级夹带进前端发布。
+每次上传、更新、上线必须遵循[固定发布规则](deploy/automation/release-procedure.md)，使用 `pnpm release` 查看计划，得到发布授权后使用 `pnpm release --publish`。同一提交复用有效 CI 证据和同一构建产物；独立检查并行执行，阶段耗时与结果由程序记录。缺少证据必须补齐，不能靠跳过检查提速。不得把源码推送、CI 通过当作已上线，也不得把后端、数据库、权限或部署器升级夹带进前端发布。服务器和回退细节见 [`deploy/automation/README.md`](deploy/automation/README.md)。
 
 ## 6. 安全与未成年人保护
 

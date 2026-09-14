@@ -217,13 +217,14 @@ test('CI deploys only the tested production SHA without rebuilding or exposing c
   const workflow = await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.match(workflow, /- production/);
   assert.match(workflow, /cancel-in-progress: \$\{\{ github\.ref != 'refs\/heads\/production' \}\}/);
-  assert.match(workflow, /needs: \[verify, browser, docker-smoke\]/);
+  assert.match(workflow, /needs: \[evidence, verify, browser, docker-smoke\]/);
   assert.match(workflow, /github\.event_name == 'push' && github\.ref == 'refs\/heads\/production'/);
   assert.match(workflow, /environment: ecs-production/);
   assert.match(workflow, /group: ecs-production\s+cancel-in-progress: false/);
   assert.match(workflow, /actions\/upload-artifact@[0-9a-f]{40}/);
-  assert.match(workflow, /actions\/download-artifact@[0-9a-f]{40}/);
-  assert.match(workflow, /name: Set up production-compatible Python\s+if: matrix\.name == 'Tests'\s+uses: actions\/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6\.0\.0\s+with:\s+python-version: '3\.10'/);
+  assert.match(workflow, /name: Download and hard-verify the exact tested artifact/);
+  assert.match(workflow, /ci-evidence\.mjs "\$RELEASE_SHA" --download/);
+  assert.match(workflow, /name: Set up production-compatible Python\s+if: needs\.evidence\.outputs\.reuse != 'true' && matrix\.name == 'Tests'\s+uses: actions\/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6\.0\.0\s+with:\s+python-version: '3\.10'/);
   const deploy = workflow.slice(workflow.indexOf('\n  deploy-production:'));
   assert.ok(deploy.length > 50);
   assert.doesNotMatch(deploy, /pnpm (?:install|build)|npm install|docker compose/);

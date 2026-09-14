@@ -16,8 +16,10 @@
     "harness": "node scripts/check-harness.mjs",
     "security": "node scripts/check-secrets.mjs && pnpm audit",
     "test": "node --test scripts/*.test.mjs && pnpm -r --if-present test",
-    "check": "pnpm harness && pnpm typecheck && pnpm check:api && pnpm test && pnpm lint && pnpm security",
+    "check": "node scripts/check-release.mjs",
     "ci": "pnpm check && pnpm build",
+    "release": "node deploy/automation/release.mjs",
+    "release:check": "pnpm run ci",
     "clean": "pnpm -r exec rm -rf node_modules dist && rm -rf node_modules"
   },
   "devDependencies": {
