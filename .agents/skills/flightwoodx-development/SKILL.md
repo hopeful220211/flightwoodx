@@ -58,6 +58,8 @@ Use progressive disclosure: keep the three root documents as the mandatory entry
 
 ## Record status and deliver evidence
 
+- For every upload, version update or production release, follow [the fixed release procedure](../../../deploy/automation/release-procedure.md). Start with `pnpm release`; use `pnpm release --publish` only after release authorization. Reuse valid evidence for the same exact commit and artifact, keep required checks, record phase durations, and do not restart unrelated development or duplicate full verification at production promotion.
+
 - Update `CURRENT_STATUS.md` and relevant contracts or RFCs only when new evidence changes their stated status. Include the date, commit or working tree, commands, results, browser path and viewport, and remaining failures required by the root rules.
 - Report changed files, automated results, real browser or integration evidence, migrations or environment changes, rollback concerns, unfinished work, and any claim the evidence does not support.
 - Call work complete only when the repository completion definition is satisfied. Keep partial implementation, simulation, rule checks, manufacturing evidence, and real-flight evidence explicitly separate.

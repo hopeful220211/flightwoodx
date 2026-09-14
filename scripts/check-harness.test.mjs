@@ -14,6 +14,7 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import * as harness from './check-harness.mjs'
+import { CHECKS } from './check-release.mjs'
 
 const scriptPath = fileURLToPath(new URL('./check-harness.mjs', import.meta.url))
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url))
@@ -1472,6 +1473,7 @@ test('root scripts and GitHub CI execute the harness', () => {
 
   assert.equal(packageJson.scripts.harness, 'node scripts/check-harness.mjs')
   assert.match(packageJson.scripts.test, /node --test scripts\/\*\.test\.mjs/)
-  assert.match(packageJson.scripts.check, /pnpm harness/)
+  assert.equal(packageJson.scripts.check, 'node scripts/check-release.mjs')
+  assert.equal(CHECKS.filter(check => check.command === 'pnpm' && check.script === 'harness').length, 1)
   assert.match(workflow, /name: Repository harness\s+command: pnpm harness/)
 })

@@ -16,6 +16,7 @@
 
 ## 已结束记录
 
+- [`completed/2026-09-14-release-efficiency.md`](./completed/2026-09-14-release-efficiency.md)：固定发布规则和命令、同提交CI复用、并行检查及计时，827项自动测试通过；云端工作流未上传启用。
 - [`completed/2026-09-14-all-pending-release.md`](./completed/2026-09-14-all-pending-release.md)：全部已完成功能正式发布为c7b69d7；备份恢复、API11步及公网三尺寸36组验收通过。下列功能记录中的未发布为各轮当时状态，当前上线结果以本条为准。
 - [`completed/2026-09-14-concise-contextual-copy.md`](./completed/2026-09-14-concise-contextual-copy.md)：全站简短功能文案、按需错误反馈和导出结果折叠，748项自动测试及72项全站浏览器回归通过，未发布。
 - [`completed/2026-09-14-part-studio-selection.md`](./completed/2026-09-14-part-studio-selection.md)：固定绘制参数区与画布、细选框和鼠标/触控缩放，634项自动测试及49项全站浏览器回归通过，未发布。
