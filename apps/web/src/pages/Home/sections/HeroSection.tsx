@@ -4,6 +4,7 @@ import { Button } from '../../../components/common/Button'
 import { HeroHonors } from './hero/HeroHonors'
 import { HeroDrone3D } from './hero/HeroDrone3D'
 import { CloudLayer } from '../components/CloudLayer'
+import { trackEvent } from '../../../features/analytics/client'
 
 function AnimatedEntry({ children, delay = 0, className = '' }: {
   children: React.ReactNode
@@ -78,7 +79,7 @@ export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
               <AnimatedEntry delay={640} className="flex flex-col gap-3 sm:flex-row">
                 <Button
                   size="lg"
-                  onClick={() => navigate('/design')}
+                  onClick={() => { trackEvent('home_cta_clicked', { placement: 'hero', destination: 'design' }); navigate('/design') }}
                   rightIcon={<ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
                   className="group px-8"
                 >

@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react'
 import { ScrollReveal } from '../../../components/common/ScrollReveal'
 import { SectionHeading } from '../components/SectionHeading'
 import { useAuthStore } from '../../../stores/authStore'
+import { trackEvent } from '../../../features/analytics/client'
 
 export function FinalCTASection() {
   const navigate = useNavigate()
@@ -25,14 +26,14 @@ export function FinalCTASection() {
 
         <ScrollReveal delay={200} className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
-            onClick={() => navigate(isAuthenticated ? '/design' : '/auth')}
+            onClick={() => { trackEvent('home_cta_clicked', { placement: 'final', destination: isAuthenticated ? 'design' : 'login' }); navigate(isAuthenticated ? '/design' : '/auth') }}
             className="group inline-flex w-fit items-center gap-2 whitespace-nowrap rounded-xl bg-white px-8 py-4 text-base font-semibold text-sky-700 shadow-sky-glow transition-all hover:bg-sky-50"
           >
             {isAuthenticated ? '打开设计工作台' : '登录平台'}
             <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
           </button>
           <button
-            onClick={() => navigate('/auth?type=school')}
+            onClick={() => { trackEvent('home_cta_clicked', { placement: 'final', destination: 'login' }); navigate('/auth?type=school') }}
             className="inline-flex w-fit items-center gap-2 whitespace-nowrap rounded-xl border border-white/20 px-8 py-4 text-base font-medium text-sky-200 transition-colors hover:bg-white/10"
           >
             教师与学校登录

@@ -1,4 +1,5 @@
 const express = require('express')
+const { recordBusinessEvent } = require('../lib/analytics')
 const mongoose = require('mongoose')
 const { authenticate, optionalAuthenticate } = require('../middleware/auth')
 const CommunityPost = require('../models/CommunityPost')
@@ -350,6 +351,7 @@ router.post('/posts', authenticate, async (req, res) => {
       }
     }
 
+    if (created) recordBusinessEvent(req, 'community_published', { postId: String(post._id) }, { key: `publish:${post._id}`, route: 'community' })
     res.status(created ? 201 : 200).json({
       post: { id: String(post._id), projectId: String(post.projectId), title: post.title },
       alreadyPublished: !created,

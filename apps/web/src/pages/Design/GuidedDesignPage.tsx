@@ -16,6 +16,7 @@ import { checkBeforeAdd, checkDualMainboard } from '../../utils/realtimeChecks'
 import type { Violation } from '../../utils/realtimeChecks'
 import { ReviewStep } from './components/steps/ReviewStep'
 import { flightReadiness } from '../../utils/flightReadiness'
+import { trackEvent } from '../../features/analytics/client'
 import { getAssemblyIssue } from './assemblyFeedback'
 import type { Part, PartInstance } from '../../types/design'
 
@@ -153,6 +154,7 @@ export function GuidedDesignPage() {
   const handleRunFlightTest = useCallback(() => {
     if (!activeDesign) return
     const r = flightReadiness(activeDesign.parts)
+    trackEvent('assembly_check_completed', { designId: activeDesign.id, outcome: r.canTakeoff ? 'passed' : 'blocked' })
     if (r.canTakeoff) {
       setPassedSnapshot(activeDesign.parts)
       toast.push('success', '检查通过')

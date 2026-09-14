@@ -187,6 +187,14 @@ flowchart LR
 
 ## 5. 领域所有权
 
+### 可选使用统计
+
+`packages/shared/src/analytics.ts` 统一前后端事件白名单。Web 的 `features/analytics` 管理明确同意、有限内存队列和路由类别；产品模块仅调用事件入口。API 的 `/api/analytics` 独立处理授权、收集、删除及管理员汇总，业务成功结果由持久化后的内部钩子异步记录，不允许客户端上报服务器事件。
+
+`AnalyticsConsent`、`AnalyticsEvent`、`AnalyticsRevision` 是90天保留的独立分析集合，不作为作品、权限或财务真值。统计失败不阻断业务，环境与账号身份由服务端确定；默认开关关闭。详见[使用统计规格](docs/product-specs/analytics.md)。
+
+Web 的 `pages/Privacy` 提供公开政策目录、五份完整说明和设置路由，复用同一统计客户端。首访横条及页脚/账号入口不建立第二套同意状态。浏览器选择与账号绑定，最多90天；身份切换清除，其他设备不继承许可。关闭采集不关闭历史授权的撤回入口。
+
 | 领域 | 正式数据 | 规则归属 | 当前备注 |
 |---|---|---|---|
 | 身份与角色 | User/JWT | API + `@fwx/shared` RBAC | 服务端最终判权 |

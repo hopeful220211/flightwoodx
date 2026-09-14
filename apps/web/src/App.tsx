@@ -8,10 +8,12 @@ import RoleRoute from './components/layout/RoleRoute'
 import { useAuthStore } from './stores/authStore'
 import { LoginModal } from './pages/Auth/components/LoginModal'
 import { useQueryClient } from '@tanstack/react-query'
+import { AnalyticsRuntime } from './features/analytics/AnalyticsSettings'
 
 /* ── Route-level code splitting ── */
 const HomePage = lazy(() => import('./pages/Home/HomePage').then((m) => ({ default: m.HomePage })))
 const AboutPage = lazy(() => import('./pages/About/AboutPage').then((m) => ({ default: m.AboutPage })))
+const PrivacyPage = lazy(() => import('./pages/Privacy/PrivacyPage').then((m) => ({ default: m.PrivacyPage })))
 const AuthPage = lazy(() => import('./pages/Auth/AuthPage').then((m) => ({ default: m.AuthPage })))
 const LoginRedirect = lazy(() => import('./pages/Auth/LoginRedirect').then((m) => ({ default: m.LoginRedirect })))
 const NotFoundPage = lazy(() => import('./pages/NotFound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
@@ -92,6 +94,8 @@ export default function App() {
         {/* Public */}
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/privacy/:document" element={<PrivacyPage />} />
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/community/leaderboard" element={<CommunityLeaderboardPage />} />
         <Route path="/community/:postId" element={<CommunityPostPage />} />
@@ -119,6 +123,7 @@ export default function App() {
       </Routes>
     </Suspense>
     <LoginModal />
+    <AnalyticsRuntime />
     </>
   )
 }

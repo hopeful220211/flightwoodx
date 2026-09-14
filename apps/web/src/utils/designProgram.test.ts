@@ -3,6 +3,9 @@ import type { CommandProgram } from '@fwx/shared'
 import { createProgram, getDroneDesigns, updateDroneDesign, updateProgram } from './api'
 import { saveDesignProgram } from './designProgram'
 
+const tracked = vi.hoisted(() => vi.fn())
+vi.mock('../features/analytics/client', () => ({ trackEvent: tracked }))
+
 vi.mock('./api', () => ({
   createProgram: vi.fn(), getDroneDesigns: vi.fn(), getProgram: vi.fn(),
   updateDroneDesign: vi.fn(), updateProgram: vi.fn(),
@@ -32,6 +35,7 @@ describe('design program persistence', () => {
     expect(updateProgram).toHaveBeenCalledWith('bound-a', expect.anything())
     expect(updateDroneDesign).toHaveBeenCalledWith('server-a', { programId: 'bound-a' })
     expect(createProgram).not.toHaveBeenCalled()
+    expect(tracked).toHaveBeenCalledWith('program_bound', { designId: 'local-a', programId: 'bound-a', destination: 'account' })
   })
 
   it('does not create another program after a failed update', async () => {
@@ -46,6 +50,7 @@ describe('design program persistence', () => {
     vi.mocked(updateDroneDesign).mockResolvedValue({ success: false, error: '绑定失败' })
     await expect(saveDesignProgram(input)).rejects.toThrow('绑定失败')
     expect(input.onProgramSaved).toHaveBeenCalledWith('bound-a')
+    expect(tracked).not.toHaveBeenCalledWith('program_bound', expect.anything())
   })
 
   it('recreates only after a definite 404', async () => {

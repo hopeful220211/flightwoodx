@@ -12,6 +12,8 @@ import { useAuthStore } from '../stores/authStore'
 import { useDesignStore } from '../stores/designStore'
 import type { Design } from '../types/design'
 import { DroneDesignSnapshotSchema } from '@fwx/parts-schema'
+import { trackEvent } from '../features/analytics/client'
+import { trackOperationFailure } from '../utils/productEvents'
 
 /**
  * Returns `saveToServer`（debounced 幂等保存）和 `loadFromServer`（跨设备回填）。
@@ -30,10 +32,12 @@ export function useDesignSync() {
     // 游客和未登录用户的草稿由 designStore 同步保存在本机。
     if (isGuest || !token) {
       setSaveStatus('saved')
+      trackEvent('local_design_saved', { designId: design.id, nonempty: Boolean(design.parts?.length) })
       return true
     }
 
     const requestVersion = ++requestVersionRef.current
+    let failureStatus: number | undefined
     if (mountedRef.current) setSaveStatus('saving')
     try {
       const result = await putDroneDesign({
@@ -42,12 +46,16 @@ export function useDesignSync() {
         designData: design, // 整份快照，原样还原
         weightG: design.safetyCheck?.totalWeightG ?? 0,
       })
-      if (!result.success) throw new Error(result.error || result.message || '保存失败')
+      if (!result.success) {
+        failureStatus = result.status
+        throw new Error(result.error || result.message || '保存失败')
+      }
       if (mountedRef.current && useAuthStore.getState().token === token && requestVersion === requestVersionRef.current) {
         setSaveStatus('saved')
       }
       return true
     } catch {
+      if (useAuthStore.getState().token === token) trackOperationFailure('design_save', failureStatus)
       if (mountedRef.current && useAuthStore.getState().token === token && requestVersion === requestVersionRef.current) {
         setSaveStatus('error')
       }

@@ -18,6 +18,8 @@ import { useDesignStore } from '../../stores/designStore'
 import { loadDesignProgram } from '../../utils/designProgram'
 import { compileWorkspaceXml } from '../../blockly/compileWorkspaceXml'
 import { SimResultPanel, type SimFinishKind } from './SimResultPanel'
+import { beginSimulationObservation } from '../../utils/productEvents'
+import { trackEvent } from '../../features/analytics/client'
 
 /** 飞行轨迹最多保留点数（防止长飞累积拖慢渲染）。 */
 const MAX_TRAIL_POINTS = 300
@@ -48,6 +50,7 @@ function SimulatorWorkspace({ designId: id }: { designId?: string }) {
   const adapterRef = useRef<SimAdapter | null>(null)
   const runIdRef = useRef(0)
   const startTimeRef = useRef(0)
+  const finishObservation = useRef<ReturnType<typeof beginSimulationObservation> | null>(null)
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null)
   const [trail, setTrail] = useState<[number, number, number][]>([])
   const [ledColor, setLedColor] = useState<[number, number, number]>([0, 0, 0])
@@ -75,7 +78,7 @@ function SimulatorWorkspace({ designId: id }: { designId?: string }) {
         store.setServerId(id, program.id)
         store.markSynced(id, program.blocklyXml)
       } catch (error) {
-        if (!cancelled) setLoadError(error instanceof Error ? error.message : '程序加载失败')
+        if (!cancelled) { trackEvent('operation_failed', { operation: 'editor_load', reason: 'unknown' }); setLoadError(error instanceof Error ? error.message : '程序加载失败') }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -84,6 +87,7 @@ function SimulatorWorkspace({ designId: id }: { designId?: string }) {
   }, [id, token, user?.isGuest, user?.username, retryKey])
 
   useEffect(() => () => {
+    finishObservation.current?.('stopped')
     runIdRef.current++
     adapterRef.current?.stop()
   }, [])
@@ -106,6 +110,7 @@ function SimulatorWorkspace({ designId: id }: { designId?: string }) {
     }
 
     // 竞态防护：作废上一轮回调，开启新一轮（照搬 useProjectFlight 的 runId 模式）
+    finishObservation.current?.('stopped')
     adapterRef.current?.stop()
     const myRun = ++runIdRef.current
     const live = () => runIdRef.current === myRun
@@ -120,6 +125,8 @@ function SimulatorWorkspace({ designId: id }: { designId?: string }) {
     setLedColor([0, 0, 0])
     setCurrentCmdIndex(-1)
     startTimeRef.current = performance.now()
+    const finishRun = beginSimulationObservation(id)
+    finishObservation.current = finishRun
 
     await adapter.execute(program, {
       onCommandStart: (index) => {
@@ -139,6 +146,7 @@ function SimulatorWorkspace({ designId: id }: { designId?: string }) {
         if (!live()) return
         // 三态：撞机 / 完成 / 手动停止。撞机优先于 success 判断。
         const kind: SimFinishKind = adapter.hasCollided() ? 'collision' : adapter.getFailureReason() ? 'error' : r.success ? 'success' : 'stopped'
+        finishRun(kind)
         setResult(r)
         setFinishKind(kind)
         setElapsedSec((performance.now() - startTimeRef.current) / 1000)
@@ -148,15 +156,17 @@ function SimulatorWorkspace({ designId: id }: { designId?: string }) {
           kind === 'success' ? '模拟运行完成' : kind === 'collision' ? '模拟中发生碰撞' : kind === 'error' ? adapter.getFailureReason()! : '已停止',
         )
       },
-    })
+    }).catch(error => { finishRun('error'); throw error })
   }, [id, toast, user])
 
   const handleStop = useCallback(() => {
+    finishObservation.current?.('stopped')
     // 只停飞；最终结果（含用时）由 adapter 的 onFinish 回来统一产出，保证一致。
     adapterRef.current?.stop()
   }, [])
 
   const handleReset = useCallback(() => {
+    finishObservation.current?.('stopped')
     runIdRef.current++ // 作废当前 run 的后续回调
     adapterRef.current?.stop()
     setRunning(false)

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useNavigate } from 'react-router'
 import { BUILD_STEPS } from '@fwx/parts-schema'
 import { useDesignStore } from '../../stores/designStore'
@@ -8,6 +8,7 @@ import { GuidedDesignPage } from './GuidedDesignPage'
 import { WelcomeEmptyState } from './components/WelcomeEmptyState'
 import { DesignListModal } from './components/DesignListModal'
 import { NameDroneDialog } from './components/NameDroneDialog'
+import { getAnalyticsClient, trackEvent } from '../../features/analytics/client'
 
 /**
  * Routes between Welcome / Guided / Free modes based on state.
@@ -28,6 +29,14 @@ export function DesignPageRouter() {
   const [showHistory, setShowHistory] = useState(false)
   const [showNaming, setShowNaming] = useState(false)
   const autoResumedRef = useRef(false)
+  const analytics = getAnalyticsClient()
+  const { decision } = useSyncExternalStore(analytics.subscribe, analytics.getSnapshot, analytics.getSnapshot)
+
+  useEffect(() => {
+    // Consent may restore after the design loads. Observe only the currently
+    // visible work; never replay earlier navigation or unconsented edits.
+    if (decision === 'granted' && activeDesign?.id) trackEvent('design_opened', { designId: activeDesign.id }, { onceKey: `open:${activeDesign.id}` })
+  }, [activeDesign?.id, decision])
 
   // 进入设计页：从账号拉回设计合并进本地（跨设备/新设备还原）。
   // 仅认领数据，自动新建空设计要用户点击，不会和这里抢跑。

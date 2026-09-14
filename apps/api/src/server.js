@@ -25,6 +25,7 @@ async function startServer() {
 
     server.close(async () => {
       try {
+        await app.locals.analytics.drain()
         await disconnectDatabase()
         clearTimeout(forced)
         console.log('Closed out connections')

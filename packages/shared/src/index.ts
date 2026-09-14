@@ -13,3 +13,4 @@ export * from './admin';
 export * from './growth';
 export * from './project';
 export * from './social';
+export * from './analytics';

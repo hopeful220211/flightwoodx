@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router'
 import { ArrowRight } from 'lucide-react'
 import { ScrollReveal } from '../../../components/common/ScrollReveal'
 import { SectionHeading } from '../components/SectionHeading'
+import { trackEvent } from '../../../features/analytics/client'
 
 const personas = [
   {
@@ -43,7 +44,7 @@ export function ForWhoSection() {
             <ScrollReveal key={p.title} delay={i * 100}>
               <button
                 type="button"
-                onClick={() => navigate(p.href)}
+                onClick={() => { trackEvent('home_cta_clicked', { placement: 'audience', destination: 'login' }); navigate(p.href) }}
                 className="group relative w-full h-[420px] md:h-[480px] rounded-2xl overflow-hidden text-left shadow-[0_2px_18px_rgba(42,136,219,0.06)] transition-shadow duration-300 hover:shadow-[0_22px_55px_rgba(23,74,126,0.22)]"
               >
                 {/* Background image */}

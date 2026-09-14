@@ -35,6 +35,8 @@
 ## 产品规格
 
 - [`product-specs/core-flow.md`](./product-specs/core-flow.md)：定义核心流程、逐段验收条件和证据边界；未决产品数值仍需负责人确认。
+- [`product-specs/analytics.md`](./product-specs/analytics.md)：可选使用统计的事件位置、指标口径、隐私选择、接口与开启流程。
+- [`exec-plans/completed/2026-09-14-privacy-pages.md`](./exec-plans/completed/2026-09-14-privacy-pages.md)：公开隐私页面、提示生命周期、国内政策依据和验证记录；正文与页面在 `apps/web/src/pages/Privacy/`。
 
 后续规格应写目标行为、非目标和验收方法；实现进度仍写入 `CURRENT_STATUS.md`。
 

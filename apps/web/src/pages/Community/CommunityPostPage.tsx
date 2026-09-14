@@ -26,6 +26,7 @@ import { AssembledDrone } from '../../components/design/AssembledDrone'
 import { PartsList } from '../ExportPreview/PartsList'
 import type { Design } from '../../types/design'
 import { CATEGORY_LABELS, type PartCategory } from '@fwx/parts-schema'
+import { trackEvent } from '../../features/analytics/client'
 
 // 局部入场动画：自带一份关键帧，独立可用，不依赖其它组件注入。
 const RISE_KEYFRAMES =
@@ -106,6 +107,7 @@ export function CommunityPostPage() {
   const onShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href)
+      if (post) trackEvent('community_link_copied', { postId: post.id })
       toast.push('success', '链接已复制')
     } catch {
       toast.push('info', '复制失败，请手动复制网址')

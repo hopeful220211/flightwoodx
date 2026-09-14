@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Copy, Phone } from 'lucide-react'
+import { trackEvent } from '../../features/analytics/client'
 
 const wechatId = 'ccccckd0211'
 
@@ -19,6 +20,7 @@ export function ContactSection() {
     setCopyState('copying')
     try {
       await navigator.clipboard.writeText(wechatId)
+      trackEvent('contact_action', { action: 'wechat_copied' })
       if (mounted.current) setCopyState('success')
     } catch {
       if (mounted.current) setCopyState('error')
@@ -36,7 +38,7 @@ export function ContactSection() {
           <div>
             <dt className="mb-3 text-sm text-sky-800">联系电话</dt>
             <dd>
-              <a href="tel:+8618393648803" className="inline-flex min-h-11 items-center gap-3 rounded-sm text-xl font-semibold tabular-nums hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-700 sm:text-2xl">
+              <a href="tel:+8618393648803" onClick={() => trackEvent('contact_action', { action: 'phone_clicked' })} className="inline-flex min-h-11 items-center gap-3 rounded-sm text-xl font-semibold tabular-nums hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-700 sm:text-2xl">
                 <Phone size={22} aria-hidden="true" className="shrink-0" />
                 +86 18393648803
               </a>

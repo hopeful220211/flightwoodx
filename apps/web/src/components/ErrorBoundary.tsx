@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import type { ReactNode } from 'react'
+import { trackEvent } from '../features/analytics/client'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -21,6 +22,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    trackEvent('app_problem', { phase: 'runtime', reason: 'unknown' })
     console.error('Uncaught error:', error, errorInfo)
   }
 

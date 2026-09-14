@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Edit2, Save, X, Moon, Sun, Trash2, BookOpen, Palette, Calendar } from 'lucide-react'
 import { PageContainer } from '../../components/layout/PageContainer'
 import { Card } from '../../components/common/Card'
@@ -280,6 +280,10 @@ function ProfileContent() {
         {/* 设置区域 */}
         <Card>
           <h3 className="mb-4 text-lg font-extrabold text-wood-900 dark:text-white">设置</h3>
+          <div className="mb-5 flex flex-wrap gap-5 text-sm text-sky-800">
+            <Link to="/privacy/settings" className="underline underline-offset-4">隐私设置</Link>
+            <Link to="/privacy" className="underline underline-offset-4">隐私与数据保护</Link>
+          </div>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
