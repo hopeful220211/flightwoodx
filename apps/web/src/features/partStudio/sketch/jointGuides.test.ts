@@ -90,9 +90,11 @@ describe('sketch joint intent follows the final cut geometry', () => {
     expect(analyze([board, through, { ...intrusion, y: 50 }]).error).not.toBeNull()
   })
 
-  it('rejects a sloping entry whose two mouth coordinates do not align', () => {
+  it('accepts a sloping entry with unequal side lengths and preserves its bottom', () => {
     const sloping: SketchShape = { ...board, kind: 'polygon', points: [[0, 0], [1, 0.25], [1, 1], [0, 1]] }
-    expect(analyze([sloping, { ...edge, height: 50 }]).error).not.toBeNull()
+    const result = analyze([sloping, { ...edge, height: 50 }])
+    expect(result.error).toBeNull()
+    expect(result.guides[0]!.y + result.guides[0]!.lengthMm).toBeCloseTo(60)
   })
 
   it('does not annotate a convex three-edge protrusion as an empty U notch', () => {

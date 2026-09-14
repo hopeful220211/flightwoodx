@@ -44,6 +44,93 @@ it('draws a snapped rectangle in mm and commits only once when the gesture ends'
   expect(props.onPendingChange).toHaveBeenLastCalledWith(false)
 })
 
+it('anchors the insertion tool at the board edge and commits one selected 2mm notch', async () => {
+  props = { ...props, tool: 'insert-slot', shapes: [shape], part: { contour: { points: [[20, 20], [60, 20], [60, 50], [20, 50]] } } }
+  await render()
+  await draw(40, 19.5, 43, 35)
+  const created = vi.mocked(props.onChange).mock.calls[0]![0][1]!
+  expect(created).toMatchObject({ width: 2, joint: { kind: 'edge-slot', axis: 'y', entry: 'start' } })
+  expect(created.y + created.height).toBe(35)
+  expect(props.onChange).toHaveBeenCalledTimes(1)
+  expect(props.onSelect).toHaveBeenLastCalledWith(created.id)
+  props = { ...props, shapes: [shape, created], tool: 'select', selectedId: created.id }
+  await render()
+  expect(container.querySelector('[data-testid="joint-bottom"]')).not.toBeNull()
+})
+
+it('explains insertion before the first click and marks only the real outer-edge hover target', async () => {
+  props.tool = 'insert-slot'
+  await render()
+  const hint = () => container.querySelector('[data-testid="insertion-guidance"]')!
+  expect(hint()?.textContent).toContain('先画一块完整木板')
+  expect(svg().style.cursor).toBe('not-allowed')
+  props = { ...props, shapes: [shape], part: { contour: { points: [[20, 20], [60, 20], [60, 50], [20, 50]] }, holes: [{ points: [[36, 32], [44, 32], [44, 38], [36, 38]] }] } }
+  await render()
+  expect(hint().textContent).toContain('靠近红色板边')
+  expect(container.querySelector('[data-testid="insertion-edge-guide"]')?.getAttribute('d')).toBe('M 20 20 L 60 20 L 60 50 L 20 50 Z')
+  // The reference frame and a hole inside the board are not entry edges.
+  for (const point of [[0, 50], [40, 35]]) {
+    await act(async () => pointEvent('pointermove', point[0]!, point[1]!))
+    expect(svg().style.cursor).toBe('not-allowed')
+    expect(container.querySelector('[data-testid="insertion-hover-anchor"]')).toBeNull()
+  }
+  await act(async () => pointEvent('pointerdown', 40, 35))
+  expect(hint().textContent).toContain('请从木板外边缘向内拖动')
+  expect(container.querySelectorAll('[role="alert"]')).toHaveLength(1)
+  await act(async () => pointEvent('pointermove', 40, 19.5))
+  expect(svg().style.cursor).toBe('crosshair')
+  expect(hint().textContent).toContain('已对准板边')
+  const anchor = container.querySelector('[data-testid="insertion-hover-anchor"]')!
+  expect(anchor.getAttribute('cx')).toBe('40')
+  expect(anchor.getAttribute('cy')).toBe('20')
+  expect(props.onChange).not.toHaveBeenCalled()
+  expect(props.onSelect).not.toHaveBeenCalled()
+  await act(async () => svg().dispatchEvent(new MouseEvent('pointerout', { bubbles: true, relatedTarget: document.body })))
+  expect(container.querySelector('[data-testid="insertion-hover-anchor"]')).toBeNull()
+  props.tool = 'select'
+  await render()
+  expect(hint()).toBeNull()
+  expect(container.querySelector('[data-testid="insertion-edge-guide"]')).toBeNull()
+})
+
+it('shows drag and retry instructions inside the canvas without duplicating errors', async () => {
+  props = { ...props, tool: 'insert-slot', shapes: [shape], part: { contour: { points: [[20, 20], [60, 20], [60, 50], [20, 50]] } } }
+  await render()
+  await act(async () => pointEvent('pointerdown', 40, 20))
+  expect(container.querySelector('[data-testid="insertion-guidance"]')?.textContent).toContain('拖到槽底后松开')
+  expect(container.querySelector('[data-testid="insertion-hover-anchor"]')).toBeNull()
+  await act(async () => pointEvent('pointerup', 40, 10))
+  expect(container.querySelector('[data-testid="insertion-guidance"]')?.textContent).toContain('向内拖动至少 2 mm')
+  expect(container.querySelectorAll('[role="alert"]')).toHaveLength(1)
+  expect(props.onChange).not.toHaveBeenCalled()
+})
+
+it.each(['mouse', 'touch'])('does not create an insertion after an outward or cancelled %s gesture', async pointerType => {
+  props = { ...props, tool: 'insert-slot', shapes: [shape], part: { contour: { points: [[20, 20], [60, 20], [60, 50], [20, 50]] } } }
+  await render()
+  await act(async () => pointEvent('pointerdown', 40, 20, svg(), 1, false, pointerType))
+  expect(container.querySelector('[data-testid="insertion-mouth"]')).not.toBeNull()
+  await act(async () => pointEvent('pointermove', 40, 10, svg(), 1, false, pointerType))
+  await act(async () => pointEvent('pointerup', 40, 10, svg(), 1, false, pointerType))
+  expect(props.onChange).not.toHaveBeenCalled()
+  expect(container.textContent).toContain('向内拖动至少 2 mm')
+  await act(async () => pointEvent('pointerdown', 40, 20, svg(), 2, false, pointerType))
+  await act(async () => pointEvent('pointermove', 40, 35, svg(), 2, false, pointerType))
+  await act(async () => svg().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+  await act(async () => pointEvent('pointerup', 40, 35, svg(), 2, false, pointerType))
+  expect(props.onChange).not.toHaveBeenCalled()
+  expect(props.onSelect).not.toHaveBeenCalled()
+})
+
+it('keeps the existing board when the new interface would cut through another opening', async () => {
+  props = { ...props, tool: 'insert-slot', shapes: [shape], part: { contour: { points: [[20, 20], [60, 20], [60, 50], [20, 50]] } }, validateInsertion: () => '请避开已有孔槽。' }
+  await render()
+  await draw(40, 20, 40, 35)
+  expect(props.onChange).not.toHaveBeenCalled()
+  expect(container.querySelector('[data-testid="compiled-sketch"]')).not.toBeNull()
+  expect(container.textContent).toContain('请避开已有孔槽')
+})
+
 it('marks a diagnosed source and its mirror without changing selection, hit targets or geometry', async () => {
   props.shapes = [{ ...shape, mirror: true }, { ...shape, id: 'hole', operation: 'cut', x: 80 }]
   props.problemShapeIds = ['base']

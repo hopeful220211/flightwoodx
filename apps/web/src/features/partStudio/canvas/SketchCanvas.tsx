@@ -6,6 +6,7 @@ import type { SketchReference, SketchShape } from '../sketch/model'
 import type { SketchTool } from './SketchTools'
 import { getResizeHandles, resizeShape, resolveSelectionHandle, type ResizeHandle } from './resizeShape'
 import { JointDirectionMark } from '../JointDirectionMark'
+import { createInsertionSlot, nearestOuterEdge } from './insertionSlot'
 
 export type SlotMode = 'cut' | 'edge-slot' | 'through-slot'
 
@@ -24,11 +25,12 @@ export interface SketchCanvasProps {
   onChange: (shapes: SketchShape[]) => void
   onSelect: (id: string | null) => void
   onPendingChange: (pending: boolean) => void
+  validateInsertion?: (shape: SketchShape) => string | null
   children?: ReactNode
 }
 
 type Gesture =
-  | { kind: 'draw'; tool: SketchTool; slotMode?: SlotMode; start: Point2D; end: Point2D }
+  | { kind: 'draw'; tool: SketchTool; slotMode?: SlotMode; board?: Part2D; start: Point2D; end: Point2D }
   | { kind: 'move'; shape: SketchShape; start: Point2D; end: Point2D }
   | { kind: 'vertex'; shape: SketchShape; index: number; start: Point2D; end: Point2D }
   | { kind: 'resize'; shape: SketchShape; handle: ResizeHandle; start: Point2D; end: Point2D; snap: boolean; lockAspect: boolean }
@@ -44,6 +46,7 @@ const tip: Record<SketchTool, string> = {
   freehand: '按住绘制辅助草图，再点击完成闭合；按约 1 mm 间距采点，最多 128 点。',
   'circle-hole': '拖出圆孔；红色区域将从实体中切除。',
   slot: '普通切孔：拖出矩形，调整宽、高；拼接时选择插槽工具。',
+  'insert-slot': '从木板边缘向内拖到槽底；自动水平或竖直，槽宽 2 mm。',
 }
 
 function line(points: Point2D[], close = true): string {
@@ -83,6 +86,7 @@ function shapeFromDrag(gesture: Gesture): SketchShape | null {
     return polygonShape(points, gesture.shape)
   }
   if (gesture.kind !== 'draw') return null
+  if (gesture.tool === 'insert-slot') return gesture.board ? createInsertionSlot(gesture.board, gesture.start, gesture.end) : null
   const width = Math.abs(endX - x)
   const height = Math.abs(endY - y)
   const base = { id: 'drag-preview', kind: 'rectangle' as const, operation: 'add' as 'add' | 'cut', x: Math.min(x, endX), y: Math.min(y, endY), width, height, radius: 0 }
@@ -107,7 +111,7 @@ function ShapeMark({ shape }: { shape: SketchShape }) {
   return <rect vectorEffect="non-scaling-stroke" x={shape.x} y={shape.y} width={shape.width} height={shape.height} rx={shape.radius} />
 }
 
-export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', jointGuides = [], problemShapeIds = [], referenceInvalid = false, selectedId, snap, disabled, onChange, onSelect, onPendingChange, children }: SketchCanvasProps) {
+export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', jointGuides = [], problemShapeIds = [], referenceInvalid = false, selectedId, snap, disabled, onChange, onSelect, onPendingChange, validateInsertion, children }: SketchCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const shapesRef = useRef(shapes)
   const disabledRef = useRef(disabled)
@@ -120,6 +124,7 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
   const [vertexEditingId, setVertexEditingId] = useState<string | null>(null)
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const [screenScale, setScreenScale] = useState(1)
+  const [hoveredEdge, setHoveredEdge] = useState<{ point: Point2D; board: Part2D } | null>(null)
   const [touchTargets, setTouchTargets] = useState(() => window.matchMedia?.('(any-pointer: coarse)').matches ?? false)
   const [draft, setDraft] = useState<Point2D[]>([])
   const draftRef = useRef<Point2D[]>([])
@@ -139,6 +144,10 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
   const editingVertices = selected?.kind === 'polygon' && vertexEditingId === selectedId
   const hitSize = (touchTargets ? 44 : 24) / screenScale
   const markSize = 6 / screenScale
+  const inserting = tool === 'insert-slot'
+  const hoverAnchor = inserting && !disabled && !pending && hoveredEdge?.board === part ? hoveredEdge.point : null
+  const insertionDrawing = gesture?.kind === 'draw' && gesture.tool === 'insert-slot'
+  const insertionHint = error ?? (insertionDrawing ? '向内拖到槽底后松开。' : !part ? shapes.length ? '先完成木板轮廓，再添加插接口。' : '先画一块完整木板，再添加插接口。' : hoverAnchor ? '已对准板边，按住向内拖动。' : '靠近红色板边，按住向内拖到槽底。')
 
   useEffect(() => { onPendingChange(pending) }, [onPendingChange, pending])
   useLayoutEffect(() => { shapesRef.current = shapes; disabledRef.current = disabled; onSelectRef.current = onSelect }, [shapes, disabled, onSelect])
@@ -209,6 +218,11 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
     if (Number.isFinite(scale) && scale > 0) setScreenScale(scale)
     if (event.pointerType === 'touch') setTouchTargets(true)
   }
+  function insertionAnchor(event: PointerEvent<SVGSVGElement>) {
+    const raw = coordinate(event, false)
+    // Hover feedback and pointer-down must agree at every zoom and pointer size.
+    return raw && nearestOuterEdge(part, raw, (event.pointerType === 'touch' ? 22 : 12) / screenScale)
+  }
   function start(event: PointerEvent<SVGSVGElement>) {
     if (event.button !== 0 || event.isPrimary === false || gestureRef.current) return
     event.preventDefault()
@@ -230,9 +244,15 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
       return
     }
     if (draftRef.current.length) { setError('请先完成闭合或取消当前草图。'); return }
+    if (tool === 'insert-slot') {
+      setHoveredEdge(null)
+      const anchor = insertionAnchor(event)
+      if (!anchor) { setError(part ? '请从木板外边缘向内拖动。' : '请先画出一块完整木板。'); return }
+      point = anchor
+    }
     setError(null)
     if (tool === 'freehand') updateDraft([point])
-    updateGesture({ kind: tool === 'freehand' ? 'freehand' : 'draw', tool, slotMode, start: point, end: point })
+    updateGesture({ kind: tool === 'freehand' ? 'freehand' : 'draw', tool, slotMode, board: tool === 'insert-slot' && part ? part : undefined, start: point, end: point })
     beginCapture(event)
   }
   function selectShape(event: PointerEvent<SVGGElement>, shape: SketchShape, vertex?: number) {
@@ -273,6 +293,12 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
   }
   function move(event: PointerEvent<SVGSVGElement>) {
     const current = gestureRef.current
+    if (!current && inserting && !disabled) {
+      const anchor = insertionAnchor(event)
+      setHoveredEdge(anchor && part ? { point: anchor, board: part } : null)
+      if (anchor) setError(null)
+      return
+    }
     if (!current || disabled || event.pointerId !== activePointerId.current) return
     let point = coordinate(event, current.kind === 'resize' ? false : snap)
     if (!point) return
@@ -299,9 +325,13 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
     if (current.kind === 'freehand') return // Explicit close or cancel follows.
     if (unmoved && current.kind !== 'draw') return
     const next = shapeFromDrag(current.kind === 'resize' ? { ...current, end: point, lockAspect: event.shiftKey } : { ...current, end: point })
-    if (!next) { setError('形状需要有宽度和高度，请重新拖动。'); return }
+    if (!next) { setError(current.kind === 'draw' && current.tool === 'insert-slot' ? '请从板边向内拖动至少 2 mm，保留两侧和槽底。' : '形状需要有宽度和高度，请重新拖动。'); return }
     if (current.kind === 'draw') {
       next.id = crypto.randomUUID()
+      if (current.tool === 'insert-slot') {
+        const invalid = validateInsertion?.(next)
+        if (invalid) { setError(invalid); return }
+      }
       onChange([...shapes, next])
       onSelect(next.id)
     } else if ((current.start[0] !== point[0] || current.start[1] !== point[1]) && JSON.stringify(next) !== JSON.stringify(current.shape)) {
@@ -323,6 +353,7 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
     if (disabled) return
     if (event.key === 'Escape') { event.preventDefault(); if (pending) cancel(); else onSelect(null); return }
     if (event.key === 'Enter' && draft.length) { event.preventDefault(); finish(); return }
+    if (event.key === 'Enter' && tool === 'insert-slot' && !pending) { event.preventDefault(); setError('请从木板外边缘向内拖动，指定插接口位置。'); return }
     // Keep rule-based creation accessible without an add-shape button.
     if (event.key === 'Enter' && !pending && ['rectangle', 'ellipse', 'circle-hole', 'slot'].includes(tool)) {
       event.preventDefault()
@@ -345,12 +376,12 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
   }
   const handles = editingVertices && selection ? vertices(selection) : []
   return <div className="w-full bg-slate-50">
-    <div data-testid="sketch-stage" className="relative h-[clamp(680px,calc(100dvh-224px),1000px)] pb-[124px]">
-    <svg ref={svgRef} data-testid="sketch-canvas" aria-label="二维零件绘制画布" aria-describedby={`${gridId}-tip`} role="application" tabIndex={0}
+    <div data-testid="sketch-stage" className="relative h-[clamp(728px,calc(100dvh-176px),1048px)] pb-[172px] min-[440px]:h-[clamp(680px,calc(100dvh-224px),1000px)] min-[440px]:pb-[124px]">
+    <svg ref={svgRef} data-testid="sketch-canvas" aria-label="二维零件绘制画布" aria-describedby={inserting ? `${gridId}-insertion-hint` : `${gridId}-tip`} role="application" tabIndex={0}
       viewBox={`${-margin} ${-margin} ${viewWidth} ${viewHeight}`} preserveAspectRatio="xMidYMid meet"
       className="block h-full w-full outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-sky-400"
-      style={{ touchAction: 'none', cursor: tool === 'select' ? 'default' : 'crosshair' }}
-      onPointerDown={start} onPointerMove={move} onPointerUp={end}
+      style={{ touchAction: 'none', cursor: inserting ? hoverAnchor || insertionDrawing ? 'crosshair' : 'not-allowed' : tool === 'select' ? 'default' : 'crosshair' }}
+      onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerLeave={() => setHoveredEdge(null)}
       onPointerCancel={event => { if (gestureRef.current && event.pointerId === activePointerId.current) { resetPending(); setError('绘制已中断，未保存这次操作，请重新绘制。') } }} onKeyDown={keyDown}>
       <defs><pattern id={gridId} width={gridStep} height={gridStep} patternUnits="userSpaceOnUse"><path d={`M ${gridStep} 0 L 0 0 0 ${gridStep}`} fill="none" stroke="#dbe8f3" strokeWidth={0.5} vectorEffect="non-scaling-stroke" /></pattern></defs>
       <rect x={-margin} y={-margin} width={viewWidth} height={viewHeight} fill="#f7faff" />
@@ -381,12 +412,17 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
           {focusedId === shape.id && focusedId !== selectedId && <rect data-testid="shape-focus-outline" x={current.x} y={current.y} width={current.width} height={current.height} fill="none" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="3 3" pointerEvents="none" />}
         </g>
       })}
-      {preview && gesture?.kind === 'draw' && <g fill={preview.operation === 'cut' ? '#ef444430' : '#60a5fa30'} stroke={preview.operation === 'cut' ? '#dc5252' : '#1479c0'} strokeWidth={1} pointerEvents="none"><ShapeMark shape={preview} /></g>}
+      {inserting && part && !disabled && <path data-testid="insertion-edge-guide" d={line(part.contour.points)} fill="none" stroke="#dc5252" strokeWidth={2} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
+      {hoverAnchor && <g pointerEvents="none" aria-hidden="true">
+        <circle cx={hoverAnchor[0]} cy={hoverAnchor[1]} r={12 / screenScale} fill="#fee2e280" stroke="#dc5252" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        <circle data-testid="insertion-hover-anchor" cx={hoverAnchor[0]} cy={hoverAnchor[1]} r={4 / screenScale} fill="white" stroke="#b91c1c" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+      </g>}
+      {preview && gesture?.kind === 'draw' && <g fill={preview.operation === 'cut' ? '#ef444430' : '#60a5fa30'} stroke={preview.operation === 'cut' ? '#dc5252' : '#1479c0'} strokeWidth={1} pointerEvents="none"><ShapeMark shape={preview} />{preview.joint && <JointDirectionMark guide={{ id: preview.id, ...preview.joint, x: preview.x, y: preview.y, lengthMm: preview.joint.axis === 'x' ? preview.width : preview.height }} scale={screenScale} />}</g>}
+      {gesture?.kind === 'draw' && gesture.tool === 'insert-slot' && <circle data-testid="insertion-mouth" cx={gesture.start[0]} cy={gesture.start[1]} r={4 / screenScale} fill="white" stroke="#b91c1c" strokeWidth={1.5} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
       {draft.length > 0 && <g pointerEvents="none"><path d={line(draft, false)} fill="none" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" />
         {draft.length > 1 && <path d={line([draft[draft.length - 1]!, draft[0]!], false)} fill="none" stroke="#7197b6" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="4 4" />}
         {draft.map(([x, y], index) => <circle key={index} cx={x} cy={y} r={0.65 * displayScale} fill={index === 0 ? '#16a34a' : '#1479c0'} />)}</g>}
       {tool === 'select' && selection && <rect data-testid="selection-outline" x={selection.x} y={selection.y} width={selection.width} height={selection.height} fill="none" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
-      {selection?.joint && <JointDirectionMark guide={(!gesture && jointGuides.find(guide => guide.id === selection.id)) || { id: selection.id, ...selection.joint, x: selection.x, y: selection.y, lengthMm: selection.joint.axis === 'x' ? selection.width : selection.height }} />}
       {tool === 'select' && selected && selection && !editingVertices && getResizeHandles(selected).map(handle => {
         const x = selection.x + handle.x * selection.width
         const y = selection.y + handle.y * selection.height
@@ -399,9 +435,14 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
         <rect x={x - hitSize / 2} y={y - hitSize / 2} width={hitSize} height={hitSize} fill="transparent" />
         <circle cx={x} cy={y} r={markSize / 2} fill="white" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
       </g>)}
+      {selection?.joint && <JointDirectionMark scale={screenScale} guide={(!gesture && jointGuides.find(guide => guide.id === selection.id)) || { id: selection.id, ...selection.joint, x: selection.x, y: selection.y, lengthMm: selection.joint.axis === 'x' ? selection.width : selection.height }} />}
     </svg>
+    {inserting && <div className="pointer-events-none absolute inset-0 z-10 p-3 pb-[176px] min-[440px]:pb-[128px]"><div data-testid="insertion-guidance" className="sticky top-[76px] w-fit max-w-full rounded-lg border border-red-100 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-sm">
+      <p className="mb-0.5 font-semibold text-red-700">插接口 <span className="font-normal text-slate-500">· 槽宽 2 mm</span></p>
+      <p id={`${gridId}-insertion-hint`} role={error ? 'alert' : 'status'} aria-atomic="true">{insertionHint}</p>
+    </div></div>}
     {children}
-    {draft.length > 0 && <div className="absolute bottom-[128px] left-3 z-20 flex max-w-[calc(100%-24px)] flex-wrap items-center gap-2 rounded-lg border border-sky-100 bg-white p-2 shadow-sm">
+    {draft.length > 0 && <div className="absolute bottom-[176px] left-3 z-20 flex max-w-[calc(100%-24px)] flex-wrap items-center gap-2 rounded-lg border border-sky-100 bg-white p-2 shadow-sm min-[440px]:bottom-[128px]">
       <button type="button" onClick={finish} disabled={disabled || gesture !== null || draft.length < 3 || overflow} className="rounded-lg bg-sky-600 px-3 py-2 text-sm text-white disabled:opacity-40">完成闭合</button>
       <button type="button" onClick={cancel} disabled={disabled} className="rounded-lg border border-sky-200 px-3 py-2 text-sm text-sky-900 disabled:opacity-40">取消绘制</button>
       <span className="text-xs text-slate-500">{draft.length} / 128 个顶点</span>
@@ -415,8 +456,8 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
           className={`shrink-0 rounded-md border border-sky-200 px-2 py-1 text-sky-800 disabled:opacity-40 ${tool === 'select' && selected?.kind === 'polygon' ? '' : 'invisible'}`}
           onClick={() => { setVertexEditingId(editingVertices ? null : selectedId); svgRef.current?.focus({ preventScroll: true }) }}>{editingVertices ? '缩放图形' : '编辑顶点'}</button>
       </div>
-      <p id={`${gridId}-tip`} className="text-xs leading-relaxed text-slate-500">{tool === 'slot' && slotMode !== 'cut' ? slotMode === 'edge-slot' ? '边缘插槽：从板外向板内拖动，箭头表示插入方向；槽宽固定 2 mm，需形成完整边缘凹口。' : '板内插槽：在板内拖动，槽宽固定 2 mm；另一零件的插片从板面插入。' : tip[tool]}{['rectangle', 'ellipse', 'circle-hole', 'slot'].includes(tool) && ' 画布聚焦后按 Enter 可创建默认图形。'}</p>
-      {error && <p role="alert" className="mt-1 text-xs leading-relaxed text-red-700">{error}</p>}
+      <p id={`${gridId}-tip`} className={`text-xs leading-relaxed text-slate-500 ${inserting ? 'invisible' : ''}`}>{tool === 'slot' && slotMode !== 'cut' ? slotMode === 'edge-slot' ? '边缘插槽：从板外向板内拖动，箭头表示插入方向；槽宽固定 2 mm，需形成完整边缘凹口。' : '板内插槽：在板内拖动，槽宽固定 2 mm；另一零件的插片从板面插入。' : tip[tool]}{['rectangle', 'ellipse', 'circle-hole', 'slot'].includes(tool) && ' 画布聚焦后按 Enter 可创建默认图形。'}</p>
+      {error && !inserting && <p role="alert" className="mt-1 text-xs leading-relaxed text-red-700">{error}</p>}
     </div>
   </div>
 }

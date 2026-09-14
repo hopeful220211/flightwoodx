@@ -32,6 +32,13 @@ describe('validateJointGuides', () => {
     expect(check({ contour: { points: [...split.slice(6), ...split.slice(0, 6)].reverse() } }, [edge]).ok).toBe(true)
     expect(check({ contour: { points: square }, holes: [{ points: [[5, 5], [10, 5], [15, 5], [15, 7], [5, 7]].reverse() as Point2D[] }] }, [through]).ok).toBe(true)
   })
+  it('accepts unequal mouth endpoints on a sloped outer edge without moving the bottom', () => {
+    const sloped: Part2D = { contour: { points: [[0, 0], [20, 0], [20, 20], [0, 20], [0, 11], [10, 11], [10, 9], [1, 9]] } }
+    expect(check(sloped, [edge]).ok).toBe(true)
+    expect(check(sloped, [{ ...edge, lengthMm: 9 }]).ok).toBe(false)
+    expect(check(sloped, [{ ...edge, x: -1, lengthMm: 11 }]).ok).toBe(false)
+    expect(check(sloped, [{ ...edge, entry: 'end' }]).ok).toBe(false)
+  })
   it('accepts vertical through-slots and the serialization tolerance', () => {
     expect(check({ contour: { points: square }, holes: [{ points: transform(hole, ([x, y]) => [y, x]) }] }, [{ ...through, axis: 'y' }]).ok).toBe(true)
     expect(check(plate, [{ ...through, x: through.x + 0.005 }]).ok).toBe(true)
