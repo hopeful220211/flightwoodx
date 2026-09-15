@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, writeFile, readFile, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import { packageWeb } from '../deploy/automation/package-web.mjs';
+const sha = 'a'.repeat(40);
+const script = fileURLToPath(new URL('../deploy/automation/unpack-ci.py', import.meta.url));
+
+test('CI consumers check digest, full commit and every file before using the single build', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'fwx-ci-build-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(join(root, 'source'));
+  await writeFile(join(root, 'source/index.html'), '<html>tested build</html>');
+  const archive = join(root, 'web.tar.gz');
+  const digest = await packageWeb(join(root, 'source'), sha, archive);
+  const run = (hash, commit, target) => spawnSync('python3', ['-I', script, archive, hash, commit, target], { encoding: 'utf8' });
+  const target = join(root, 'dist');
+  const result = run(digest, sha, target);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(await readFile(join(target, 'index.html'), 'utf8'), '<html>tested build</html>');
+  assert.equal(JSON.parse(await readFile(join(target, 'release.json'), 'utf8')).commit, sha);
+  assert.notEqual(run(digest, sha, target).status, 0, 'cannot overwrite a prior output');
+  const badDigestTarget = join(root, 'bad-digest');
+  assert.notEqual(run('b'.repeat(64), sha, badDigestTarget).status, 0);
+  await assert.rejects(stat(badDigestTarget), { code: 'ENOENT' });
+  assert.notEqual(run(digest, 'c'.repeat(40), join(root, 'bad-sha')).status, 0);
+});

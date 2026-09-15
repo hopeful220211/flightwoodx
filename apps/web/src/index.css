@@ -1,7 +1,11 @@
-@import 'misans/lib/Normal/MiSans-Regular.min.css';
-@import 'misans/lib/Normal/MiSans-Medium.min.css';
-@import 'misans/lib/Normal/MiSans-Semibold.min.css';
-@import 'misans/lib/Normal/MiSans-Bold.min.css';
+/* DJI reference: Open Sans, with the same OS-specific Chinese fallbacks. */
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/fonts/open-sans-variable.ttf') format('truetype');
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* Self-hosted static Black face: never substitute a locally installed version. */
 @font-face {
@@ -12,30 +16,27 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: 'DingTalk JinBuTi';
-  src: url('/fonts/DingTalkJinBuTi.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* ── RFC-020：流体字号 + 间距令牌（移动端有下限不塌、桌面随视口放大；纯新增，不改现有 token） ── */
+  /* Reference-based type scale; the large homepage brand has its own preserved face. */
   :root {
-    --fs-hero: max(56px, 7vw);
-    --fs-h2: max(40px, 4.5vw);
-    --fs-h3: max(28px, 3vw);
+    --font-site: 'Open Sans', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', 'Hiragino Sans GB', 'WenQuanYi Micro Hei', Arial, sans-serif;
+    --fs-hero: clamp(32px, 4vw, 48px);
+    --fs-h2: clamp(28px, 3.34vw, 40px);
+    --fs-h3: clamp(24px, 2.67vw, 32px);
     --fs-title-sm: 24px;
-    --fs-body: 18px;
-    --fs-label: 13px;
+    --fs-body: 16px;
+    --fs-label: 12px;
     --fs-stat: 48px;
-    --pad-section: 6vw;
-    --gap-block: 100px;
+    --pad-section: clamp(40px, 5.34vw, 80px);
+    --gap-block: 64px;
+    --site-content: 1200px;
+    --site-text: rgba(0, 0, 0, .85);
+    --site-secondary: rgba(0, 0, 0, .65);
+    --site-accent: #0070d5;
   }
 
   /* 始终预留滚动条宽度：消除"有滚动条页 / 无滚动条页"之间居中顶栏的水平跳动 */
@@ -53,7 +54,14 @@
 body {
     @apply bg-white text-ink-900 dark:bg-slate-950 dark:text-slate-50;
     @apply font-sans;
+    font-size: 16px;
+    line-height: 1.5;
+    letter-spacing: -.02em;
 }
+
+  h1, h2, h3, h4, h5, h6 { font-weight: 600; }
+  button, input, select, textarea { font-family: inherit; letter-spacing: inherit; }
+  input[type='checkbox'], input[type='radio'] { accent-color: var(--site-accent); }
 
   :focus-visible {
     outline: 3px solid theme('colors.sky.400');

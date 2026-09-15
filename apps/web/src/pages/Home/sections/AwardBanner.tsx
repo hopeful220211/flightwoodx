@@ -7,12 +7,12 @@ const awardLinks = [
 
 export function AwardBanner() {
   return (
-    <section id="home-award-banner" aria-label="作品获奖" className="relative isolate w-full overflow-hidden bg-sky-700">
+    <section id="home-award-banner" aria-label="作品获奖" className="home-award-banner relative isolate w-full overflow-hidden">
       {/* Quiet, cropped part outlines leave the centre clear for the statement. */}
       <svg aria-hidden="true" focusable="false" viewBox="0 0 1440 280" preserveAspectRatio="xMidYMid slice" className="pointer-events-none absolute inset-0 h-full w-full">
-        <circle cx="-40" cy="190" r="252" fill="#2b88db" opacity=".34" />
-        <path d="M1240 0H1440V280H1110Z" fill="#2b88db" opacity=".28" />
-        <g fill="none" stroke="#b9dbfe" strokeWidth="2" opacity=".22">
+        <circle cx="-40" cy="190" r="252" fill="#697781" opacity=".34" />
+        <path d="M1240 0H1440V280H1110Z" fill="#697781" opacity=".28" />
+        <g fill="none" stroke="#ffffff" strokeWidth="2" opacity=".22">
           <g transform="translate(18 -62) rotate(22 95 110)">
             <path d="M63 84 26 47M127 84l37-37M63 146l-37 37M127 146l37 37" />
             <rect x="60" y="79" width="70" height="74" rx="19" />

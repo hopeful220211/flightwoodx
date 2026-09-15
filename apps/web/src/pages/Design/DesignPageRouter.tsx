@@ -62,8 +62,8 @@ export function DesignPageRouter() {
   // No active design — show welcome or history
   if (!activeDesign) {
     // 新建第一步：先弹窗起名字，确认后再进设计（留空记为「未命名无人机」）
-    const handleCreateNamed = (name: string) => {
-      const id = createDesign(name || '未命名无人机', 'guided')
+    const handleCreateNamed = (name: string, mode: 'guided' | 'free') => {
+      const id = createDesign(name || '未命名无人机', mode)
       setActiveDesignId(id)
       setShowNaming(false)
       navigate(`/design/${id}`)

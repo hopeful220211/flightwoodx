@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ToastProvider } from './components/common/Toast'
 import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
+import './design-system.css'
 import App from './App.tsx'
 
 const queryClient = new QueryClient({

@@ -31,7 +31,8 @@ import { ThreeCanvas } from '../../components/design/ThreeCanvas'
 import { DraggablePartCard } from './components/DraggablePartCard'
 import { DragPreview } from '../../components/design/DragPreview'
 import { PartPreview3D } from '../../components/design/PartPreview3D'
-import { getCachedPartConnectors, prefetchAndExtractConnectors } from '../../hooks/usePartConnectors'
+import { prefetchAndExtractConnectors } from '../../hooks/usePartConnectors'
+import { officialConnectors } from '@fwx/geometry'
 import type { CameraView } from '../../components/design/CameraController'
 import { Canvas } from '@react-three/fiber'
 import { Bounds, OrbitControls, Html } from '@react-three/drei'
@@ -42,6 +43,7 @@ import { useDesignSync } from '../../hooks/useDesignSync'
 import { useAuthStore } from '../../stores/authStore'
 import { CustomPartsLibrary } from '../../features/partStudio/CustomPartsLibrary'
 import { CustomPartInspector } from '../../features/partStudio/CustomAssemblyPart'
+import { AssemblyConnections } from '../../features/partStudio/AssemblyConnections'
 
 export function DesignPage() {
   const toast = useToast()
@@ -213,14 +215,14 @@ export function DesignPage() {
   }, [category, parts, query])
 
   const onAddPart = async (partId: string) => {
-    const added = await addPartSmart(partId)
+    let added = await addPartSmart(partId)
+    if (!added) {
+      const part = partsData.find(p => p.id === partId)
+      const current = useDesignStore.getState().getActiveDesign()
+      if (part && current?.id === activeDesignId) added = useDesignStore.getState().addPartToActiveDesign({ partId, category: part.category, position: [Math.min(current.parts.length,10)*0.06,0,0], rotation: [0,0,0] })
+    }
     toast.push(added ? 'success' : 'error', added ? '已添加零件' : '未找到可用连接点，零件未添加')
   }
-
-  // Free placement is a normal editing state, not a failed assembly check.
-  // Only suggest a mainboard when actual official parts need one for connection.
-  const needsOfficialMainboard = usedParts.some(part => !part.source && partById.has(part.partId))
-    && !usedParts.some(part => !part.source && partById.get(part.partId)?.category === 'mainboard')
 
   const categoryItems = [
     { value: 'mainboard', label: '主板' },
@@ -288,7 +290,7 @@ export function DesignPage() {
         <Card hoverable={false}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="truncate text-sm font-extrabold text-ink-900 dark:text-white">{activeDesign?.name ?? '我的第一架无人机'}</div>
+              <div className="truncate text-sm font-extrabold text-ink-900 dark:text-white">{activeDesign?.name ?? '我的第一架无人机'}<span className="ml-2 text-xs font-normal text-slate-500">自由拼装</span></div>
               <div className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
                 已使用 {usedCount} 个零件 · {hasCustomParts ? `官方件预估 ${totalWeight}g（不含自制件）` : `预估重量 ${totalWeight}g`}
                 <span className="ml-2 inline-block whitespace-nowrap" role={saveStatus === 'error' ? 'alert' : 'status'}>{saveStatus === 'error' ? '账号保存失败，请重试' : saveStatus === 'saving' ? '正在保存…' : token ? '已保存到账号' : '本机草稿'}</span>
@@ -460,29 +462,21 @@ export function DesignPage() {
             </div>
 
             <div className="mt-3 space-y-3">
-              {needsOfficialMainboard && <div className="border-l-2 border-sky-400 pl-3 text-sm">
-                <p role="status" className="text-slate-700 dark:text-slate-200">请先添加主板，再连接官方零件。</p>
-                <button type="button" className="mt-1 min-h-11 text-sm font-semibold text-sky-700 underline underline-offset-4" onClick={() => {
-                  setCategory('mainboard')
-                  setQuery('')
-                  setIsPartsLibraryOpen(true)
-                  if (window.innerWidth < 1024) setIsInspectorOpen(false)
-                }}>选择主板</button>
-              </div>}
-
+              <AssemblyConnections />
+              <p className="text-xs leading-relaxed text-slate-500">选择零件后可查看接口编号，再点击连接零件。</p>
               <div className="rounded-lg bg-white/60 p-3 text-sm dark:bg-slate-950/40">
                 <div className="space-y-1">
                   {usedParts.length ? (
                     usedParts.map((inst) => {
                       const part = partById.get(inst.partId)
-                      const connectorCount = part ? getCachedPartConnectors(part.modelUrl).length : 0
+                      const connectorCount = part ? officialConnectors(part.id).length : 0
                       return (
                         <div
                           key={inst.instanceId}
                           className="flex items-center justify-between gap-2 rounded-lg px-2 py-1 hover:bg-sky-50 dark:hover:bg-slate-900"
                         >
                           {inst.source ? <CustomPartInspector instance={inst} /> : <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-bold">{part?.name ?? '未知零件'}</div>
+                            <button type="button" className="min-h-11 w-full truncate text-left text-sm font-bold" onClick={() => useDesignStore.getState().setSelectedInstanceId(inst.instanceId)}>{part?.name ?? '未知零件'}</button>
                             <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                               <span>{part?.weight ?? 0}g</span>
                               <span>·</span>
@@ -538,7 +532,7 @@ export function DesignPage() {
               </div>
               <div className="rounded-lg bg-sky-50 p-3 dark:bg-slate-900">
                 <div className="text-xs text-slate-600 dark:text-slate-300">连接点</div>
-                <div className="mt-1 font-extrabold">{getCachedPartConnectors(partDetail.modelUrl).length} 个</div>
+                <div className="mt-1 font-extrabold">{officialConnectors(partDetail.id).length} 个</div>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2">

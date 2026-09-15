@@ -66,7 +66,17 @@ function executedChecks(jobs, sha) {
     if (matching.length !== 1) return false;
     const job = matching[0];
     if (job.head_sha !== sha || job.status !== 'completed' || job.conclusion !== 'success') return false;
-    if (name === 'Browser core flow') return successfulStep(job, 'Start isolated application and verify core flow') && successfulStep(job, 'Package the exact browser-tested public bundle') && successfulStep(job, 'Retain the tested frontend release');
+    if (name === 'Browser core flow') {
+      if (!successfulStep(job, 'Retain the tested frontend release')) return false;
+      if (job.steps?.some(step => step.name === 'Verify all browser shards')) {
+        return successfulStep(job, 'Verify all browser shards') && successfulStep(job, 'Verify the exact tested archive') && ['1', '2', '3', 'privacy'].every(group => {
+          const matches = jobs.filter(candidate => candidate.name === `Browser shard ${group}`);
+          const shard = matches[0];
+          return matches.length === 1 && shard.head_sha === sha && shard.status === 'completed' && shard.conclusion === 'success' && successfulStep(shard, 'Verify and unpack build archive') && successfulStep(shard, 'Run isolated browser group');
+        });
+      }
+      return successfulStep(job, 'Start isolated application and verify core flow') && successfulStep(job, 'Package the exact browser-tested public bundle');
+    }
     if (name === 'API container smoke') return successfulStep(job, 'Build API production image') && successfulStep(job, 'Verify container against isolated MongoDB');
     return successfulStep(job, `Run ${name}`);
   });

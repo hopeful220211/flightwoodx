@@ -49,8 +49,10 @@ export function Button({
   return (
     <button
       type="button"
+      data-variant={variant}
+      data-size={size}
       className={cn(
-        'touch-target inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-semibold shadow-sm transition active:translate-y-[1px] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60',
+        'site-button touch-target inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-normal transition-colors disabled:cursor-not-allowed disabled:opacity-60',
         sizeCls,
         variantCls,
         className,
@@ -64,4 +66,3 @@ export function Button({
     </button>
   )
 }
-

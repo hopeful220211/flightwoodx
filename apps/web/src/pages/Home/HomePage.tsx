@@ -14,7 +14,7 @@ export function HomePage() {
   const videoRef = useRef<VideoPreviewHandle>(null)
 
   return (
-    <div className="min-h-screen [--home-video-overlap:clamp(3rem,10vw,4.6875rem)]">
+    <div className="home-page min-h-screen [--home-video-overlap:0px]">
       <HeroSection onWatchVideo={() => videoRef.current?.play()} />
       <VideoPreviewSection ref={videoRef} />
       <WhyUsSection />

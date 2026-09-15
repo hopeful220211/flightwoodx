@@ -47,6 +47,35 @@ test('only the exact commit with all eight executed checks and a bound artifact 
   assert.deepEqual(result.checks, REQUIRED_CHECKS);
 });
 
+function shardedFixture() {
+  const f = fixture();
+  const browser = f.jobs.find(job => job.name === 'Browser core flow');
+  browser.steps = browser.steps.filter(step => step.name === 'Retain the tested frontend release');
+  browser.steps.push({ name: 'Verify all browser shards', status: 'completed', conclusion: 'success' });
+  browser.steps.push({ name: 'Verify the exact tested archive', status: 'completed', conclusion: 'success' });
+  for (const group of ['1', '2', '3', 'privacy']) f.jobs.push({ name: `Browser shard ${group}`, head_sha: sha, status: 'completed', conclusion: 'success', steps: [
+    { name: 'Verify and unpack build archive', status: 'completed', conclusion: 'success' },
+    { name: 'Run isolated browser group', status: 'completed', conclusion: 'success' },
+  ] });
+  return f;
+}
+
+test('sharded browser evidence requires every real group and the checked final archive', async () => {
+  assert.equal((await findReusableEvidence(shardedFixture().options)).reuse, true);
+  for (const mutate of [
+    f => f.jobs.pop(),
+    f => { f.jobs.at(-1).conclusion = 'failure'; },
+    f => { f.jobs.at(-1).head_sha = 'c'.repeat(40); },
+    f => { f.jobs.at(-1).steps[0].conclusion = 'skipped'; },
+    f => { f.jobs.at(-1).steps[1].conclusion = 'skipped'; },
+    f => f.jobs.push({ ...f.jobs.at(-1) }),
+    f => { f.jobs.find(j => j.name === 'Browser core flow').steps[2].conclusion = 'skipped'; },
+  ]) {
+    const f = shardedFixture(); mutate(f);
+    assert.equal((await findReusableEvidence(f.options)).reuse, false);
+  }
+});
+
 test('rejects wrong SHA, fork, pull request, production, untrusted branch, workflow and unfinished sources', async t => {
   for (const change of [
     { head_sha: 'c'.repeat(40) }, { event: 'pull_request' }, { event: 'pull_request_target' }, { head_branch: 'production' }, { head_branch: 'untrusted' },
@@ -181,13 +210,18 @@ test('new attempt requires fresh successful upload; an artifact left over from a
 test('workflow preserves full fallback and explicit evidence checks for every protected check name', async () => {
   const workflow = await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.match(workflow, /needs: \[evidence, verify, browser, docker-smoke\]/);
-  for (const key of ['verify', 'browser', 'docker-smoke']) {
+  for (const key of ['verify', 'build', 'docker-smoke']) {
     const section = workflow.split(`\n  ${key}:\n`)[1].split(/\n  [a-z-]+:\n/)[0];
     assert.match(section, /needs: evidence/);
     assert.match(section, /name: Reuse already verified CI evidence\s+if: needs\.evidence\.outputs\.reuse == 'true'/);
     assert.match(section, /name: Check out repository\s+if: needs\.evidence\.outputs\.reuse != 'true'/);
     assert.doesNotMatch(section.split('steps:')[0], /\n    if:/);
   }
+  const browser = workflow.split('\n  browser:\n')[1].split(/\n  [a-z-]+:\n/)[0];
+  assert.match(browser, /needs: \[evidence, build, browser-shards\]/);
+  assert.match(browser, /if: always\(\)/);
+  assert.match(browser, /name: Reuse already verified CI evidence\s+if: needs\.evidence\.result == 'success' && needs\.evidence\.outputs\.reuse == 'true'/);
+  assert.match(browser, /test "\$SHARDS_RESULT" = success/);
   assert.match(workflow, /actions: read/);
   assert.doesNotMatch(workflow, /actions: write|contents: write|continue-on-error/);
   assert.match(workflow, /--artifact "\$ARTIFACT_ID" --digest "\$ARTIFACT_DIGEST"/);

@@ -28,7 +28,7 @@ export function WorkCard({
       type="button"
       onClick={() => onOpen(post)}
       style={style}
-      className="group block w-full overflow-hidden rounded-2xl bg-white text-left ring-1 ring-black/[0.05] transition-shadow duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 hover:ring-black/[0.08] motion-safe:animate-[fwxRise_0.5s_cubic-bezier(0.22,1,0.36,1)_both]"
+      className="community-work-card group block w-full overflow-hidden rounded-2xl bg-white text-left ring-1 ring-black/[0.05] transition-shadow duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 hover:ring-black/[0.08] motion-safe:animate-[fwxRise_0.5s_cubic-bezier(0.22,1,0.36,1)_both]"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-paper-100">
         {post.coverUrl ? (

@@ -19,6 +19,7 @@ import { flightReadiness } from '../../utils/flightReadiness'
 import { trackEvent } from '../../features/analytics/client'
 import { getAssemblyIssue } from './assemblyFeedback'
 import type { Part, PartInstance } from '../../types/design'
+import { AssemblyConnections } from '../../features/partStudio/AssemblyConnections'
 
 export function GuidedDesignPage() {
   const navigate = useNavigate()
@@ -95,6 +96,11 @@ export function GuidedDesignPage() {
     let added = false
     try {
       added = await addPartSmart(part.id)
+      const current = useDesignStore.getState().getActiveDesign()
+      if (!added && current?.id === activeDesign.id && current.parts.some(p => p.source)) {
+        added = useDesignStore.getState().addPartToActiveDesign({ partId: part.id, category: part.category, position: [Math.min(current.parts.length,10)*0.06,0,0], rotation: [0,0,0] })
+        if (added) toast.push('info', '零件已放入，点击连接零件选择插接口')
+      }
     } catch {
       toast.push('error', '零件加载失败，请检查网络后重试')
       return
@@ -230,6 +236,7 @@ export function GuidedDesignPage() {
 
             <main className="order-1 md:order-none relative min-h-0 min-w-0 h-[42vh] shrink-0 md:h-auto md:flex-1">
               <ThreeCanvas />
+              <div className="absolute left-3 top-3"><AssemblyConnections /></div>
             </main>
 
             <aside

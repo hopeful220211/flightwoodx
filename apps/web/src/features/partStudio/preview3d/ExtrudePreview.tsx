@@ -35,10 +35,10 @@ function PreviewScene({ mesh, view, reset }: { mesh: Mesh; view: PreviewView; re
     invalidate()
   }, [getRendererState, frame, reset])
   return <>
-    <color attach="background" args={['#F5F9FF']} />
+    <color attach="background" args={['#f7f9fa']} />
     <SceneLighting />
     <primitive object={mesh} />
-    <gridHelper args={[frame.gridSize, frame.gridDivisions, '#B8CDDF', '#E2ECF7']} position={[0, -dimensions[1] / 2 - 0.0002, 0]} />
+    <gridHelper args={[frame.gridSize, frame.gridDivisions, '#a8b4be', '#e3e8ec']} position={[0, -dimensions[1] / 2 - 0.0002, 0]} />
     <OrbitControls ref={controls} enablePan={false} enableDamping={false} minDistance={frame.minDistance} maxDistance={frame.maxDistance} />
   </>
 }

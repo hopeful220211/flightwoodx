@@ -30,8 +30,8 @@ export function ContactSection() {
   }
 
   return (
-    <section id="contact" aria-labelledby="contact-title" tabIndex={-1} className="scroll-mt-20 bg-sky-100 px-5 py-14 text-sky-950 outline-none sm:px-8 sm:py-20">
-      <div className="mx-auto max-w-6xl">
+    <section id="contact" aria-labelledby="contact-title" tabIndex={-1} className="site-contact site-section scroll-mt-20 outline-none">
+      <div className="site-container">
         <h2 id="contact-title" className="font-display text-3xl text-sky-900 sm:text-4xl">联系我们</h2>
         <p className="mt-4 text-base leading-8 text-sky-800 sm:text-lg">平台使用、课程与产品咨询，可通过电话或微信联系。</p>
         <dl className="mt-8 grid gap-8 sm:grid-cols-2 sm:gap-12">

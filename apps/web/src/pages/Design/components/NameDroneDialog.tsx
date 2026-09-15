@@ -2,30 +2,29 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Plane } from 'lucide-react'
 
-/**
- * 新建无人机第一步：先给它起个名字。
- *
- * 留空也能开始（记为「未命名无人机」），所以「开始搭建」永远可点。
- * 自包含：自带遮罩 + Esc 关闭 + 天空蓝样式，不依赖其它弹窗组件，全页无土色。
- */
+/** 名称可留空；拼装模式必须由用户明确选择。 */
 export interface NameDroneDialogProps {
   open: boolean
   /** 确认：回传去掉首尾空格后的名字（可能为空字符串，由调用方兜底成「未命名无人机」）。 */
-  onConfirm: (name: string) => void
+  onConfirm: (name: string, mode: 'guided' | 'free') => void
   onCancel: () => void
 }
 
 export function NameDroneDialog({ open, onConfirm, onCancel }: NameDroneDialogProps) {
   const [value, setValue] = useState('')
+  const [mode, setMode] = useState<'guided' | 'free' | null>(null)
 
   // 关闭后清空输入框（在关闭路径里重置，下次打开就是空的——不依赖父层重挂载）
   const cancel = () => {
     setValue('')
+    setMode(null)
     onCancel()
   }
   const submit = () => {
-    onConfirm(value.trim())
+    if (!mode) return
+    onConfirm(value.trim(), mode)
     setValue('')
+    setMode(null)
   }
 
   useEffect(() => {
@@ -57,7 +56,7 @@ export function NameDroneDialog({ open, onConfirm, onCancel }: NameDroneDialogPr
             <Plane className="h-6 w-6" strokeWidth={1.6} aria-hidden />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-sky-900">设置作品名称</h2>
+            <h2 className="text-lg font-bold text-sky-900">新建作品</h2>
             <p className="mt-0.5 text-xs text-ink-500">名称用于区分作品，开始搭建后仍可修改。</p>
           </div>
         </div>
@@ -76,6 +75,19 @@ export function NameDroneDialog({ open, onConfirm, onCancel }: NameDroneDialogPr
           className="mt-5 w-full rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm text-sky-900 outline-none transition placeholder:text-sky-300 focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
         />
 
+        <fieldset className="mt-5 space-y-2">
+          <legend className="mb-2 text-sm font-semibold text-ink-700">选择拼装方式</legend>
+          {([
+            ['guided', '按步骤拼装', '跟随步骤选择零件，逐步完成无人机。'],
+            ['free', '自由拼装', '自主选择、摆放零件，并连接插接口。'],
+          ] as const).map(([id, label, description]) => (
+            <label key={id} className={`flex min-h-16 cursor-pointer gap-3 rounded-lg border p-3 ${mode === id ? 'border-sky-500 bg-sky-50' : 'border-ink-200 bg-white'}`}>
+              <input type="radio" name="assembly-mode" value={id} checked={mode === id} onChange={() => setMode(id)} className="mt-1 accent-sky-600" />
+              <span><span className="block text-sm font-semibold text-ink-800">{label}</span><span className="mt-1 block text-xs leading-relaxed text-ink-500">{description}</span></span>
+            </label>
+          ))}
+        </fieldset>
+
         <div className="mt-6 flex justify-end gap-2">
           <button
             type="button"
@@ -87,7 +99,8 @@ export function NameDroneDialog({ open, onConfirm, onCancel }: NameDroneDialogPr
           <button
             type="button"
             onClick={submit}
-            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-pill bg-accent-spark px-6 text-sm font-semibold text-white shadow-sky-glow transition hover:brightness-110 active:translate-y-px"
+            disabled={!mode}
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-accent-spark px-6 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
           >
             开始搭建
           </button>

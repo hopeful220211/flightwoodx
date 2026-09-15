@@ -58,7 +58,7 @@ it('my parts displays all five structural labels and cutout thumbnails without c
   const onUse = vi.fn(), onDelete = vi.fn()
   await act(async () => root.render(<MyPartsStrip parts={parts} onUse={onUse} onDelete={onDelete} />))
   expectLabelsAndHoles()
-  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="放入自由拼装：测试零件0"]')!.click())
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="放入作品：测试零件0"]')!.click())
   expect(onUse).toHaveBeenCalledWith(parts[0])
   await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="删除 测试零件0"]')!.click())
   expect(onDelete).toHaveBeenCalledWith(parts[0].id)
@@ -67,7 +67,7 @@ it('my parts displays all five structural labels and cutout thumbnails without c
 it('assembly library shows the same labels and holes and opens placement for a custom mainboard', async () => {
   await act(async () => root.render(<MemoryRouter><CustomPartsLibrary /></MemoryRouter>))
   expectLabelsAndHoles()
-  expect(container.textContent).toContain('选择零件，放入自由拼装。')
+  expect(container.textContent).toContain('选择零件，放入当前作品。')
   expect(container.textContent).not.toMatch(/未验证|不代表|仅自由摆放|尚未连接/)
   await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="放入自由拼装：测试零件0"]')!.click())
   expect(container.querySelector('[role="dialog"]')?.textContent).toBe(parts[0].name)

@@ -7,6 +7,8 @@ import { partsData } from '../../../data/parts'
 import { useDesignStore } from '../../../stores/designStore'
 import { prefetchAndExtractConnectors } from '../../../hooks/usePartConnectors'
 import type { Part } from '../../../types/design'
+import { CustomPartsLibrary } from '../../../features/partStudio/CustomPartsLibrary'
+import { useAuthStore } from '../../../stores/authStore'
 
 interface StepPartPanelProps {
   currentStep: BuildStep
@@ -17,6 +19,8 @@ interface StepPartPanelProps {
 
 export function StepPartPanel({ currentStep, onPartClick, onPartDragStart, pendingPartId }: StepPartPanelProps) {
   const navigate = useNavigate()
+  const designId = useDesignStore(s => s.activeDesignId)
+  const token = useAuthStore(s => s.token)
   const info = STEP_INFO[currentStep]
   const categories = STEP_CATEGORIES[currentStep]
 
@@ -52,7 +56,7 @@ export function StepPartPanel({ currentStep, onPartClick, onPartDragStart, pendi
             {/* 自己画一个 —— 现成零件不合意时，就地跳去绘制工坊（RFC-021） */}
             <button
               type="button"
-              onClick={() => navigate('/part-studio')}
+              onClick={() => navigate(`/part-studio?design=${encodeURIComponent(designId ?? '')}&category=${categories[0] ?? 'mainboard'}`)}
               className="group flex flex-col rounded-xl border border-dashed border-sky-300 bg-sky-50/40 p-2 transition hover:-translate-y-0.5 hover:border-sky-400 hover:bg-sky-50"
             >
               <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-white text-sky-500 transition group-hover:scale-105">
@@ -104,6 +108,7 @@ export function StepPartPanel({ currentStep, onPartClick, onPartDragStart, pendi
               </button>
             ))}
           </div>
+          {token && <div className="mt-4 border-t border-gray-100 pt-3"><h4 className="mb-2 text-xs font-semibold text-gray-600">我的零件</h4><CustomPartsLibrary key={currentStep} compact categories={categories} /></div>}
         </div>
       )}
 

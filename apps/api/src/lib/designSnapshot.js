@@ -25,6 +25,8 @@ function parseDesignPayload(body) {
   if (parts !== undefined) {
     const result = PartsArraySchema.safeParse(parts)
     if (!result.success) return { ok: false, error: 'parts 格式非法' }
+    const graph = DroneDesignSnapshotSchema.safeParse({ id: 'legacy-validation', name: 'legacy', updatedAt: new Date().toISOString(), parts: result.data })
+    if (!graph.success) return { ok: false, error: 'parts 连接关系非法' }
     parts = result.data
   }
 

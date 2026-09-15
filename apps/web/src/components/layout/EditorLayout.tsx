@@ -82,7 +82,7 @@ export function EditorLayout() {
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-slate-50">
+    <div className="editor-shell flex h-dvh flex-col bg-slate-50">
       {/* ── 顶部标签栏 + 模式切换 ── */}
       <header className="flex min-h-12 shrink-0 flex-wrap items-stretch border-b border-sky-100 bg-white">
         {/* 工作台标签（常驻最左，点它回工作台） */}

@@ -29,9 +29,9 @@ export function ForWhoSection() {
   const navigate = useNavigate()
 
   return (
-    <section className="bg-sky-50/40 py-24 lg:py-32">
-      <div className="mx-auto max-w-6xl px-4">
-        <ScrollReveal className="mb-16">
+    <section className="home-audience site-section">
+      <div className="site-container">
+        <ScrollReveal className="site-section-intro">
           <SectionHeading
             eyebrow="使用对象"
             title="学生、教师和学校"
@@ -39,13 +39,13 @@ export function ForWhoSection() {
           />
         </ScrollReveal>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="home-audience-grid">
           {personas.map((p, i) => (
             <ScrollReveal key={p.title} delay={i * 100}>
               <button
                 type="button"
                 onClick={() => { trackEvent('home_cta_clicked', { placement: 'audience', destination: 'login' }); navigate(p.href) }}
-                className="group relative w-full h-[420px] md:h-[480px] rounded-2xl overflow-hidden text-left shadow-[0_2px_18px_rgba(42,136,219,0.06)] transition-shadow duration-300 hover:shadow-[0_22px_55px_rgba(23,74,126,0.22)]"
+                className="home-audience-tile group"
               >
                 {/* Background image */}
                 <img
@@ -60,10 +60,10 @@ export function ForWhoSection() {
                 />
 
                 {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-sky-950/80 via-sky-950/20 to-transparent transition-colors duration-[400ms] group-hover:from-sky-950/90" />
+                <div className="home-audience-shade" />
 
                 {/* Content */}
-                <div className="absolute inset-0 flex flex-col justify-end p-6">
+                <div className="home-audience-copy">
                   <h3 className="font-display text-2xl font-semibold text-white">{p.title}</h3>
                   <p className="mt-1 text-sm text-white/70">{p.subtitle}</p>
                   <div className="mt-4 flex w-fit items-center gap-1 whitespace-nowrap text-sm font-medium text-white/80 transition-transform duration-300 group-hover:translate-x-1">

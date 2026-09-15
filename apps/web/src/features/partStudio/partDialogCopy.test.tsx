@@ -6,6 +6,7 @@ import { expect, it, vi } from 'vitest'
 import { UserPartSchema } from '@fwx/parts-schema'
 import { PlaceCustomPartDialog } from './PlaceCustomPartDialog'
 import { JointGuideDialog } from './JointGuideDialog'
+import { useDesignStore } from '../../stores/designStore'
 
 vi.mock('../../components/common/Modal', () => ({ Modal: ({ children }: { children: ReactNode }) => <div role="dialog">{children}</div> }))
 vi.mock('../../components/common/Toast', () => ({ useToast: () => ({ push: vi.fn() }) }))
@@ -20,10 +21,22 @@ const part = UserPartSchema.parse({
 
 it('placement describes the available controls and connection limitation once', () => {
   const html = renderToStaticMarkup(<MemoryRouter><PlaceCustomPartDialog part={part} onClose={() => {}} /></MemoryRouter>)
-  expect(html).toContain('放入后可调整位置和旋转。自制零件暂不支持自动连接。')
+  expect(html).toContain('放入后，点击连接零件，选择双方的边缘插接口。')
   expect(html).not.toMatch(/未验证|不代表|尚未连接|制造、结构或飞行/)
   expect(html).toContain('自制零件目标作品')
   expect(html).toContain('确认放入')
+})
+
+it('requires an explicit mode when creating a work from an independently drawn part', () => {
+  useDesignStore.setState({ designs: [], activeDesignId: null })
+  const html = renderToStaticMarkup(<MemoryRouter><PlaceCustomPartDialog part={part} onClose={() => {}} /></MemoryRouter>)
+  const container = document.createElement('div')
+  container.innerHTML = html
+  const mode = container.querySelector<HTMLSelectElement>('[aria-label="新作品拼装方式"]')
+  expect(mode?.value).toBe('')
+  expect(mode?.textContent).toContain('按步骤拼装')
+  expect(mode?.textContent).toContain('自由拼装')
+  expect([...container.querySelectorAll('button')].find(b => b.textContent === '确认放入')?.disabled).toBe(true)
 })
 
 it('saved slot help explains coordinates and annotation marks without a disclaimer paragraph', () => {

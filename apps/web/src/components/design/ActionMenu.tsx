@@ -2,7 +2,7 @@
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useDesignStore } from '../../stores/designStore'
-import { Trash2, FlipVertical2, Repeat } from 'lucide-react'
+import { Trash2, FlipVertical2, Repeat, Unlink } from 'lucide-react'
 import { partsData } from '../../data/parts'
 import { getCachedPartConnectors } from '../../hooks/usePartConnectors'
 import { computePerpendicularSnap, quaternionToEuler } from './snap'
@@ -19,6 +19,7 @@ export function ActionMenu() {
 
   const instance = activeDesign.parts.find((p) => p.instanceId === selectedInstanceId)
   if (!instance) return null
+  const customConnection = !!instance.attachedTo && (!!instance.source || !!activeDesign.parts.find(p => p.instanceId === instance.attachedTo?.parentInstanceId)?.source)
 
   const updatePartInActiveDesign = (instanceId: string, updates: Partial<PartInstance>) => {
     useDesignStore.setState(state => ({ designs: state.designs.map(design => design.id === state.activeDesignId
@@ -166,18 +167,20 @@ export function ActionMenu() {
         </button>
         <button
           onClick={handleFlip}
+          disabled={customConnection}
           className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-amber-50 text-gray-600 hover:text-amber-600 transition-colors"
-          title="翻转"
+          title={customConnection ? '先断开连接再翻转' : '翻转'}
         >
           <FlipVertical2 size={18} />
         </button>
-        {!instance.source && <button
+        {!instance.source && !customConnection && <button
           onClick={handleSwitchConnector}
           className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-amber-50 text-gray-600 hover:text-amber-600 transition-colors"
           title="更换连接点"
         >
           <Repeat size={18} />
         </button>}
+        {instance.attachedTo && <button onClick={() => useDesignStore.getState().disconnectPart(instance.instanceId)} className="flex h-11 w-11 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" title="断开连接" aria-label="断开连接"><Unlink size={18} /></button>}
       </div>
     </Html>
   )

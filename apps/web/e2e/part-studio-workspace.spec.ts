@@ -74,9 +74,9 @@ for (const width of [390, 768, 1440]) {
     const initialLayout = await layout()
     const red = 'rgb(220, 38, 38)'
     const white = 'rgb(255, 255, 255)'
-    const blue = 'rgb(25, 62, 105)'
+    const blue = 'rgb(38, 38, 38)'
     const transparent = 'rgba(0, 0, 0, 0)'
-    const selectedBlue = { background: 'rgb(43, 136, 219)', icon: white, stroke: white }
+    const selectedBlue = { background: 'rgb(0, 112, 213)', icon: white, stroke: white }
     await expect(rectangle).toHaveAttribute('aria-pressed', 'true')
     expect(await colors('矩形')).toEqual(selectedBlue)
     for (const name of ['选择', '圆形', '多边形', '自由画']) {
@@ -105,7 +105,7 @@ for (const width of [390, 768, 1440]) {
       }
 
       await rectangle.hover()
-      expect(await colors('矩形')).toEqual({ background: 'rgb(240, 247, 255)', icon: blue, stroke: blue })
+      expect(await colors('矩形')).toEqual({ background: 'rgb(247, 249, 250)', icon: blue, stroke: blue })
       await rectangle.click()
       await expect(rectangle).toHaveAttribute('aria-pressed', 'true')
       await expect(cut).toHaveAttribute('aria-pressed', 'false')

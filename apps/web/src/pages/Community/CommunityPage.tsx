@@ -51,15 +51,15 @@ export function CommunityPage() {
 
   return (
     <CommunityShell>
-      <PageContainer className="py-20 lg:py-28">
+      <PageContainer className="py-12 lg:py-16">
         {/* ── Hero：巨字 + 大留白「大气压场」── */}
-        <header className="mb-16 lg:mb-20">
+        <header className="mb-10 lg:mb-12">
           <span className="fwx-display text-[12px] font-medium uppercase tracking-[0.16em] text-sky-500">
             FlightWoodX 社区
           </span>
           <h1
             className="fwx-display mt-5 text-black/90"
-            style={{ fontSize: 'max(56px, 7vw)', lineHeight: 1, letterSpacing: '-0.3px' }}
+            style={{ fontSize: 'var(--fs-h2)', lineHeight: 1.1, letterSpacing: '-0.02em' }}
           >
             作品广场
           </h1>

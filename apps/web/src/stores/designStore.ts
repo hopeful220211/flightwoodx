@@ -8,6 +8,7 @@ import { STORAGE_KEYS } from '../constants/storageKeys'
 import { partsData } from '../data/parts'
 import { checkBeforeAdd } from '../utils/realtimeChecks'
 import { trackEvent } from '../features/analytics/client'
+import { connectAssembly, moveAssemblyTree, type ConnectorResolver } from '@fwx/geometry/assembly'
 
 // RFC-022 兼容：搭建步骤由 6 步删成 5 步（移除 MOTOR）。删步之前存下的设计——无论来自
 // localStorage 还是后端快照——可能带着 currentStep='MOTOR' 或越界的 stepReached；原样读回会让
@@ -91,6 +92,8 @@ interface DesignState {
   addPartToActiveDesign: (part: Omit<PartInstance, 'instanceId'>) => boolean
   removePartFromActiveDesign: (instanceId: string) => void
   updatePartInActiveDesign: (instanceId: string, updates: Partial<PartInstance>) => void
+  connectParts: (childId: string, ownId: string, parentId: string, targetId: string, resolve: ConnectorResolver) => void
+  disconnectPart: (instanceId: string) => void
   // --- Guided build flow ---
   advanceStep: () => boolean
   goBackStep: () => boolean
@@ -204,6 +207,20 @@ export const useDesignStore = create<DesignState>()(
           }
         })
       },
+      connectParts: (childId, ownId, parentId, targetId, resolve) => {
+        const design = get().getActiveDesign()
+        if (!design) throw new Error('作品不存在')
+        const parts = connectAssembly(design.parts, childId, ownId, parentId, targetId, resolve)
+        const next = DroneDesignSnapshotSchema.parse({ ...design, parts, updatedAt: new Date().toISOString() })
+        set(state => ({ designs: state.designs.map(d => d.id === design.id ? next : d) }))
+      },
+      disconnectPart: instanceId => {
+        const design = get().getActiveDesign()
+        if (!design) return
+        set(state => ({ designs: state.designs.map(d => d.id !== design.id ? d : {
+          ...d, updatedAt: new Date().toISOString(), parts: d.parts.map(p => p.instanceId !== instanceId ? p : { ...p, attachedTo: null, activeConnectorId: undefined }),
+        }) }))
+      },
       updatePartInActiveDesign: (instanceId, updates) => {
         const before = get().getActiveDesign()
         const previousPart = before?.parts.find(part => part.instanceId === instanceId)
@@ -215,7 +232,15 @@ export const useDesignStore = create<DesignState>()(
               d.id === activeId
                 ? {
                     ...d,
-                    parts: d.parts.map((p) => (p.instanceId === instanceId ? { ...p, ...updates } : p)),
+                    parts: (() => {
+                      const original = d.parts.find(p => p.instanceId === instanceId)
+                      if (!original) return d.parts
+                      const hasCustomConnection = d.parts.some(p => p.attachedTo && (p.source || d.parts.find(parent => parent.instanceId === p.attachedTo!.parentInstanceId)?.source))
+                      if (hasCustomConnection && original.attachedTo && (updates.position || updates.rotation || updates.scale)) return d.parts
+                      const moved = !original.attachedTo && (updates.position || updates.rotation)
+                        ? moveAssemblyTree(d.parts, instanceId, { position: updates.position ?? original.position, rotation: updates.rotation ?? original.rotation }) : d.parts
+                      return moved.map(p => p.instanceId === instanceId ? { ...p, ...updates } : p)
+                    })(),
                     updatedAt: new Date().toISOString(),
                   }
                 : d,

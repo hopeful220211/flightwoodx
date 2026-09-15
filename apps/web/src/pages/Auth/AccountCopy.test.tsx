@@ -32,6 +32,11 @@ async function render(page: React.ReactNode) {
 it('explains what an account saves without making flight claims', async () => {
   await render(<AuthPage />)
   expect(container.textContent).toContain('注册后可保存无人机设计和程序，并在其他设备登录查看。')
+  const intro = container.querySelector('h1 + p')!
+  const lineBreak = intro.querySelector('br')
+  expect(lineBreak).not.toBeNull()
+  expect(lineBreak?.previousSibling?.textContent).toBe('注册后可保存无人机设计和程序，')
+  expect(lineBreak?.nextSibling?.textContent).toBe('并在其他设备登录查看。')
   expect(container.textContent).toContain('进入游客模式')
   expect(container.textContent).not.toContain('一架会飞的无人机')
 })

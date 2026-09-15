@@ -117,8 +117,8 @@ export function DashboardPage() {
   // 新建 = 先弹窗给无人机起名字，确认后再进设计页（留空记为「未命名无人机」）。
   const startNew = () => setNaming(true)
 
-  const createNamed = (name: string) => {
-    const id = createDesign(name || '未命名无人机', 'guided')
+  const createNamed = (name: string, mode: 'guided' | 'free') => {
+    const id = createDesign(name || '未命名无人机', mode)
     setActiveDesignId(id)
     setNaming(false)
     // 已登录：立刻把新作品写回服务器，这样即便还没编辑就刷新，工作台也能从服务器看到它。

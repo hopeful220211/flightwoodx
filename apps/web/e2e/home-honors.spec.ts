@@ -51,19 +51,10 @@ for (const viewport of [
     })
     expect.soft(Math.max(...gaps) - Math.min(...gaps), 'Visible spacing should match the third-to-fourth pair').toBeLessThan(1)
     expect(Math.min(...gaps), 'The laurels must not overlap').toBeGreaterThan(8)
-    const parent = await honors.locator('..').boundingBox()
-    const button = await honors.boundingBox()
-    expect.soft(button!.y - parent!.y, 'Move the honors down without moving the whole hero').toBeGreaterThanOrEqual(8)
-    const previousImageWidth = viewport.width < 640 ? (parent!.width - 12) / 2 : (parent!.width - 24) / 4
-    for (const image of layout) {
-      expect.soft(image.width, 'Each image should be slightly larger than the previous layout').toBeGreaterThan(previousImageWidth * 1.02)
-    }
-    if (viewport.width >= 640) {
-      const referenceGap = 8 + previousImageWidth / 12
-      expect(Math.abs(gaps[2]! - referenceGap), 'Keep the third-to-fourth reference gap nearly unchanged').toBeLessThan(2)
-    }
     const title = await page.getByRole('heading', { name: 'FLIGHT', exact: true }).boundingBox()
-    expect(title!.y).toBeGreaterThan(Math.max(...layout.map(image => image.bottom)))
+    const drone = await page.getByRole('img', { name: '主无人机', exact: true }).boundingBox()
+    expect(Math.min(...layout.map(image => image.top)), 'Honors now sit below the product stage').toBeGreaterThan(drone!.y + drone!.height)
+    expect(title!.y).toBeLessThan(drone!.y)
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
     await expect(page.getByText('Red Dot 2024 · iF 2026 · IDEA', { exact: true })).toHaveCount(0)
     await expect(page.getByText(/G-?Mark/i)).toHaveCount(0)

@@ -5,19 +5,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        /* ── 天蓝主色系（PPT 色调提取：天空蓝底 + 云白过渡） ── */
+        /* DJI reference: neutral surfaces and a single blue action accent. */
         sky: {
-          50: '#f0f7ff',
-          100: '#e0efff',
-          200: '#b9dbfe',
-          300: '#7cbffd',
-          400: '#4aa3f0',
-          500: '#2b88db',   // 主品牌蓝
-          600: '#1c6cba',
-          700: '#175798',
-          800: '#174a7e',
-          900: '#193e69',
-          950: '#112845',
+          50: '#f7f9fa',
+          100: '#edf1f4',
+          200: '#d9dfe3',
+          300: '#a8b4be',
+          400: '#6b8599',
+          500: '#0070d5',
+          600: '#005eae',
+          700: '#3d4852',
+          800: '#303233',
+          900: '#262626',
+          950: '#1c1c1c',
         },
         /* ── 木色辅助系（保留原 wood，微调使其更暖与天蓝互补） ── */
         wood: {
@@ -32,7 +32,7 @@ export default {
           800: '#5a3a22',
           900: '#4a3020',
         },
-        /* ── ink / paper 保持不变（中性灰与暖白纸） ── */
+        /* Neutral text and surface palette. */
         ink: {
           950: '#0f0f0f',
           900: '#1A1A1A',
@@ -46,62 +46,64 @@ export default {
           100: '#ECECEC',
         },
         paper: {
-          50: '#FAF8F4',
-          100: '#F3EFE8',
-          200: '#E8E2D8',
+          50: '#f7f9fa',
+          100: '#edf1f4',
+          200: '#d9dfe3',
         },
         /* ── 语义色 ── */
         accent: {
-          sky: '#4AA3F0',     // 与 sky-400 同步
+          sky: '#0070d5',
           leaf: '#3EB489',
           gold: '#D4A74A',
-          spark: '#1E9BFF',   // RFC-020：唯一高饱和点睛蓝（<5% 面积，仅按钮/编号/关键数字/关键词）
+          spark: '#0070d5',
         },
-        /* ── RFC-020：浅色交替区块面（不上深色） ── */
+        /* Shared page surfaces; marketing footer/video use explicit dark surfaces. */
         surface: {
-          white: '#F5F9FF',
-          ice: '#EAF2FB',
+          white: '#ffffff',
+          ice: '#f7f9fa',
         },
         success: '#22c55e',
         warning: '#f59e0b',
         error: '#ef4444',
       },
       fontFamily: {
-        sans: ['MiSans', 'system-ui', 'sans-serif'],
-        display: ['"DingTalk JinBuTi"', 'MiSans', 'system-ui', 'sans-serif'],
-        /* ── RFC-020：英文/数字展示字体（标题、大数据），中文正文仍走 sans ── */
-        grotesk: ['MiSans', '"PingFang SC"', 'system-ui', 'sans-serif'],
+        mono: ['"Open Sans"', '"PingFang SC"', '"Microsoft YaHei"', '"Helvetica Neue"', '"Hiragino Sans GB"', '"WenQuanYi Micro Hei"', 'Arial', 'sans-serif'],
+        sans: ['"Open Sans"', '"PingFang SC"', '"Microsoft YaHei"', '"Helvetica Neue"', '"Hiragino Sans GB"', '"WenQuanYi Micro Hei"', 'Arial', 'sans-serif'],
+        display: ['"Open Sans"', '"PingFang SC"', '"Microsoft YaHei"', '"Helvetica Neue"', '"Hiragino Sans GB"', '"WenQuanYi Micro Hei"', 'Arial', 'sans-serif'],
+        /* Keep utility aliases on the same reference font stack. */
+        grotesk: ['"Open Sans"', '"PingFang SC"', '"Microsoft YaHei"', '"Helvetica Neue"', '"Hiragino Sans GB"', '"WenQuanYi Micro Hei"', 'Arial', 'sans-serif'],
       },
+      fontWeight: { bold: '600', extrabold: '600', black: '600' },
       /* ── RFC-020：流体字号令牌（映射 index.css 的 CSS 变量，便于 text-hero 等直接用） ── */
       fontSize: {
         hero: ['var(--fs-hero)', { lineHeight: '1', letterSpacing: '-0.3px' }],
-        h2: ['var(--fs-h2)', { lineHeight: '1.05' }],
-        h3: ['var(--fs-h3)', { lineHeight: '1.1' }],
+        h2: ['var(--fs-h2)', { lineHeight: '1.1' }],
+        h3: ['var(--fs-h3)', { lineHeight: '1.125' }],
         'title-sm': ['var(--fs-title-sm)', { lineHeight: '1.2' }],
         body: ['var(--fs-body)', { lineHeight: '1.5' }],
-        label: ['var(--fs-label)', { lineHeight: '1', letterSpacing: '1.2px' }],
+        label: ['var(--fs-label)', { lineHeight: '1.667', letterSpacing: '0' }],
         stat: ['var(--fs-stat)', { lineHeight: '1' }],
       },
       boxShadow: {
         soft: '0 10px 30px rgba(0,0,0,.06)',
         lift: '0 14px 40px rgba(0,0,0,.12)',
-        'sky-glow': '0 8px 30px rgba(42,136,219,.18)',
+        'sky-glow': 'none',
       },
       borderRadius: {
         sm: '4px',
         DEFAULT: '6px',
-        md: '8px',
-        lg: '10px',
-        xl: '12px',
-        '2xl': '16px',
+        md: '4px',
+        lg: '6px',
+        xl: '8px',
+        '2xl': '8px',
         /* ── RFC-020：胶囊/卡片/标签圆角 ── */
-        pill: '40px',
-        card: '20px',
-        tag: '10px',
+        pill: '64px',
+        card: '8px',
+        tag: '4px',
       },
       backgroundImage: {
-        'sky-gradient': 'linear-gradient(180deg, #e0efff 0%, #f0f7ff 50%, #ffffff 100%)',
-        'sky-hero': 'linear-gradient(180deg, #5ca8f5 0%, #7cbffd 22%, #a7d2fc 48%, #cfe6fe 74%, #eef6ff 100%)',
+        'sky-gradient': 'linear-gradient(180deg, #f1f3f5 0%, #ffffff 100%)',
+        'sky-hero': 'linear-gradient(155deg, #e2e6e9 0%, #f6f7f8 52%, #d8dee2 100%)',
         'wood-warm': 'linear-gradient(135deg, #faf6f0 0%, #f0e6d6 100%)',
       },
     },

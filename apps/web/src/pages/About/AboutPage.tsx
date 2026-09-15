@@ -39,10 +39,10 @@ export function AboutPage() {
   }, [hash, key])
 
   return (
-    <>
-      <header className="relative overflow-hidden border-b border-sky-200 bg-sky-100">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-40 h-[640px] w-[640px] rounded-full border border-sky-300/60" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-4 px-5 pb-8 pt-12 sm:grid-cols-2 sm:gap-8 sm:px-8 sm:py-14 lg:py-16">
+    <div className="about-page">
+      <header className="about-hero">
+        <div aria-hidden="true" className="hidden" />
+        <div className="about-hero-content">
           <div>
             <p className="text-sm font-semibold tracking-widest text-sky-700">FlightWoodX</p>
             <h1 id="about-title" tabIndex={-1} className="mt-5 font-display text-5xl leading-tight text-sky-900 outline-none sm:text-6xl lg:text-7xl">关于我们</h1>
@@ -56,7 +56,7 @@ export function AboutPage() {
         </div>
       </header>
 
-      <section aria-labelledby="company-title" className="mx-auto grid max-w-6xl gap-7 px-5 py-14 sm:px-8 sm:py-20 md:grid-cols-[1fr_2fr] md:gap-16">
+      <section aria-labelledby="company-title" className="about-editorial site-container site-section">
         <h2 id="company-title" className="font-display text-3xl text-sky-900 sm:text-4xl">公司介绍</h2>
         <div className="space-y-5 text-base leading-8 text-sky-800 sm:text-lg sm:leading-9">
           <p className="text-xl font-semibold text-sky-900 sm:text-2xl">芬奇答奥（重庆）科技有限公司</p>
@@ -66,8 +66,8 @@ export function AboutPage() {
         </div>
       </section>
 
-      <section aria-labelledby="team-title" className="bg-sky-50 px-5 py-14 sm:px-8 sm:py-20">
-        <div className="mx-auto max-w-6xl">
+      <section aria-labelledby="team-title" className="about-team site-section">
+        <div className="site-container">
           <div className="grid gap-7 md:grid-cols-[1fr_2fr] md:gap-16">
             <h2 id="team-title" className="font-display text-3xl text-sky-900 sm:text-4xl">我们的团队</h2>
             <p className="text-base leading-8 text-sky-800 sm:text-lg sm:leading-9">团队的木质无人机项目起步于高校设计实践。我们围绕零件设计、榫卯结构、电子组件、在线工具和课程内容开展工作，将设计方案制作成实物，持续调整产品与学习流程。</p>
@@ -79,7 +79,7 @@ export function AboutPage() {
         </div>
       </section>
 
-      <section aria-labelledby="awards-title" className="mx-auto grid max-w-6xl gap-7 px-5 py-14 sm:px-8 sm:py-20 md:grid-cols-[1fr_2fr] md:gap-16">
+      <section aria-labelledby="awards-title" className="about-editorial site-container site-section">
         <div>
           <h2 id="awards-title" className="font-display text-3xl text-sky-900 sm:text-4xl">作品获奖</h2>
           <p className="mt-5 text-base leading-8 text-sky-800">Flight Wood X 木质无人机课程服务系统的部分获奖记录。</p>
@@ -99,6 +99,6 @@ export function AboutPage() {
 
       <ContactSection />
       <Footer />
-    </>
+    </div>
   )
 }

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { SectionLabel } from '../../components/common/SectionLabel'
 import { useToast } from '../../components/common/Toast'
 import { useAuthStore } from '../../stores/authStore'
 import { useUIStore } from '../../stores/uiStore'
@@ -16,10 +15,16 @@ export function AuthPage() {
   const openLoginModal = useUIStore((s) => s.openLoginModal)
 
   const [loading, setLoading] = useState(false)
+  const [agreed, setAgreed] = useState(false)
   const [form, setForm] = useState({ username: '', email: '', password: '' })
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!agreed) {
+      toast.push('error', '请先阅读并同意用户使用协议和隐私政策')
+      return
+    }
+    if (loading) return
     setLoading(true)
 
     try {
@@ -51,11 +56,12 @@ export function AuthPage() {
   }
 
   const inputCls =
-    'w-full rounded-xl border border-sky-200 bg-white px-4 py-2.5 text-sm text-[#0B3A68] placeholder:text-sky-400/70 transition focus:border-[#1F83E0] focus:outline-none focus:ring-2 focus:ring-[#1F83E0]/15'
-  const labelCls = 'mb-1.5 block text-sm font-semibold text-[#0B3A68]/85'
+    'w-full rounded-xl border border-sky-200 bg-white px-4 py-2.5 text-sm text-[#303233] placeholder:text-sky-400/70 transition focus:border-[#0070d5] focus:outline-none focus:ring-2 focus:ring-[#0070d5]/15'
+  const labelCls = 'mb-1.5 block text-sm font-semibold text-[#303233]/85'
+  const agreementLinkCls = 'text-[#0070d5] underline underline-offset-2 hover:text-[#005eae] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0070d5]'
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-white">
+    <div className="auth-page relative min-h-dvh overflow-hidden">
       {/* 品牌氛围：极淡的天空蓝环境光 + 缓慢漂移的云（压低透明度，
           只做白色产品界面上的一抹品牌底色，不喧宾夺主） */}
       <div
@@ -70,22 +76,24 @@ export function AuthPage() {
         <div className="w-full max-w-[400px] rounded-2xl bg-white p-6 shadow-[0_24px_64px_-28px_rgba(11,58,104,0.45)] ring-1 ring-sky-100 sm:p-7">
           {/* Logo 和标题 */}
           <div className="mb-6 text-center">
-            <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-sky-100 to-sky-200 ring-1 ring-sky-200/60">
+            <div className="auth-brand mb-6 flex items-center justify-center gap-2.5">
               <img
                 src="/web_logo.png"
-                alt="FlightWoodX Logo"
-                className="h-8 w-8 object-contain"
+                alt=""
+                width={28}
+                height={28}
+                className="h-7 w-7 shrink-0 object-contain"
               />
+              <span className="text-lg font-semibold leading-7 tracking-normal text-[#303233]">FlightWoodX 账号</span>
             </div>
-            <SectionLabel className="text-sky-500/80">FlightWoodX 账号</SectionLabel>
-            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#0B3A68]">创建账号</h1>
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#303233]">创建账号</h1>
             <p className="mt-1.5 text-sm text-sky-700/75">
-              注册后可保存无人机设计和程序，并在其他设备登录查看。
+              注册后可保存无人机设计和程序，<br />
+              并在其他设备登录查看。
             </p>
           </div>
 
           {/* 注册表单 */}
-          <p className="mb-4 text-xs leading-6 text-slate-600">注册前请阅读<Link to="/privacy/policy" target="_blank" rel="noopener noreferrer" className="text-sky-800 underline">隐私政策</Link>和<Link to="/privacy/children" target="_blank" rel="noopener noreferrer" className="text-sky-800 underline">儿童个人信息保护规则</Link>。注册不会自动开启使用统计。</p>
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
               <label htmlFor="register-username" className={labelCls}>用户名</label>
@@ -131,10 +139,25 @@ export function AuthPage() {
               />
             </div>
 
+            <div>
+              <label htmlFor="register-agreement" className="flex min-h-11 cursor-pointer items-start gap-2.5 py-2 text-xs leading-6 text-slate-600">
+                <input
+                  id="register-agreement"
+                  type="checkbox"
+                  required
+                  checked={agreed}
+                  onChange={(event) => setAgreed(event.target.checked)}
+                  className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-[#0070d5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0070d5]"
+                />
+                <span>我已阅读并同意<Link to="/terms" target="_blank" rel="noopener noreferrer" className={agreementLinkCls}>《用户使用协议》</Link>和<Link to="/privacy/policy" target="_blank" rel="noopener noreferrer" className={agreementLinkCls}>《隐私政策》</Link></span>
+              </label>
+              <p className="text-xs leading-5 text-slate-500">未满14周岁，请由监护人阅读<Link to="/privacy/children" target="_blank" rel="noopener noreferrer" className={agreementLinkCls}>儿童个人信息保护规则</Link>。注册不会开启使用统计。</p>
+            </div>
+
             <button
               type="submit"
-              disabled={loading || !form.username || !form.email || !form.password}
-              className="mt-2 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#1F83E0] px-5 text-sm font-semibold text-white transition hover:bg-[#1a72c5] active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[#1F83E0]"
+              disabled={loading || !agreed || !form.username || !form.email || !form.password}
+              className="mt-2 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#0070d5] px-5 text-sm font-semibold text-white transition hover:bg-[#005eae] active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[#0070d5]"
             >
               {loading ? '注册中…' : '创建账号'}
             </button>
@@ -146,7 +169,7 @@ export function AuthPage() {
             <button
               type="button"
               onClick={goLogin}
-              className="ml-1.5 font-semibold text-[#1F83E0] transition hover:brightness-110"
+              className="ml-1.5 font-semibold text-[#0070d5] transition hover:brightness-110"
             >
               去登录
             </button>
@@ -157,7 +180,7 @@ export function AuthPage() {
             <button
               type="button"
               onClick={handleGuestMode}
-              className="inline-flex items-center justify-center gap-1.5 text-sm text-sky-600 transition hover:text-[#1F83E0]"
+              className="inline-flex items-center justify-center gap-1.5 text-sm text-sky-600 transition hover:text-[#0070d5]"
             >
               <Sparkles size={14} />
               <span>进入游客模式</span>

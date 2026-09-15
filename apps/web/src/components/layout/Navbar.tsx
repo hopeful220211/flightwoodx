@@ -53,36 +53,24 @@ export function Navbar() {
 
   const handleLogout = () => { logout(); setUserMenuOpen(false); setMobileOpen(false) }
 
-  // 字重随选中态（未选中细体 / 选中粗体）；颜色随导航栏背景：
-  // 透明态（悬在 Hero 上）用白字；滚动成白底/非首页时用深色保证可读。
-  const linkCls = (active: boolean, onGlass: boolean) => {
-    const weight = active ? 'font-semibold' : 'font-light'
-    const color = onGlass
-      ? active
-        ? 'bg-sky-100 text-sky-700'
-        : 'text-ink-600 hover:bg-sky-50 hover:text-sky-700'
-      : active
-        ? 'text-white'
-        : 'text-white/75 hover:text-white'
-    return `inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition ${weight} ${color}`
-  }
 
   const navItems = isAuthenticated ? authedItems : publicItems
 
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+        data-scrolled={scrolled}
+        className={`site-nav fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
           scrolled
             ? 'border-b border-sky-100/60 bg-white/85 backdrop-blur-xl shadow-sm'
             : 'bg-transparent'
         }`}
       >
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:px-6">
+        <div className="site-nav-inner flex items-center justify-between">
           {/* ── Logo ── */}
           <NavLink
             to="/"
-            className="inline-flex items-center gap-2.5 text-base font-extrabold tracking-tight text-sky-800"
+            className="site-nav-brand"
             onClick={() => setMobileOpen(false)}
           >
             <span className="inline-flex h-9 w-9 items-center justify-center">
@@ -98,7 +86,7 @@ export function Navbar() {
                 key={item.to}
                 to={item.to}
                 end={'exact' in item && item.exact}
-                className={({ isActive }) => linkCls(isActive, scrolled)}
+                className="site-nav-link"
               >
                 {'icon' in item && <item.icon size={16} />}
                 {item.label}
@@ -113,7 +101,7 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white px-3 py-1.5 text-sm font-semibold shadow-sm transition hover:bg-sky-50"
+                  className="site-nav-user inline-flex items-center gap-2 border bg-white px-3 py-1.5 text-sm transition hover:bg-sky-50"
                 >
                   <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-700">
                     {isGuest ? (
@@ -183,7 +171,7 @@ export function Navbar() {
                   <button
                     type="button"
                     onClick={openLoginModal}
-                    className="inline-flex min-h-[38px] items-center justify-center rounded-lg border border-sky-100 bg-white px-8 text-sm font-semibold text-sky-600 shadow-sm transition hover:bg-sky-50 hover:text-sky-700 active:translate-y-[1px]"
+                    className="site-nav-login"
                   >
                     登录
                   </button>

@@ -81,8 +81,6 @@ jobs:
             command: pnpm lint
           - name: Security checks
             command: pnpm security
-          - name: Production build
-            command: pnpm build
 
     steps:
       - name: Reuse already verified CI evidence
@@ -125,25 +123,20 @@ jobs:
           CI: true
           FWX_TEST_MONGO_URI: ${{ matrix.name == 'Tests' && 'mongodb://127.0.0.1:27017' || '' }}
 
-  browser:
-    name: Browser core flow
+  build:
+    name: Production build
     needs: evidence
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    services:
-      mongo:
-        image: ${{ needs.evidence.outputs.reuse != 'true' && 'mongo:7' || '' }}
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping:1}).ok'"
-          --health-interval 10s --health-timeout 5s --health-retries 5
+    timeout-minutes: 12
+    outputs:
+      artifactId: ${{ steps.archive.outputs.artifact-id }}
+      digest: ${{ steps.package.outputs.digest }}
     steps:
       - name: Reuse already verified CI evidence
         if: needs.evidence.outputs.reuse == 'true'
         env:
           SOURCE_RUN: ${{ needs.evidence.outputs.runId }}
-        run: echo "This exact commit passed all browser checks in trusted full CI run $SOURCE_RUN."
+        run: echo "This exact commit passed its production build in trusted full CI run $SOURCE_RUN."
       - name: Check out repository
         if: needs.evidence.outputs.reuse != 'true'
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -159,58 +152,150 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Install dependencies and browser
+      - name: Install dependencies
         if: needs.evidence.outputs.reuse != 'true'
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm --filter web exec playwright install --with-deps chromium
-      - name: Build production bundle and API dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run Production build
         if: needs.evidence.outputs.reuse != 'true'
-        run: pnpm build && pnpm --filter api build:runtime-deps
+        run: pnpm build
         env:
           VITE_ASSET_BASE: ''
           VITE_API_URL: /api
           VITE_ANALYTICS_RELEASE: ${{ github.sha }}
-      - name: Start isolated application and verify core flow
+      - name: Package the single public build
+        id: package
         if: needs.evidence.outputs.reuse != 'true'
         env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          mkdir -m 700 "$RUNNER_TEMP/fwx-web-build"
+          node deploy/automation/package-web.mjs apps/web/dist "$RELEASE_SHA" "$RUNNER_TEMP/fwx-web-build/web.tar.gz" > "$RUNNER_TEMP/fwx-web-build/web.sha256"
+          echo "digest=$(cat "$RUNNER_TEMP/fwx-web-build/web.sha256")" >> "$GITHUB_OUTPUT"
+      - name: Retain untested build for isolated consumers
+        id: archive
+        if: needs.evidence.outputs.reuse != 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: web-build-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fwx-web-build/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+  browser-shards:
+    name: Browser shard ${{ matrix.group }}
+    needs: [evidence, build]
+    if: needs.evidence.outputs.reuse != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        group: ['1', '2', '3', 'privacy']
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping:1}).ok'"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 9.12.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install browser and API dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter web exec playwright install --with-deps chromium
+          pnpm --filter api build:runtime-deps
+      - name: Download this run's single build
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifactId }}
+          path: ${{ runner.temp }}/fwx-web-build
+          merge-multiple: true
+      - name: Verify and unpack build archive
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          BUILD_DIGEST: ${{ needs.build.outputs.digest }}
+        run: python3 -I deploy/automation/unpack-ci.py "$RUNNER_TEMP/fwx-web-build/web.tar.gz" "$BUILD_DIGEST" "$RELEASE_SHA" apps/web/dist
+      - name: Run isolated browser group
+        env:
           CI: true
+          BROWSER_GROUP: ${{ matrix.group }}
           MONGODB_URI: mongodb://127.0.0.1:27017/fwx_e2e
           PORT: 3000
           CORS_ORIGIN: http://127.0.0.1:4173
           PUBLIC_BASE_URL: http://127.0.0.1:4173
           STORAGE_DRIVER: disk
           FWX_E2E_BASE_URL: http://127.0.0.1:4173
+          ANALYTICS_ENABLED: ${{ matrix.group == 'privacy' && 'true' || 'false' }}
         run: |
           export JWT_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(48).toString("hex"))')"
+          export ANALYTICS_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(48).toString("hex"))')"
           export UPLOAD_DIR="$RUNNER_TEMP/fwx-e2e-uploads"
           node apps/api/src/server.js > "$RUNNER_TEMP/fwx-api.log" 2>&1 &
           API_PID=$!
           pnpm --filter web preview --host 127.0.0.1 --port 4173 > "$RUNNER_TEMP/fwx-web.log" 2>&1 &
+          WEB_PID=$!
+          trap 'kill "$API_PID" "$WEB_PID" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:4173/api/health > /dev/null; then break; fi
             sleep 1
           done
           curl -fsS http://127.0.0.1:4173/api/health
-          pnpm --filter web test:e2e '^(?!.*privacy\.spec\.ts).*$'
-          kill "$API_PID"
-          wait "$API_PID"
-          export ANALYTICS_ENABLED=true
-          export ANALYTICS_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(48).toString("hex"))')"
-          node apps/api/src/server.js > "$RUNNER_TEMP/fwx-api-analytics.log" 2>&1 &
-          for attempt in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4173/api/analytics/config | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.exit(JSON.parse(s).enabled?0:1)}catch{process.exit(1)}})'; then break; fi
-            sleep 1
-          done
-          pnpm --filter web test:e2e privacy.spec.ts
+          if [ "$BROWSER_GROUP" = privacy ]; then
+            pnpm --filter web test:e2e privacy.spec.ts
+          else
+            pnpm --filter web test:e2e '^(?!.*privacy\.spec\.ts).*$' --shard="$BROWSER_GROUP/3"
+          fi
 
-      - name: Package the exact browser-tested public bundle
+  browser:
+    name: Browser core flow
+    needs: [evidence, build, browser-shards]
+    # A failed/missing shard must fail this protected check, not skip it.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reuse already verified CI evidence
+        if: needs.evidence.result == 'success' && needs.evidence.outputs.reuse == 'true'
+        env:
+          SOURCE_RUN: ${{ needs.evidence.outputs.runId }}
+        run: echo "This exact commit passed all browser checks in trusted full CI run $SOURCE_RUN."
+      - name: Verify all browser shards
+        if: needs.evidence.outputs.reuse != 'true'
+        env:
+          EVIDENCE_RESULT: ${{ needs.evidence.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          SHARDS_RESULT: ${{ needs.browser-shards.result }}
+        run: test "$EVIDENCE_RESULT" = success && test "$BUILD_RESULT" = success && test "$SHARDS_RESULT" = success
+      - name: Check out repository
+        if: needs.evidence.outputs.reuse != 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Download this run's single build
+        if: needs.evidence.outputs.reuse != 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifactId }}
+          path: ${{ runner.temp }}/fwx-web-release
+          merge-multiple: true
+      - name: Verify the exact tested archive
         if: needs.evidence.outputs.reuse != 'true'
         env:
           RELEASE_SHA: ${{ github.sha }}
-        run: |
-          mkdir -m 700 "$RUNNER_TEMP/fwx-web-release"
-          node deploy/automation/package-web.mjs apps/web/dist "$RELEASE_SHA" "$RUNNER_TEMP/fwx-web-release/web.tar.gz" > "$RUNNER_TEMP/fwx-web-release/web.sha256"
+          BUILD_DIGEST: ${{ needs.build.outputs.digest }}
+        run: python3 -I deploy/automation/unpack-ci.py "$RUNNER_TEMP/fwx-web-release/web.tar.gz" "$BUILD_DIGEST" "$RELEASE_SHA" "$RUNNER_TEMP/fwx-tested-dist"
 
       - name: Retain the tested frontend release
         if: needs.evidence.outputs.reuse != 'true'

@@ -58,10 +58,10 @@ export function CustomPartInspector({ instance }: { instance: DesignPartInstance
   const update = useDesignStore(state => state.updatePartInActiveDesign)
   return <div className="min-w-0 flex-1 text-xs">
     <button type="button" className="w-full truncate text-left text-sm font-bold" onClick={() => useDesignStore.getState().setSelectedInstanceId(instance.instanceId)}>{usable ? query.data!.name : '自制零件'}</button>
-    <div className="text-slate-500">自由摆放</div>
+    <div className="text-slate-500">{instance.attachedTo ? '已连接' : '自由摆放'}</div>
     {usable ? <div>预估 {query.data!.flightImpact.massG} g · 来源版本 {instance.source?.version}</div> : <div role="alert">{query.isError ? query.error.message : '原零件尚未读取；引用保留'}<button type="button" onClick={() => void query.refetch()} className="ml-2 underline">重试</button></div>}
     <div className="mt-2 grid grid-cols-3 gap-1">
-      {(['X', 'Y', 'Z'] as const).map((axis, index) => <label key={axis} className="min-w-0">{axis} (mm)<input aria-label={`自制零件 ${axis} 位置（毫米）`} className="w-full rounded border px-1 py-1" type="number" min={-1000} max={1000} step={1} value={+(instance.position[index] * 1000).toFixed(2)} onChange={event => {
+      {(['X', 'Y', 'Z'] as const).map((axis, index) => <label key={axis} className="min-w-0">{axis} (mm)<input aria-label={`自制零件 ${axis} 位置（毫米）`} disabled={!!instance.attachedTo} className="min-h-11 w-full rounded border px-1 py-1 disabled:bg-slate-100" type="number" min={-1000} max={1000} step={1} value={+(instance.position[index] * 1000).toFixed(2)} onChange={event => {
         const value = event.currentTarget.valueAsNumber
         if (!Number.isFinite(value) || Math.abs(value) > 1000) return
         const position = [...instance.position] as [number, number, number]

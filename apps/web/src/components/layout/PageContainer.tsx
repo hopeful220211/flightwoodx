@@ -9,9 +9,8 @@ export interface PageContainerProps {
 
 export function PageContainer({ children, className }: PageContainerProps) {
   return (
-    <div className={['mx-auto w-full max-w-7xl px-4 lg:px-6', className].filter(Boolean).join(' ')}>
+    <div className={['site-page-container mx-auto w-full max-w-[1248px] px-6', className].filter(Boolean).join(' ')}>
       {children}
     </div>
   )
 }
-

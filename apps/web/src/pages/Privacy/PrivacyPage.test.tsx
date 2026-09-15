@@ -10,6 +10,7 @@ function render(path: string) {
   container.innerHTML = renderToStaticMarkup(<MemoryRouter initialEntries={[path]}><Routes>
     <Route path="/privacy" element={<PrivacyPage />} />
     <Route path="/privacy/:document" element={<PrivacyPage />} />
+    <Route path="/terms" element={<PrivacyPage documentSlug="terms" />} />
   </Routes></MemoryRouter>)
   return container
 }
@@ -17,6 +18,14 @@ it('provides public independent links to all notices and settings', () => {
   const page = render('/privacy')
   for (const policy of policies) expect(page.querySelector(`a[href="/privacy/${policy.slug}"]`)).not.toBeNull()
   expect(page.querySelector('a[href="/privacy/settings"]')).not.toBeNull()
+})
+it('provides a real user agreement, separate from the privacy policy', () => {
+  const page = render('/terms')
+  expect(page.querySelector('h1')?.textContent).toBe('用户使用协议')
+  expect(page.textContent).toContain('芬奇答奥（重庆）科技有限公司')
+  expect(page.textContent).toContain('作品权益')
+  expect(page.textContent).toContain('不代表同意可选使用统计')
+  expect(page.textContent).toContain('2026年9月15日')
 })
 it.each(policies)('renders the entire $title, a working contents list and contact link', policy => {
   const page = render(`/privacy/${policy.slug}`)

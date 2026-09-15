@@ -35,9 +35,9 @@ function observePage(page: Page) {
 
 async function expectSmallRadius(control: Locator) {
   await expect(control).toBeVisible()
-  // FlightWoodX overrides Tailwind's rounded-lg to 10px, as used by Navbar.
+  // DJI-aligned app controls retain a small rectangular 6 px radius.
   for (const corner of ['top-left', 'top-right', 'bottom-left', 'bottom-right']) {
-    await expect(control).toHaveCSS(`border-${corner}-radius`, '10px')
+    await expect(control).toHaveCSS(`border-${corner}-radius`, '6px')
   }
 }
 
@@ -63,7 +63,7 @@ for (const viewport of [
   { width: 768, height: 1024 },
   { width: 1440, height: 900 },
 ]) {
-  test(`dashboard controls match 10px navigation corners and retain guest interactions at ${viewport.width}×${viewport.height}`, async ({ page, context }) => {
+  test(`dashboard controls match 6px navigation corners and retain guest interactions at ${viewport.width}×${viewport.height}`, async ({ page, context }) => {
     const failures = observePage(page)
     await guardLocalNetwork(context)
     await page.setViewportSize(viewport)

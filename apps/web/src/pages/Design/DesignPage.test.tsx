@@ -10,6 +10,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { partsData } from '../../data/parts'
 import type { PartInstance } from '../../types/design'
 import { flightReadiness } from '../../utils/flightReadiness'
+import { officialConnectors } from '@fwx/geometry'
 
 const mocks = vi.hoisted(() => ({
   track: vi.fn(),
@@ -77,6 +78,14 @@ function button(text: string) {
 }
 
 describe('free design feedback', () => {
+  it('shows the model connector count even before the runtime model cache is populated', async () => {
+    await renderDesign([official(hub)])
+    const count = officialConnectors(hub.id).length
+    expect(count).toBeGreaterThan(0)
+    expect(container.textContent).toContain(`${count} 个连接点`)
+    expect(container.textContent).not.toContain('0 个连接点')
+  })
+
   it('keeps the save status together when the mobile summary wraps', async () => {
     await renderDesign([custom])
     expect(container.querySelector('[role="status"]')?.classList.contains('whitespace-nowrap')).toBe(true)
@@ -96,13 +105,12 @@ describe('free design feedback', () => {
     expect(useDesignStore.getState().getActiveDesign()?.parts).toEqual(parts)
   })
 
-  it('keeps one actionable missing-mainboard message for official parts and opens the relevant library', async () => {
+  it('offers explicit connections without forcing an official mainboard into free assembly', async () => {
     await renderDesign([official(landing), custom])
-    expect(container.textContent?.match(/请先添加主板，再连接官方零件。/g)).toHaveLength(1)
+    expect(container.textContent).not.toContain('请先添加主板，再连接官方零件。')
+    expect(button('连接零件')).toBeDefined()
     await act(async () => button('自制零件').click())
     expect(container.textContent).toContain('自制零件库')
-    await act(async () => button('选择主板').click())
-    expect(container.textContent).not.toContain('自制零件库')
     expect(useDesignStore.getState().getActiveDesign()?.parts).toHaveLength(2)
   })
 
@@ -131,7 +139,7 @@ describe('free design feedback', () => {
     expect(useDesignStore.getState().getActiveDesign()?.parts).toEqual([custom])
   })
 
-  it('keeps a failed connection explicit and does not add a part', async () => {
+  it('allows free placement when no automatic connection is found', async () => {
     await renderDesign([])
     const add = vi.spyOn(useDesignStore.getState(), 'addPartSmart').mockResolvedValue(false)
     await act(async () => root.render(<DesignPage />))
@@ -139,8 +147,9 @@ describe('free design feedback', () => {
     await act(async () => details.click())
     await act(async () => button('添加到设计').click())
     expect(add).toHaveBeenCalledWith(hub.id)
-    expect(mocks.push).toHaveBeenCalledWith('error', '未找到可用连接点，零件未添加')
-    expect(useDesignStore.getState().getActiveDesign()?.parts).toEqual([])
+    expect(mocks.push).toHaveBeenCalledWith('success', '已添加零件')
+    expect(useDesignStore.getState().getActiveDesign()?.parts).toHaveLength(1)
+    expect(useDesignStore.getState().getActiveDesign()?.parts[0]?.attachedTo).toBeUndefined()
   })
 })
 

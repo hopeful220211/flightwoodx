@@ -19,15 +19,14 @@ export function ProductDemoSection() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
 
   return (
-    <section className="overflow-x-clip bg-white py-24 lg:py-32">
-      <div className="mx-auto max-w-6xl px-4">
-        <div className="grid items-center gap-12 lg:grid-cols-[3fr_2fr]">
+    <section className="home-demo site-section">
+      <div className="site-container">
+        <div className="home-demo-layout">
 
           {/* Left: silent workbench demonstration */}
           <ScrollReveal direction="left" distance={30}>
             <div
-              className="rounded-2xl overflow-hidden shadow-[0_30px_70px_rgba(23,74,126,0.22)] ring-1 ring-sky-100/70"
-              style={{ transform: 'perspective(1400px) rotateY(-3deg) rotateX(1deg)' }}
+              className="home-demo-media"
             >
               <WorkbenchAnimation />
             </div>
@@ -35,15 +34,15 @@ export function ProductDemoSection() {
 
           {/* Right: text */}
           <ScrollReveal direction="right" distance={20} delay={100}>
-            <div className="space-y-6">
+            <div className="home-demo-copy">
               <SectionHeading
-                align="left"
+                align="center"
                 eyebrow="在线工具"
                 title="设计工作台"
                 lead="浏览零件、调整位置并预览三维结构。登录后可保存作品、继续编程或导出设计记录。目前不提供切割图。"
               />
 
-              <ul className="space-y-3">
+              <ul className="home-demo-features">
                 {features.map((f) => (
                   <li key={f.text} className="flex items-center gap-3 text-sky-800">
                     <f.icon size={18} className="text-sky-500 shrink-0" />

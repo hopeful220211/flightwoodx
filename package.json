@@ -19,7 +19,7 @@
     "check": "node scripts/check-release.mjs",
     "ci": "pnpm check && pnpm build",
     "release": "node deploy/automation/release.mjs",
-    "release:check": "pnpm run ci",
+    "release:check": "node deploy/automation/release.mjs",
     "clean": "pnpm -r exec rm -rf node_modules dist && rm -rf node_modules"
   },
   "devDependencies": {
@@ -48,6 +48,9 @@
       "postcss-selector-parser@6": "6.1.4",
       "qs": "6.16.0",
       "vite": "7.3.5"
+    },
+    "patchedDependencies": {
+      "@react-three/fiber@9.6.0": "patches/@react-three__fiber@9.6.0.patch"
     }
   }
 }

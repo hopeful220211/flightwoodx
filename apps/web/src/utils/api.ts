@@ -881,8 +881,8 @@ export async function createCustomPart(def: UserPartDef): Promise<ApiResponse<Us
 }
 
 /** 列出「我的零件」（仅本人，按更新时间倒序）。 */
-export async function listCustomParts(page = 1, pageSize = 50): Promise<ApiResponse<CustomPartListResult>> {
-  return apiFetch<CustomPartListResult>(`/custom-parts?page=${page}&pageSize=${pageSize}`)
+export async function listCustomParts(page = 1, pageSize = 50, category?: string): Promise<ApiResponse<CustomPartListResult>> {
+  return apiFetch<CustomPartListResult>(`/custom-parts?page=${page}&pageSize=${pageSize}${category ? `&category=${encodeURIComponent(category)}` : ''}`)
 }
 
 /** 取单件自制零件（仅本人）。 */

@@ -76,8 +76,8 @@ it('links the short banner to complete notices without a floating settings butto
   expect([...container.querySelectorAll('button')].map(button => button.textContent)).toEqual(['不允许', '允许使用统计'])
 })
 
-it('does not cover policy reading with an automatic banner or require login', async () => {
-  const { container, client } = await mount(true, 'banner', '/privacy/policy')
+it.each(['/privacy/policy', '/terms'])('does not cover document reading at %s with an automatic banner or require login', async (path) => {
+  const { container, client } = await mount(true, 'banner', path)
   expect(container.textContent).toBe('')
   expect(client.getSnapshot().decision).toBe('unknown')
 })

@@ -10,7 +10,7 @@ const OLD = 'b'.repeat(40);
 const NEW = 'c'.repeat(40);
 
 test('release is read-only by default; unsafe and ambiguous flags are rejected', () => {
-  assert.deepEqual(parseArguments([]), { publish: false, waitMinutes: 20, help: false });
+  assert.deepEqual(parseArguments([]), { publish: false, waitMinutes: 18, help: false });
   assert.equal(parseArguments(['--publish', '--wait-minutes', '5']).publish, true);
   for (const args of [['--force'], ['--publish', '--publish'], ['--wait-minutes', '0'], ['--wait-minutes', '31'], ['--wait-minutes', '2.5'], ['--publish=yes']]) assert.throws(() => parseArguments(args));
 });
@@ -68,7 +68,7 @@ async function fixture(t, overrides = {}) {
     }
     if (command === 'gh' && key === 'auth token --hostname github.com') return { code: 0, stdout: 'private-test-token\n' };
     if (command === 'gh' && key.includes('/actions/workflows/ci.yml/runs?')) {
-      if (!key.includes('branch=production')) return { code: 0, stdout: JSON.stringify({ workflow_runs: overrides.candidateFailed ? [{ id: 88, head_sha: SHA, head_branch: 'codex/release-test', event: 'push', path: '.github/workflows/ci.yml', status: 'completed', conclusion: 'failure', repository: { full_name: 'hopeful220211/flightwoodx' }, head_repository: { full_name: 'hopeful220211/flightwoodx' } }] : [] }) };
+      if (!key.includes('branch=production')) return { code: 0, stdout: JSON.stringify({ workflow_runs: overrides.candidateFailed || context.candidatePushed ? [{ id: 88, head_sha: SHA, head_branch: 'codex/release-test', event: 'push', path: '.github/workflows/ci.yml', status: overrides.candidateFailed || !overrides.noEvidence ? 'completed' : 'in_progress', conclusion: overrides.candidateFailed ? 'failure' : overrides.noEvidence ? null : 'success', repository: { full_name: 'hopeful220211/flightwoodx' }, head_repository: { full_name: 'hopeful220211/flightwoodx' } }] : [] }) };
       const runData = { id: 999, head_sha: SHA, head_branch: 'production', event: 'push', path: '.github/workflows/ci.yml', status: overrides.pending ? 'in_progress' : 'completed', conclusion: overrides.runFailed ? 'failure' : 'success', created_at: '2026-09-14T00:00:01Z', repository: { full_name: 'hopeful220211/flightwoodx' }, head_repository: { full_name: 'hopeful220211/flightwoodx' } };
       return { code: 0, stdout: JSON.stringify({ workflow_runs: context.pushed || overrides.resume ? [runData] : [] }) };
     }
@@ -80,6 +80,7 @@ async function fixture(t, overrides = {}) {
     run: async (command, args, options) => {
       const result = await run(command, args, options);
       if (command === 'git' && args[0] === 'push' && args.at(-1).endsWith(':refs/heads/production')) context.pushed = true;
+      if (command === 'git' && args[0] === 'push' && args.at(-1).endsWith(':refs/heads/codex/release-test')) context.candidatePushed = true;
       return result;
     },
     now: () => time,
@@ -99,6 +100,9 @@ async function fixture(t, overrides = {}) {
 test('plan records scope/evidence/timings without pushing, rebuilding or requiring clean tree', async t => {
   const f = await fixture(t, { dirty: true });
   const result = await runRelease(parseArguments([]), f.deps);
+  const summary = f.events.findLast(event => event.type === 'release-summary');
+  assert.equal(summary.ready, false);
+  assert.ok(summary.blockers.includes('dirty_worktree'));
   assert.equal(result.status, 'planned');
   assert.equal(result.ready, false);
   assert.ok(result.blockers.includes('dirty_worktree'));
@@ -165,6 +169,38 @@ test('candidate wait is bounded and never falls through to production without pr
   assert.equal(f.calls.filter(call => call[0] === 'git' && call[1] === 'push').length, 1);
   assert.ok(!f.calls.flat().includes(`${SHA}:refs/heads/production`));
   assert.equal(result.durationMs, 60_000);
+  assert.equal(f.evidenceCalls, 1, 'running jobs must not repeatedly fetch the full evidence graph');
+  assert.equal(f.events.filter(event => event.type === 'release-progress').length, 1, 'unchanged progress must stay quiet');
+});
+
+test('invalid release boundary stops before expensive CI evidence lookup', async t => {
+  for (const overrides of [{ dirty: true }, { merges: true }, { diverged: true }]) {
+    const f = await fixture(t, overrides);
+    const result = await runRelease(parseArguments(['--publish']), f.deps);
+    assert.equal(result.status, 'blocked');
+    assert.equal(f.evidenceCalls, 0);
+  }
+});
+
+test('release plans expose stage budgets and scoped acceptance without printing every changed path', async t => {
+  const f = await fixture(t, { paths: 'apps/web/src/pages/Home/HomePage.tsx\0' });
+  const result = await runRelease(parseArguments([]), f.deps);
+  assert.equal(result.plan.targetMinutes, 5);
+  assert.equal(result.plan.candidateChecks, 'reuse');
+  assert.equal(result.plan.deployBackend, false);
+  assert.deepEqual(result.plan.acceptanceAreas, ['home']);
+  assert.equal(result.plan.budgetsMs['production-deployment'], 300_000);
+  const summary = f.events.find(event => event.type === 'release-summary');
+  assert.equal(summary.changedPaths, undefined);
+  assert.equal(summary.receiptPath, result.receiptPath);
+});
+
+test('slow candidate CI emits one budget warning without restarting the job', async t => {
+  const f = await fixture(t, { noEvidence: true });
+  const result = await runRelease(parseArguments(['--publish', '--wait-minutes', '13']), f.deps);
+  assert.equal(result.errorCode, 'candidate_wait_timeout');
+  assert.equal(f.events.filter(event => event.type === 'release-budget-warning' && event.stage === 'candidate-ci').length, 1);
+  assert.equal(f.calls.filter(call => call[0] === 'git' && call[1] === 'push').length, 1);
 });
 
 test('docs-only release avoids production push; already published exact commit verifies without redeploy', async t => {

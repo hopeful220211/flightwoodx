@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useLayoutEffect, useCallback } from 'react'
+import { AssemblyConnectorMarkers } from '../../features/partStudio/AssemblyConnectorMarkers'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, Grid, Html, Bounds, useBounds } from '@react-three/drei'
 import * as THREE from 'three'
@@ -100,6 +101,7 @@ export function ThreeCanvas({ cameraView = null, onCameraViewChanged }: ThreeCan
         </Bounds>
         <DragHandler />
         <SocketHighlights />
+        <AssemblyConnectorMarkers />
         <CameraController view={cameraView} onViewChanged={onCameraViewChanged} />
         {/* ActionMenu 需要在 Canvas 内部以访问 useThree */}
         <ActionMenu />

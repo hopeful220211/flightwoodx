@@ -1,0 +1,42 @@
+diff --git a/dist/react-three-fiber.cjs.dev.js b/dist/react-three-fiber.cjs.dev.js
+index 90a8982b4dcee1dc7578316380a9d65ff0302c1e..25748be04a25ef4474ad17d6f95169922b7050a4 100644
+--- a/dist/react-three-fiber.cjs.dev.js
++++ b/dist/react-three-fiber.cjs.dev.js
+@@ -126,6 +126,9 @@ function CanvasImpl({
+             onCreated == null ? void 0 : onCreated(state);
+           }
+         });
++        // The DOM owner can unmount while configure yields. Do not resurrect
++        // its scene or connect events after React has cleared the canvas ref.
++        if (canvasRef.current !== canvas) return;
+         root.current.render( /*#__PURE__*/jsxRuntime.jsx(Bridge, {
+           children: /*#__PURE__*/jsxRuntime.jsx(events.ErrorBoundary, {
+             set: setError,
+diff --git a/dist/react-three-fiber.cjs.prod.js b/dist/react-three-fiber.cjs.prod.js
+index e099c75670a56b0d21be42394ba13f84af5e6d95..180683ff6916de825c86b2a6c124ce6902cbb9f4 100644
+--- a/dist/react-three-fiber.cjs.prod.js
++++ b/dist/react-three-fiber.cjs.prod.js
+@@ -126,6 +126,9 @@ function CanvasImpl({
+             onCreated == null ? void 0 : onCreated(state);
+           }
+         });
++        // The DOM owner can unmount while configure yields. Do not resurrect
++        // its scene or connect events after React has cleared the canvas ref.
++        if (canvasRef.current !== canvas) return;
+         root.current.render( /*#__PURE__*/jsxRuntime.jsx(Bridge, {
+           children: /*#__PURE__*/jsxRuntime.jsx(events.ErrorBoundary, {
+             set: setError,
+diff --git a/dist/react-three-fiber.esm.js b/dist/react-three-fiber.esm.js
+index de9bae2145f5e464333359ce07c3b1f1755b957d..320eadc2e23cbe33cb2fc9e9921598f181a6b99d 100644
+--- a/dist/react-three-fiber.esm.js
++++ b/dist/react-three-fiber.esm.js
+@@ -99,6 +99,9 @@ function CanvasImpl({
+             onCreated == null ? void 0 : onCreated(state);
+           }
+         });
++        // The DOM owner can unmount while configure yields. Do not resurrect
++        // its scene or connect events after React has cleared the canvas ref.
++        if (canvasRef.current !== canvas) return;
+         root.current.render( /*#__PURE__*/jsx(Bridge, {
+           children: /*#__PURE__*/jsx(ErrorBoundary, {
+             set: setError,

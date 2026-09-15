@@ -7,7 +7,7 @@ const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 test('release commands and mandatory project entry points stay connected', async () => {
   const { scripts } = JSON.parse(await read('package.json'));
   assert.equal(scripts.release, 'node deploy/automation/release.mjs');
-  assert.equal(scripts['release:check'], 'pnpm run ci');
+  assert.equal(scripts['release:check'], scripts.release);
   assert.equal(scripts.check, 'node scripts/check-release.mjs');
   assert.equal(scripts.ci, 'pnpm check && pnpm build');
   for (const path of ['AGENTS.md', '.agents/skills/flightwoodx-development/SKILL.md']) {

@@ -66,10 +66,10 @@ describe('designStore addPartSmart result', () => {
     expect(useDesignStore.getState().getDesignById(designId)?.parts).toHaveLength(1)
   })
 
-  it('keeps custom references only in free placement and round-trips their positions', () => {
+  it('keeps custom references in both modes and round-trips their positions', () => {
     const store = activate([])
     const custom = { partId: 'custom_507f1f77bcf86cd799439011', category: 'joint' as const, position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], source: { kind: 'custom' as const, id: '507f1f77bcf86cd799439011', version: 1, updatedAt: '2026-09-07T00:00:00.000Z' } }
-    expect(store.addPartToActiveDesign(custom)).toBe(false)
+    expect(store.addPartToActiveDesign(custom)).toBe(true)
     const id = store.createDesign('自由', 'free')
     store.setActiveDesignId(id)
     expect(store.addPartToActiveDesign(custom)).toBe(true)

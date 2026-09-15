@@ -43,6 +43,7 @@ async function register(page: Page) {
   await page.goto('/register')
   await page.getByLabel('用户名', { exact: true }).fill(username)
   await page.getByLabel('邮箱', { exact: true }).fill(`${username}@example.test`)
+  await page.getByRole('checkbox', { name: /我已阅读并同意/ }).check()
   try {
     try { await page.getByLabel('密码', { exact: true }).fill(password) }
     catch { throw new Error('Could not fill the isolated registration password field.') }

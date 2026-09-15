@@ -5,6 +5,7 @@ const DroneDesign = require('../models/DroneDesign')
 const User = require('../models/User')
 const { putObject, bestEffortDeleteObject } = require('../lib/storage')
 const { parseDesignPayload } = require('../lib/designSnapshot')
+const { validateAssemblyPayload } = require('../lib/assemblyConnections')
 const { validateProjectReferences } = require('../lib/projectReferences')
 const { isInvalidDocument } = require('../lib/persistenceErrors')
 const { recordDesignSaved } = require('../lib/analytics')
@@ -148,6 +149,8 @@ router.post('/', async (req, res) => {
     }
     const parsedPayload = parseDesignPayload({ designData, parts })
     if (!parsedPayload.ok) return res.status(400).json({ error: parsedPayload.error })
+    const assemblyError = await validateAssemblyPayload(parsedPayload, req.userId)
+    if (assemblyError) return res.status(400).json({ error: assemblyError })
     const referenceCheck = await validateProjectReferences({ programId }, req.userId)
     if (!referenceCheck.ok) return res.status(400).json({ error: referenceCheck.error })
 
@@ -207,6 +210,8 @@ router.put('/', async (req, res) => {
     }
     const parsedPayload = parseDesignPayload({ designData })
     if (!parsedPayload.ok) return res.status(400).json({ error: parsedPayload.error })
+    const assemblyError = await validateAssemblyPayload(parsedPayload, req.userId)
+    if (assemblyError) return res.status(400).json({ error: assemblyError })
     const referenceCheck = await validateProjectReferences({ programId }, req.userId)
     if (!referenceCheck.ok) return res.status(400).json({ error: referenceCheck.error })
 
@@ -268,6 +273,8 @@ router.patch('/:id', async (req, res) => {
     }
     const parsedPayload = parseDesignPayload(updates)
     if (!parsedPayload.ok) return res.status(400).json({ error: parsedPayload.error })
+    const assemblyError = await validateAssemblyPayload(parsedPayload, req.userId)
+    if (assemblyError) return res.status(400).json({ error: assemblyError })
     if (updates.designData !== undefined) updates.designData = parsedPayload.designData
     if (updates.parts !== undefined) updates.parts = parsedPayload.parts
     const referenceCheck = await validateProjectReferences({ programId: updates.programId }, req.userId)

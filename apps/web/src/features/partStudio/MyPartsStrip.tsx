@@ -58,7 +58,7 @@ function PartChip({ part, onDelete, onUse, onInspect }: { part: UserPartDTO; onD
       <p className="text-center text-[10px] text-slate-400">
         {USER_PART_CATEGORY_LABELS[part.category]}
       </p>
-      <button type="button" onClick={() => onUse(part)} className="mt-2 w-full rounded bg-sky-100 px-1 py-2 text-xs text-sky-800" aria-label={`放入自由拼装：${part.name}`}>放入自由拼装</button>
+      <button type="button" onClick={() => onUse(part)} className="mt-2 min-h-11 w-full rounded bg-sky-100 px-1 py-2 text-xs text-sky-800" aria-label={`放入作品：${part.name}`}>放入作品</button>
       {!!part.jointGuides?.length && onInspect && <button type="button" onClick={() => onInspect(part)} className="mt-1 min-h-10 w-full rounded text-xs text-red-700 hover:bg-red-50" aria-label={`查看插槽：${part.name}`}>查看插槽（{part.jointGuides.length}）</button>}
       <button
         type="button"

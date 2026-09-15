@@ -167,8 +167,8 @@ test('real MongoDB: identity, owned design/part persistence, profile and admin b
       const mainboardDesignId = savedDesign.body.design.id
       const readDesign = await send(`/drone-designs/${mainboardDesignId}`, { token: owner.token })
       assert.deepEqual(readDesign.body.design.designData.parts[0], instance)
+      assert.equal((await send('/drone-designs', { method: 'PUT', token: owner.token, body: { ...designPayload, designData: { ...designPayload.designData, buildMode: 'guided' } } })).status, 200)
       for (const invalidDesignData of [
-        { ...designPayload.designData, buildMode: 'guided' },
         { ...designPayload.designData, parts: [{ ...instance, activeConnectorId: 'invented' }] },
       ]) assert.equal((await send('/drone-designs', { method: 'PUT', token: owner.token, body: { ...designPayload, designData: invalidDesignData } })).status, 400)
       assert.equal((await send(`/drone-designs/${mainboardDesignId}`, { token: other.token })).status, 404)

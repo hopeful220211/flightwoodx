@@ -1,0 +1,33 @@
+// @vitest-environment jsdom
+import { renderToStaticMarkup } from 'react-dom/server'
+import { readFileSync } from 'node:fs'
+import { expect, it } from 'vitest'
+import { SectionHeading } from './components/SectionHeading'
+import { Button } from '../../components/common/Button'
+
+it('loads Open Sans and removes the old site-wide Chinese display face', () => {
+  const css = readFileSync('src/index.css', 'utf8')
+  expect(css).toContain("font-family: 'Open Sans'")
+  expect(css).not.toContain('@import \'misans')
+  expect(css).not.toContain("font-family: 'DingTalk JinBuTi'")
+  expect(css).toContain("font-family: 'Montserrat'")
+})
+
+it('uses a single reference-based title treatment without the old decorative mark', () => {
+  const html = renderToStaticMarkup(<SectionHeading eyebrow="功能介绍" title="平台功能" lead="绘制零件、拼装机体，并用积木程序进行模拟测试。" />)
+  const host = document.createElement('div'); host.innerHTML = html
+  expect(host.querySelector('h2')?.classList.contains('site-section-title')).toBe(true)
+  expect(host.querySelector('p')?.classList.contains('site-section-lead')).toBe(true)
+  expect(host.querySelector('[aria-hidden="true"]')).toBeNull()
+  expect(host.textContent).toContain('绘制零件、拼装机体，并用积木程序进行模拟测试。')
+})
+
+it('gives shared actions explicit style hooks without changing their behavior', () => {
+  const host = document.createElement('div')
+  host.innerHTML = renderToStaticMarkup(<Button variant="outline" disabled>保存</Button>)
+  const button = host.querySelector('button')!
+  expect(button.classList.contains('site-button')).toBe(true)
+  expect(button.dataset.variant).toBe('outline')
+  expect(button.disabled).toBe(true)
+  expect(button.textContent).toBe('保存')
+})

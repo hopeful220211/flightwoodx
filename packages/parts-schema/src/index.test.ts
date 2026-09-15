@@ -193,23 +193,22 @@ describe('作品装配快照契约', () => {
     expect(parsed.parts[0]).not.toHaveProperty('geometry')
   })
 
-  it('accepts custom mainboards only as unconnected free placements with unchanged source provenance', () => {
+  it('accepts custom mainboards in both modes with unchanged source provenance', () => {
     const mainboard = { ...custom, category: 'mainboard' }
     const candidate = { ...snapshot, buildMode: 'free', parts: [mainboard] }
     expect(DroneDesignSnapshotSchema.parse(candidate).parts[0]).toMatchObject(mainboard)
     for (const unsafe of [
-      { ...candidate, buildMode: 'guided' },
       { ...candidate, parts: [{ ...mainboard, source: undefined }] },
       { ...candidate, parts: [{ ...mainboard, partId: 'core_hub_01' }] },
       { ...candidate, parts: [{ ...mainboard, activeConnectorId: 'invented' }] },
       { ...candidate, parts: [snapshot.parts[0], { ...mainboard, attachedTo: { parentInstanceId: 'hub-1', parentConnectorId: 'invented' } }] },
       { ...candidate, parts: [mainboard, { ...snapshot.parts[1], attachedTo: { parentInstanceId: mainboard.instanceId, parentConnectorId: 'invented' } }] },
     ]) expect(DroneDesignSnapshotSchema.safeParse(unsafe).success).toBe(false)
+    expect(DroneDesignSnapshotSchema.safeParse({ ...candidate, buildMode: 'guided' }).success).toBe(true)
   })
 
-  it('rejects fabricated custom connections, guided completion, and mismatched provenance', () => {
+  it('rejects fabricated connector names and mismatched provenance', () => {
     for (const candidate of [
-      { ...snapshot, parts: [custom] },
       { ...snapshot, buildMode: 'free', parts: [{ ...custom, partId: 'core_hub_01' }] },
       { ...snapshot, buildMode: 'free', parts: [{ ...custom, source: undefined }] },
       { ...snapshot, buildMode: 'free', parts: [{ ...custom, activeConnectorId: 'invented' }] },

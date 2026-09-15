@@ -383,21 +383,21 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
       style={{ touchAction: 'none', cursor: inserting ? hoverAnchor || insertionDrawing ? 'crosshair' : 'not-allowed' : tool === 'select' ? 'default' : 'crosshair' }}
       onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerLeave={() => setHoveredEdge(null)}
       onPointerCancel={event => { if (gestureRef.current && event.pointerId === activePointerId.current) { resetPending(); setError('绘制已中断，未保存这次操作，请重新绘制。') } }} onKeyDown={keyDown}>
-      <defs><pattern id={gridId} width={gridStep} height={gridStep} patternUnits="userSpaceOnUse"><path d={`M ${gridStep} 0 L 0 0 0 ${gridStep}`} fill="none" stroke="#dbe8f3" strokeWidth={0.5} vectorEffect="non-scaling-stroke" /></pattern></defs>
-      <rect x={-margin} y={-margin} width={viewWidth} height={viewHeight} fill="#f7faff" />
-      <rect data-testid={reference.shape === 'ellipse' ? undefined : 'reference-outline'} width={reference.width} height={reference.height} fill={`url(#${gridId})`} stroke={referenceInvalid && reference.shape !== 'ellipse' ? '#b45309' : '#a9c5df'} strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="4 4" />
-      {reference.shape === 'ellipse' && <ellipse data-testid="reference-outline" cx={reference.width / 2} cy={reference.height / 2} rx={reference.width / 2} ry={reference.height / 2} fill="none" stroke={referenceInvalid ? '#b45309' : '#559ac9'} strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="6 4" pointerEvents="none" />}
-      <path d={`M ${reference.width / 2} 0 V ${reference.height}`} stroke="#aac4dd" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="6 4" pointerEvents="none" />
-      <g fill="#607990" fontSize={2.3 * displayScale} pointerEvents="none">
+      <defs><pattern id={gridId} width={gridStep} height={gridStep} patternUnits="userSpaceOnUse"><path d={`M ${gridStep} 0 L 0 0 0 ${gridStep}`} fill="none" stroke="#e3e8ec" strokeWidth={0.5} vectorEffect="non-scaling-stroke" /></pattern></defs>
+      <rect x={-margin} y={-margin} width={viewWidth} height={viewHeight} fill="#f7f9fa" />
+      <rect data-testid={reference.shape === 'ellipse' ? undefined : 'reference-outline'} width={reference.width} height={reference.height} fill={`url(#${gridId})`} stroke={referenceInvalid && reference.shape !== 'ellipse' ? '#b45309' : '#a8b4be'} strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="4 4" />
+      {reference.shape === 'ellipse' && <ellipse data-testid="reference-outline" cx={reference.width / 2} cy={reference.height / 2} rx={reference.width / 2} ry={reference.height / 2} fill="none" stroke={referenceInvalid ? '#b45309' : '#6b8599'} strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="6 4" pointerEvents="none" />}
+      <path d={`M ${reference.width / 2} 0 V ${reference.height}`} stroke="#a8b4be" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="6 4" pointerEvents="none" />
+      <g fill="#676d72" fontSize={2.3 * displayScale} pointerEvents="none">
         {Array.from({ length: Math.floor(reference.width / tickStep) + 1 }, (_, index) => <text key={`x${index}`} x={index * tickStep} y={-margin * 0.35} textAnchor="middle">{index * tickStep}</text>)}
         {Array.from({ length: Math.floor(reference.height / tickStep) + 1 }, (_, index) => <text key={`y${index}`} x={-margin * 0.4} y={index * tickStep} textAnchor="end" dominantBaseline="middle">{index * tickStep}</text>)}
       </g>
-      {part && !gesture && <path data-testid="compiled-sketch" d={[line(part.contour.points), ...(part.holes ?? []).map(hole => line(hole.points))].join(' ')} fill="#cce7f9" fillRule="evenodd" stroke="#2789cb" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
+      {part && !gesture && <path data-testid="compiled-sketch" d={[line(part.contour.points), ...(part.holes ?? []).map(hole => line(hole.points))].join(' ')} fill="#cce7f9" fillRule="evenodd" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
       {shapes.map(shape => {
         const current = preview?.id === shape.id ? preview : shape
         return <g key={shape.id}>
           <g data-shape-id={shape.id} aria-label={`${shape.operation === 'cut' ? '切除' : '实体'}形状 ${shapes.indexOf(shape) + 1}`} role="button" tabIndex={tool === 'select' ? 0 : -1}
-            fill={shape.operation === 'cut' ? '#ef444412' : gesture ? '#cce7f9aa' : 'transparent'} stroke={shape.operation === 'cut' ? '#dc5252' : shape.id === selectedId ? '#1479c0' : '#79accf'}
+            fill={shape.operation === 'cut' ? '#ef444412' : gesture ? '#cce7f9aa' : 'transparent'} stroke={shape.operation === 'cut' ? '#dc5252' : shape.id === selectedId ? '#0070d5' : '#79accf'}
             strokeWidth={1} strokeDasharray={shape.operation === 'cut' ? '4 4' : undefined}
             style={{ cursor: tool === 'select' ? 'move' : 'inherit', outline: 'none' }} onPointerDown={event => selectShape(event, shape)}
             onFocus={() => setFocusedId(shape.id)} onBlur={() => setFocusedId(null)}
@@ -409,7 +409,7 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
             <g data-problem-shape-id={shape.id} fill="none" stroke="#b45309" strokeWidth={2} strokeDasharray="5 3" pointerEvents="none" aria-hidden="true"><ShapeMark shape={current} /></g>
             {shape.mirror && <g data-problem-shape-id={shape.id} transform={`translate(${reference.width} 0) scale(-1 1)`} fill="none" stroke="#b45309" strokeWidth={2} strokeDasharray="5 3" pointerEvents="none" aria-hidden="true"><ShapeMark shape={current} /></g>}
           </>}
-          {focusedId === shape.id && focusedId !== selectedId && <rect data-testid="shape-focus-outline" x={current.x} y={current.y} width={current.width} height={current.height} fill="none" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="3 3" pointerEvents="none" />}
+          {focusedId === shape.id && focusedId !== selectedId && <rect data-testid="shape-focus-outline" x={current.x} y={current.y} width={current.width} height={current.height} fill="none" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="3 3" pointerEvents="none" />}
         </g>
       })}
       {inserting && part && !disabled && <path data-testid="insertion-edge-guide" d={line(part.contour.points)} fill="none" stroke="#dc5252" strokeWidth={2} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
@@ -417,23 +417,23 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
         <circle cx={hoverAnchor[0]} cy={hoverAnchor[1]} r={12 / screenScale} fill="#fee2e280" stroke="#dc5252" strokeWidth={1} vectorEffect="non-scaling-stroke" />
         <circle data-testid="insertion-hover-anchor" cx={hoverAnchor[0]} cy={hoverAnchor[1]} r={4 / screenScale} fill="white" stroke="#b91c1c" strokeWidth={2} vectorEffect="non-scaling-stroke" />
       </g>}
-      {preview && gesture?.kind === 'draw' && <g fill={preview.operation === 'cut' ? '#ef444430' : '#60a5fa30'} stroke={preview.operation === 'cut' ? '#dc5252' : '#1479c0'} strokeWidth={1} pointerEvents="none"><ShapeMark shape={preview} />{preview.joint && <JointDirectionMark guide={{ id: preview.id, ...preview.joint, x: preview.x, y: preview.y, lengthMm: preview.joint.axis === 'x' ? preview.width : preview.height }} scale={screenScale} />}</g>}
+      {preview && gesture?.kind === 'draw' && <g fill={preview.operation === 'cut' ? '#ef444430' : '#60a5fa30'} stroke={preview.operation === 'cut' ? '#dc5252' : '#0070d5'} strokeWidth={1} pointerEvents="none"><ShapeMark shape={preview} />{preview.joint && <JointDirectionMark guide={{ id: preview.id, ...preview.joint, x: preview.x, y: preview.y, lengthMm: preview.joint.axis === 'x' ? preview.width : preview.height }} scale={screenScale} />}</g>}
       {gesture?.kind === 'draw' && gesture.tool === 'insert-slot' && <circle data-testid="insertion-mouth" cx={gesture.start[0]} cy={gesture.start[1]} r={4 / screenScale} fill="white" stroke="#b91c1c" strokeWidth={1.5} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
-      {draft.length > 0 && <g pointerEvents="none"><path d={line(draft, false)} fill="none" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      {draft.length > 0 && <g pointerEvents="none"><path d={line(draft, false)} fill="none" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" />
         {draft.length > 1 && <path d={line([draft[draft.length - 1]!, draft[0]!], false)} fill="none" stroke="#7197b6" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="4 4" />}
-        {draft.map(([x, y], index) => <circle key={index} cx={x} cy={y} r={0.65 * displayScale} fill={index === 0 ? '#16a34a' : '#1479c0'} />)}</g>}
-      {tool === 'select' && selection && <rect data-testid="selection-outline" x={selection.x} y={selection.y} width={selection.width} height={selection.height} fill="none" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
+        {draft.map(([x, y], index) => <circle key={index} cx={x} cy={y} r={0.65 * displayScale} fill={index === 0 ? '#16a34a' : '#0070d5'} />)}</g>}
+      {tool === 'select' && selection && <rect data-testid="selection-outline" x={selection.x} y={selection.y} width={selection.width} height={selection.height} fill="none" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
       {tool === 'select' && selected && selection && !editingVertices && getResizeHandles(selected).map(handle => {
         const x = selection.x + handle.x * selection.width
         const y = selection.y + handle.y * selection.height
         return <g key={handle.id} data-resize-handle={handle.id} onPointerDown={event => startResize(event, selected)} style={{ cursor: handle.cursor }}>
           <rect data-handle-hit="" x={x - hitSize / 2} y={y - hitSize / 2} width={hitSize} height={hitSize} fill="transparent" />
-          <rect data-handle-mark="" x={x - markSize / 2} y={y - markSize / 2} width={markSize} height={markSize} fill="white" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
+          <rect data-handle-mark="" x={x - markSize / 2} y={y - markSize / 2} width={markSize} height={markSize} fill="white" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
         </g>
       })}
       {tool === 'select' && selected && handles.map(([x, y], index) => <g key={index} data-vertex-index={index} onPointerDown={event => selectShape(event, selected, index)} style={{ cursor: 'crosshair' }}>
         <rect x={x - hitSize / 2} y={y - hitSize / 2} width={hitSize} height={hitSize} fill="transparent" />
-        <circle cx={x} cy={y} r={markSize / 2} fill="white" stroke="#1479c0" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
+        <circle cx={x} cy={y} r={markSize / 2} fill="white" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
       </g>)}
       {selection?.joint && <JointDirectionMark scale={screenScale} guide={(!gesture && jointGuides.find(guide => guide.id === selection.id)) || { id: selection.id, ...selection.joint, x: selection.x, y: selection.y, lengthMm: selection.joint.axis === 'x' ? selection.width : selection.height }} />}
     </svg>

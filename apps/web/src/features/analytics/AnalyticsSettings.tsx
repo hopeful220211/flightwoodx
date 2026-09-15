@@ -24,7 +24,7 @@ export function AnalyticsSettings({ client = getAnalyticsClient(), mode = 'banne
     {(state.error || withdrawn || state.deletionPending) && <p role="status" className="mt-2">{state.error || (state.deletionPending ? '已停止统计，正在删除历史记录。' : '本次授权的历史统计记录已删除。')}</p>}
     {state.deletionPending && <button type="button" className={`${buttonStyle} mt-3`} onClick={() => void client.retryDeletion()}>重试删除统计记录</button>}
   </div> : null
-  if (mode === 'banner' && (pathname.startsWith('/privacy') || state.decision !== 'unknown')) return null
+  if (mode === 'banner' && (pathname.startsWith('/privacy') || pathname === '/terms' || state.decision !== 'unknown')) return null
   return <aside aria-labelledby={titleId} data-testid="analytics-notice" className={mode === 'banner'
     ? 'fixed inset-x-3 bottom-3 z-40 max-h-[min(60dvh,420px)] overflow-y-auto rounded-xl border border-sky-200 bg-white p-4 text-sm text-slate-700 shadow-lg md:inset-x-6 md:flex md:items-center md:gap-6 md:px-6'
     : 'rounded-xl border border-sky-200 bg-white p-5 text-sm text-slate-700'}>

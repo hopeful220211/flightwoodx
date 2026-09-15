@@ -16,6 +16,7 @@ import { useToast } from '../../components/common/Toast'
 import type { Design } from '../../types/design'
 import { useAuthStore } from '../../stores/authStore'
 import { getMe, updateProfile, deleteDroneDesignByLocal } from '../../utils/api'
+import { NameDroneDialog } from '../Design/components/NameDroneDialog'
 
 export function ProfilePage() {
   const accountId = useAuthStore(s => s.user?.id)
@@ -34,6 +35,7 @@ function ProfileContent() {
   const toast = useToast()
   const { user, token, setUser } = useAuthStore()
   const [saving, setSaving] = useState(false)
+  const [showNewDesign, setShowNewDesign] = useState(false)
 
   useEffect(() => {
     if (!token) return
@@ -97,13 +99,18 @@ function ProfileContent() {
   }
 
   const handleCreateProject = () => {
-    const id = createDesign('未命名无人机', 'guided')
+    setShowNewDesign(true)
+  }
+  const createNamed = (name: string, mode: 'guided' | 'free') => {
+    const id = createDesign(name || '未命名无人机', mode)
     setActiveDesignId(id)
+    setShowNewDesign(false)
     nav(`/design/${id}`)
   }
 
   return (
     <PageContainer className="py-8">
+      <NameDroneDialog open={showNewDesign} onCancel={() => setShowNewDesign(false)} onConfirm={createNamed} />
       <div className="space-y-6">
         {/* 用户信息卡片 */}
         <Card className="group">

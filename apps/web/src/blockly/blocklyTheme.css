@@ -4,7 +4,7 @@
 /* 工具箱容器（Blockly v12 根类名 .blocklyToolbox） */
 .coding-blockly-shell .blocklyToolbox {
   background: #ffffff;
-  border-right: 1px solid #e6f0fb;
+  border-right: 1px solid #d9dfe3;
   padding: 10px 8px;
 }
 
@@ -19,7 +19,7 @@
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  border-radius: 11px;
+  border-radius: 6px;
   border: 1px solid transparent;
   border-left: 0 !important; /* 覆盖内联 border-left: 8px solid <colour> */
   cursor: pointer;
@@ -28,14 +28,14 @@
 
 /* hover 态 */
 .coding-blockly-shell .blocklyToolboxCategory:hover {
-  background: #eef5ff;
-  border-color: #dbe9fb;
+  background: #f7f9fa;
+  border-color: #d9dfe3;
 }
 
 /* 选中态 */
 .coding-blockly-shell .blocklyToolboxCategory.blocklyToolboxSelected {
-  background: #e3efff;
-  border-color: #c9def8;
+  background: #edf1f4;
+  border-color: #d9dfe3;
 }
 
 /* 行内容容器：图标 + 文字横向排布，撑满整行 */
@@ -46,24 +46,24 @@
   width: 100%;
   padding: 4px 10px;
   font-weight: 600;
-  color: #475569;
+  color: #51565b;
   white-space: nowrap;
 }
 .coding-blockly-shell .blocklyToolboxCategory.blocklyToolboxSelected .blocklyTreeRowContentContainer {
-  color: #0f2e4d;
+  color: #303233;
 }
 
 /* 分类标签 */
 .coding-blockly-shell .blocklyToolboxCategoryLabel {
-  font-size: 13.5px;
-  letter-spacing: .01em;
+  font-size: 14px;
+  letter-spacing: -.02em;
 }
 
 /* 图标 chip：彩色圆角块（颜色按分类），白色 glyph 由 JS 注入 background-image */
 .coding-blockly-shell .fwx-cat-icon {
   width: 24px;
   height: 24px;
-  border-radius: 7px;
+  border-radius: 4px;
   flex: 0 0 auto;
   background-repeat: no-repeat;
   background-position: center;

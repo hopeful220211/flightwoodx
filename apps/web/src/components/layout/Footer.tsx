@@ -13,8 +13,8 @@ const companyLinks = [
 
 export function Footer() {
   return (
-    <footer role="contentinfo" className="bg-sky-950 py-16">
-      <div className="mx-auto max-w-7xl px-4 lg:px-6">
+    <footer role="contentinfo" className="site-footer">
+      <div className="site-container">
         <div className="grid gap-10 md:grid-cols-3">
           {/* Brand */}
           <div>
@@ -54,7 +54,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-sky-800/40 flex flex-col items-center gap-3 text-center text-sm text-sky-200">
+        <div className="site-footer-legal">
           <p>
             © 2026 芬奇答奥（重庆）科技有限公司
           </p>

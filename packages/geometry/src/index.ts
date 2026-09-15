@@ -8,6 +8,8 @@
  * 只支持：单位 mm、闭合折线（首尾自动相连）、外轮廓 + 内孔、单层 CUT、板厚常量 2mm。
  */
 import makerjs from 'makerjs'
+export { customConnectors, officialConnectors, connectAssembly, moveAssemblyTree, worldConnector, occupiedAssemblyConnectors, validateAssemblyConnections } from './assembly'
+export type { AssemblyConnector, ConnectorResolver } from './assembly'
 import { JointGuidesSchema, USER_PART_THICKNESS_MM, type JointGuide } from '@fwx/parts-schema'
 
 // 一个平面点，单位 mm：[x, y]。

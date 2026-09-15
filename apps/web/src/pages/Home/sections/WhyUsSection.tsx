@@ -24,9 +24,9 @@ const cards = [
 
 export function WhyUsSection() {
   return (
-    <section className="bg-sky-50/40 py-24 lg:py-32">
-      <div className="mx-auto max-w-6xl px-4">
-        <ScrollReveal className="mb-16">
+    <section className="home-features site-section">
+      <div className="site-container">
+        <ScrollReveal className="site-section-intro">
           <SectionHeading
             eyebrow="功能介绍"
             title="平台功能"
@@ -34,11 +34,11 @@ export function WhyUsSection() {
           />
         </ScrollReveal>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="home-feature-grid">
           {cards.map((card, i) => (
             <ScrollReveal key={card.title} delay={i * 100}>
-              <div className="group h-full rounded-2xl border border-sky-100/70 bg-white p-[30px] shadow-[0_2px_18px_rgba(42,136,219,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(42,136,219,0.13)]">
-                <div className="h-[200px] rounded-xl overflow-hidden bg-sky-50 mb-5">
+              <div className="home-feature group h-full">
+                <div className="home-feature-image">
                   <img
                     src={card.img}
                     alt={card.title}

@@ -8,7 +8,7 @@ const { recordPartSaved } = require('../lib/analytics')
 const CustomPart = require('../models/CustomPart')
 const { writeAudit } = require('../lib/audit')
 // 单一事实来源：从 @fwx/parts-schema 的 CJS 构建消费 v2 契约，不在 api 内重复定义
-const { UserPartDefSchema } = require('@fwx/parts-schema/runtime-cjs')
+const { UserPartDefSchema, UserPartCategoryEnum } = require('@fwx/parts-schema/runtime-cjs')
 const { svgGeometryToPart2D, validateJointGuides } = require('@fwx/geometry/runtime-cjs')
 
 // Mongoose 文档（lean 或实体）→ 前端契约 UserPartDTO。形状 = @fwx/parts-schema 的 UserPart（v2）。
@@ -103,6 +103,10 @@ exports.list = async (req, res) => {
     const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize, 10) || 20))
 
     const filter = { ownerId: req.userId }
+    if (req.query.category !== undefined) {
+      if (!UserPartCategoryEnum.safeParse(req.query.category).success) return res.status(400).json({ error: '零件类别无效' })
+      filter.category = req.query.category === 'joint' ? { $in: ['joint', 'deco'] } : req.query.category
+    }
     const total = await CustomPart.countDocuments(filter)
     const docs = await CustomPart.find(filter)
       .sort({ updatedAt: -1, _id: -1 })

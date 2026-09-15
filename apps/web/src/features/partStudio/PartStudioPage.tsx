@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Undo2, Redo2, Trash2, Eraser, X, SlidersHorizontal } from 'lucide-react'
 import { UserPartSchema, USER_PART_THICKNESS_MM, type UserPartDTO } from '@fwx/parts-schema'
@@ -23,16 +23,23 @@ import { analyzeSketchJoints } from './sketch/jointGuides'
 import { JointGuideDialog } from './JointGuideDialog'
 import { SketchPreviewFeedback } from './SketchPreviewFeedback'
 import { trackEvent } from '../analytics/client'
+import { useDesignStore } from '../../stores/designStore'
 
 /** All sketch coordinates are mm. The same compiled geometry drives preview
  * and persistence; display zoom and reference frames never rescale a part. */
 export function PartStudioPage() {
   const navigate = useNavigate()
+  const [search] = useSearchParams()
+  const originId = search.get('design')
+  const origin = useDesignStore(s => originId ? s.getDesignById(originId) : undefined)
   const toast = useToast()
   const token = useAuthStore(s => s.token)
   const userId = useAuthStore(s => s.user?.id)
   const openLogin = useUIStore(s => s.openLoginModal)
-  const [history, dispatch] = useReducer(editorHistory, { past: [], present: initialDocument(), future: [] })
+  const [history, dispatch] = useReducer(editorHistory, undefined, () => {
+    const reference = REFERENCES.find(r => r.category === search.get('category'))
+    return { past: [], present: reference ? { ...initialDocument(), category: reference.category, reference: { width: reference.width, height: reference.height, shape: reference.category === 'mainboard' ? 'ellipse' as const : 'rectangle' as const } } : initialDocument(), future: [] }
+  })
   const document = history.present
   const [tool, setTool] = useState<SketchTool>('rectangle')
   const [slotMode, setSlotMode] = useState<SlotMode>('cut')
@@ -149,6 +156,11 @@ export function PartStudioPage() {
         toast.push('success', `已保存「${res.data.name}」到我的零件`)
         setName(''); setSelectedId(null); dispatch({ type: 'reset' })
         await refetchMyParts()
+        await queryClient.invalidateQueries({ queryKey: ['custom-parts', userId] })
+        if (origin) {
+          useDesignStore.getState().setActiveDesignId(origin.id)
+          setPlaceTarget(res.data)
+        }
       } else { trackEvent('operation_failed', { operation: 'part_save', reason: res.status === 401 || res.status === 403 ? 'unauthorized' : res.status === 400 ? 'validation' : res.status && res.status >= 500 ? 'server' : 'unknown' }); toast.push('error', res.error || '保存失败，请重试') }
     } catch { trackEvent('operation_failed', { operation: 'part_save', reason: 'unknown' }); toast.push('error', '零件保存失败，当前轮廓仍保留，请重试') }
     finally { setSaving(false) }
@@ -170,10 +182,10 @@ export function PartStudioPage() {
     finally { setDeleting(false) }
   }, [toast, refetchMyParts, deleting, queryClient, userId])
 
-  const handleBack = () => { if (window.history.length > 1) navigate(-1); else navigate('/design') }
+  const handleBack = () => { if (origin) navigate(`/design/${origin.id}`); else if (window.history.length > 1) navigate(-1); else navigate('/design') }
   const panelHeadingClass = 'flex h-16 min-w-0 shrink-0 items-center gap-2 border-b border-sky-100 bg-white px-3'
   const iconButtonClass = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sky-900 hover:bg-sky-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-500 disabled:cursor-not-allowed disabled:opacity-35'
-  return <div className="min-h-[calc(100dvh-4rem)] bg-[#F5F9FF] text-slate-800" onKeyDown={event => {
+  return <div className="part-studio-root min-h-[calc(100dvh-4rem)] text-slate-800" onKeyDown={event => {
     if (busy || numericBlocked || (event.target as HTMLElement).closest('input,select,textarea')) return
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); dispatch({ type: event.shiftKey ? 'redo' : 'undo' }) }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') { event.preventDefault(); dispatch({ type: 'redo' }) }

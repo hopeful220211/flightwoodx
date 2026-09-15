@@ -64,11 +64,11 @@ export function VideoPreviewSection({ ref }: { ref?: Ref<VideoPreviewHandle> }) 
   }))
 
   return (
-    <section aria-label="产品视频" className="relative flow-root bg-sky-50/40 px-4 sm:px-6">
+    <section aria-label="产品视频" className="home-video-section relative flow-root">
       <div
         ref={frameRef}
         data-testid="home-video-frame"
-        className="relative z-10 mx-auto -mt-[var(--home-video-overlap)] aspect-video w-full max-w-[min(605px,calc((100svh-8rem)*16/9))] overflow-hidden rounded-2xl bg-sky-950 shadow-[0_12px_36px_rgba(15,45,75,0.22)] has-[:focus-visible]:outline has-[:focus-visible]:outline-4 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-sky-600"
+        className="home-video-frame relative z-10 mx-auto aspect-video w-full overflow-hidden bg-sky-950 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-sky-600"
       >
         {started ? (
           <video
@@ -106,8 +106,8 @@ export function VideoPreviewSection({ ref }: { ref?: Ref<VideoPreviewHandle> }) 
             />
             <span aria-hidden="true" className="absolute inset-0 bg-black/15 transition-colors group-hover:bg-black/5 motion-reduce:transition-none" />
             <span className="absolute inset-0 flex items-center justify-center">
-              <span className="flex items-center gap-2 rounded-full bg-[#0078D4] px-6 py-3 text-lg font-semibold text-white shadow-lg transition-colors group-hover:bg-[#006CBD] motion-reduce:transition-none sm:gap-3 sm:px-10 sm:py-4 sm:text-2xl">
-                <CirclePlay aria-hidden="true" className="h-7 w-7 sm:h-10 sm:w-10" />
+              <span className="home-video-play">
+                <CirclePlay aria-hidden="true" className="h-6 w-6" />
                 播放视频
               </span>
             </span>
@@ -120,7 +120,7 @@ export function VideoPreviewSection({ ref }: { ref?: Ref<VideoPreviewHandle> }) 
               ref={retryRef}
               type="button"
               onClick={retry}
-              className="min-h-11 rounded-full bg-[#0078D4] px-6 font-semibold hover:bg-[#006CBD] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+              className="min-h-11 rounded-full bg-sky-500 px-6 font-normal hover:bg-sky-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
               重试
             </button>

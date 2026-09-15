@@ -32,7 +32,7 @@ for (const viewport of [
     await banner.scrollIntoViewIfNeeded()
     await page.evaluate(() => document.fonts.ready)
     await expect(banner).toBeInViewport({ ratio: 1 })
-    await expect(banner).toHaveCSS('background-color', 'rgb(23, 87, 152)')
+    await expect(banner).toHaveCSS('background-color', 'rgb(48, 54, 59)')
     await expect(banner.locator('a')).toHaveCount(3)
     await expect(banner).toContainText('鲲鹏奖工业设计概念组金奖')
     await expect(banner.locator('button, img, video')).toHaveCount(0)

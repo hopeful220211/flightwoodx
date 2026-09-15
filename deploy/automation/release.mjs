@@ -13,7 +13,7 @@ const HELP = `Usage: pnpm release [--publish] [--wait-minutes 1..30]
 Default: inspect exact HEAD, production, changed files and reusable CI evidence. No remote writes.
 --publish: release a clean frontend-only commit; if needed push the current codex/ branch and wait for its CI once, then fast-forward production, wait for deployment and verify the public version/entry hashes/API health.
 No commits, force pushes, credential changes, backend or deployment-program upgrades are performed.
---wait-minutes: one total CI/deployment wait budget, default 20. Failures stop; no automatic rerun loops.
+--wait-minutes: one total CI/deployment wait budget, default 18. Failures stop; no automatic rerun loops.
 JSON stage timings and a private receipt are written for successful, blocked and failed runs.
 Backend/shared/deployment/workflow changes require their separate reviewed activation procedure.
 `;
@@ -24,7 +24,7 @@ class ReleaseError extends Error {
 const stop = code => { throw new ReleaseError(code, true); };
 
 export function parseArguments(args) {
-  const options = { publish: false, waitMinutes: 20, help: false };
+  const options = { publish: false, waitMinutes: 18, help: false };
   const seen = new Set();
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -64,6 +64,18 @@ export function classifyChanges(paths) {
   }
   const list = [...categories].sort();
   return { categories: list, frontendOnly: list.every(value => ['frontend', 'docs'].includes(value)), needsPublication: list.some(value => value !== 'docs') };
+}
+
+export function releasePlan(paths, reuse) {
+  const areas = new Set();
+  for (const path of paths.filter(value => value.startsWith('apps/web/'))) {
+    if (/part-studio|PartStudio|sketch|joint|slot/iu.test(path)) areas.add('part-studio');
+    else if (/Home|landing|honors|award|testimonials|footer|about/iu.test(path)) areas.add('home');
+    else if (/auth|login|register|account|profile/iu.test(path)) areas.add('account');
+    else if (/workbench|workspace|assembly|simulation|blockly/iu.test(path)) areas.add('workbench');
+    else areas.add('shared-ui');
+  }
+  return { targetMinutes: reuse ? 5 : 18, candidateChecks: reuse ? 'reuse' : 'run-once', deployBackend: false, acceptanceAreas: [...areas].sort(), budgetsMs: { repository: 60_000, 'candidate-ci': 720_000, 'production-deployment': 300_000, 'public-verification': 120_000 } };
 }
 
 function commandRunner(command, args, { cwd, allowFailure = false, timeout = 60_000, signal } = {}) {
@@ -136,6 +148,8 @@ export async function runRelease(options, dependencies = {}) {
   const deadline = started + options.waitMinutes * 60_000;
   const receipt = { schemaVersion: 1, mode: options.publish ? 'publish' : 'plan', repository: REPOSITORY, startedAt: new Date(started).toISOString(), status: 'running', stages: [] };
   let lock;
+  const stageStarts = new Map();
+  const budgetWarnings = new Set();
   let repositoryRoot = cwd;
   const command = async (name, args, extra = {}) => {
     if (signal?.aborted) throw new ReleaseError('interrupted');
@@ -156,9 +170,11 @@ export async function runRelease(options, dependencies = {}) {
   }
   async function stage(name, task) {
     const start = now();
+    stageStarts.set(name, start);
     emit({ type: 'release-stage', stage: name, status: 'running' });
     try {
       const value = await task();
+      warnBudget(name);
       receipt.stages.push({ name, status: 'success', durationMs: now() - start });
       emit({ type: 'release-stage', ...receipt.stages.at(-1) });
       await persist();
@@ -168,6 +184,16 @@ export async function runRelease(options, dependencies = {}) {
       receipt.stages.push({ name, status: safeError.blocked ? 'blocked' : 'failed', durationMs: now() - start, errorCode: safeError.code });
       emit({ type: 'release-stage', ...receipt.stages.at(-1) });
       throw safeError;
+    }
+  }
+  function warnBudget(name) {
+    const budget = receipt.plan?.budgetsMs[name];
+    const elapsedMs = now() - stageStarts.get(name);
+    if (budget && elapsedMs >= budget && !budgetWarnings.has(name)) {
+      budgetWarnings.add(name);
+      const warning = { type: 'release-budget-warning', stage: name, elapsedMs, budgetMs: budget, runUrl: name === 'candidate-ci' ? receipt.candidateRunUrl : receipt.productionRunUrl };
+      receipt.budgetWarnings = [...(receipt.budgetWarnings || []), warning];
+      emit(warning);
     }
   }
   async function productionRef() {
@@ -184,6 +210,14 @@ export async function runRelease(options, dependencies = {}) {
     receipt[`${kind}RunId`] = id;
     receipt[`${kind}RunUrl`] = `https://github.com/${REPOSITORY}/actions/runs/${id}`;
   };
+  const progressStates = new Map();
+  function progress(stage, status, runUrl) {
+    warnBudget(stage);
+    const key = `${status}:${runUrl || ''}`;
+    if (progressStates.get(stage) === key) return;
+    progressStates.set(stage, key);
+    emit({ type: 'release-progress', stage, status, elapsedMs: now() - started, runUrl });
+  }
   async function waitForDeployment(previousRuns = new Set()) {
     while (now() < deadline) {
       const current = (await workflowRuns('production')).find(item => !previousRuns.has(item.id));
@@ -195,7 +229,7 @@ export async function runRelease(options, dependencies = {}) {
         if (publish?.length !== 1 || publish[0].status !== 'completed' || publish[0].conclusion !== 'success') throw new ReleaseError('publish_not_confirmed');
         return;
       }
-      emit({ type: 'release-progress', stage: 'production-deployment', status: current?.status || 'queued', elapsedMs: now() - started, runUrl: receipt.productionRunUrl });
+      progress('production-deployment', current?.status || 'queued', receipt.productionRunUrl);
       await sleep(Math.min(20_000, Math.max(0, deadline - now())));
     }
     throw new ReleaseError('production_wait_timeout');
@@ -223,6 +257,13 @@ export async function runRelease(options, dependencies = {}) {
       receipt.scope = classifyChanges(receipt.changedPaths);
       receipt.scope.commitOnly = true;
     });
+    // Cheap local blockers must not launch expensive CI evidence discovery.
+    if (options.publish) {
+      if (receipt.dirty) stop('dirty_worktree');
+      if (!receipt.productionAncestor) stop('production_not_ancestor');
+      if (receipt.mergeCommits.length) stop('nonlinear_release_history');
+      if (!receipt.scope.frontendOnly) stop('separate_release_required');
+    }
     const token = await stage('github-access', async () => (await command('gh', ['auth', 'token', '--hostname', 'github.com'])).stdout.trim());
     const evidence = injectedEvidence || (await import('./ci-evidence.mjs')).findReusableEvidence;
     const getEvidence = async () => {
@@ -235,6 +276,7 @@ export async function runRelease(options, dependencies = {}) {
     };
     let proof = await stage('ci-evidence', getEvidence);
     rememberProof(proof);
+    receipt.plan = releasePlan(receipt.changedPaths, proof.reuse);
     await stage('public-status', async () => {
       try { receipt.publicBefore = await (dependencies.readPublic || readPublic)(); }
       catch { receipt.publicBefore = { available: false }; }
@@ -273,12 +315,16 @@ export async function runRelease(options, dependencies = {}) {
             await git('push', 'origin', `${receipt.commit}:refs/heads/${branch}`);
           }
           while (now() < deadline) {
-            proof = await getEvidence();
-            if (proof.reuse) { rememberProof(proof); return; }
             const current = (await workflowRuns(branch))[0];
             if (current) rememberRun('candidate', current.id);
-            if (current?.status === 'completed' && current.conclusion !== 'success') stop('candidate_ci_failed');
-            emit({ type: 'release-progress', stage: 'candidate-ci', status: current?.status || 'queued', elapsedMs: now() - started, runUrl: receipt.candidateRunUrl });
+            if (current?.status === 'completed') {
+              if (current.conclusion !== 'success') stop('candidate_ci_failed');
+              proof = await getEvidence();
+              if (!proof.reuse) stop('ci_evidence_expired');
+              rememberProof(proof);
+              return;
+            }
+            progress('candidate-ci', current?.status || 'queued', receipt.candidateRunUrl);
             await sleep(Math.min(20_000, Math.max(0, deadline - now())));
           }
           throw new ReleaseError('candidate_wait_timeout');
@@ -317,7 +363,7 @@ export async function runRelease(options, dependencies = {}) {
     receipt.durationMs = now() - started;
     try { await persist(); } catch { receipt.receiptWriteFailed = true; }
     if (lock) await lock.release();
-    emit({ type: 'release-summary', ...receipt });
+    emit({ type: 'release-summary', status: receipt.status, ready: receipt.ready, blockers: receipt.blockers, commit: receipt.commit, durationMs: receipt.durationMs, plan: receipt.plan, errorCode: receipt.errorCode, nextAction: receipt.nextAction, candidateRunUrl: receipt.candidateRunUrl, productionRunUrl: receipt.productionRunUrl, receiptPath: receipt.receiptPath, receiptWriteFailed: receipt.receiptWriteFailed });
   }
   return receipt;
 }

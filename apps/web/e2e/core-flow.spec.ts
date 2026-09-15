@@ -53,6 +53,7 @@ async function registerDedicatedAccount(page: Page) {
   await page.goto('/register')
   await page.getByLabel('用户名', { exact: true }).fill(username)
   await page.getByLabel('邮箱', { exact: true }).fill(`${username}@example.test`)
+  await page.getByRole('checkbox', { name: /我已阅读并同意/ }).check()
   try {
     // Do not include a generated password in an error or an attachment.
     try {
@@ -126,6 +127,7 @@ async function verifyWarmCover(page: Page, name: string) {
 async function buildAndSave(page: Page, name: string) {
   await page.getByRole('button', { name: '新建作品', exact: true }).first().click()
   await page.getByLabel('无人机名字', { exact: true }).fill(name)
+  await page.getByRole('radio', { name: /按步骤拼装/ }).check()
   await page.getByRole('button', { name: '开始搭建', exact: true }).click()
   await expect(page).toHaveURL(/\/design\/design-[^/]+$/)
   const designId = new URL(page.url()).pathname.split('/').at(-1)!
@@ -374,8 +376,10 @@ test('custom part: draw, place without invented connectors, save, restore, and r
   expect(geometryPayload.geometry).toMatchObject({ thicknessMm: 2, bboxMm: { w: 60, h: 40 } })
   expect(geometryPayload.geometry.holes).toHaveLength(1)
   expect(geometryPayload.category).toBe('mainboard')
-  await page.getByRole('button', { name: `放入自由拼装：${name}`, exact: true }).click()
-  await page.getByLabel('自由作品名称', { exact: true }).fill(`${name} free`)
+  await page.getByRole('button', { name: `放入作品：${name}`, exact: true }).click()
+  await page.getByLabel('新作品名称', { exact: true }).fill(`${name} free`)
+  await expect(page.getByRole('button', { name: '确认放入', exact: true })).toBeDisabled()
+  await page.getByLabel('新作品拼装方式', { exact: true }).selectOption('free')
   await page.getByRole('button', { name: '确认放入', exact: true }).click()
   await expect(page).toHaveURL(/\/design\/design-[^/]+$/)
   await expect(page.getByText('已保存到账号', { exact: true }).first()).toBeVisible()

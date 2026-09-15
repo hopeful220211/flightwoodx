@@ -325,9 +325,9 @@ export const DroneDesignSnapshotSchema = z.object({
     }
     ids.add(part.instanceId);
     if (part.source) {
-      if (snapshot.buildMode !== 'free' || part.partId !== `custom_${part.source.id}` ||
-          !['mainboard', 'landing', 'guard', 'joint'].includes(part.category) || part.activeConnectorId || part.attachedTo) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['parts', index], message: '自制件仅支持保留来源的自由摆放，不能声明连接或作为官方件' });
+      if (part.partId !== `custom_${part.source.id}` || !['mainboard', 'landing', 'guard', 'joint'].includes(part.category) ||
+          (part.activeConnectorId && !part.activeConnectorId.startsWith('joint:'))) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['parts', index], message: '自制件必须保留来源并使用自己的插接口' });
       }
     } else if (part.partId.startsWith('custom_')) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['parts', index, 'source'], message: '自制件缺少来源引用' });
@@ -335,12 +335,18 @@ export const DroneDesignSnapshotSchema = z.object({
   }
 
   const parentByChild = new Map<string, string>();
+  const occupied = new Set<string>();
   for (let index = 0; index < snapshot.parts.length; index += 1) {
     const part = snapshot.parts[index];
     const parentId = part?.attachedTo?.parentInstanceId;
     if (!part || !parentId) continue;
-    if (snapshot.parts.some(parent => parent.instanceId === parentId && parent.source)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['parts', index, 'attachedTo'], message: '自制件尚不支持连接，不能作为连接父件' });
+    for (const key of [`${parentId}/${part.attachedTo!.parentConnectorId}`, ...(part.activeConnectorId ? [`${part.instanceId}/${part.activeConnectorId}`] : [])]) {
+      if (occupied.has(key)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['parts', index, 'attachedTo'], message: '插接口已被占用' });
+      occupied.add(key);
+    }
+    const parent = snapshot.parts.find(candidate => candidate.instanceId === parentId);
+    if ((part.source || parent?.source) && (!part.activeConnectorId || (parent?.source && !part.attachedTo!.parentConnectorId.startsWith('joint:')))) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['parts', index, 'attachedTo'], message: '请选择双方的插接口' });
     }
     if (!ids.has(parentId) || parentId === part.instanceId) {
       ctx.addIssue({

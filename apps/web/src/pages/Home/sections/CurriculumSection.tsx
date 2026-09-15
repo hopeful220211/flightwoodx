@@ -10,9 +10,9 @@ const stages = [
 
 export function CurriculumSection() {
   return (
-    <section id="home-usage-steps" className="bg-white py-24 lg:py-32">
-      <div className="mx-auto max-w-6xl px-4">
-        <ScrollReveal className="mb-16">
+    <section id="home-usage-steps" className="home-steps site-section">
+      <div className="site-container">
+        <ScrollReveal className="site-section-intro">
           <SectionHeading
             eyebrow="操作流程"
             title="使用步骤"
@@ -23,7 +23,7 @@ export function CurriculumSection() {
         {/* Horizontal timeline */}
         <div className="relative">
           {/* Timeline line — desktop only */}
-          <div className="hidden lg:block absolute top-[28px] left-[12.5%] right-[12.5%] h-[2px] bg-sky-200">
+          <div className="hidden">
             <div
               className="h-full bg-sky-500 transition-all duration-1000"
               style={{ width: '100%' }}
@@ -36,15 +36,15 @@ export function CurriculumSection() {
               <ScrollReveal key={stage.num} delay={i * 120}>
                 <div className="relative flex flex-col items-center text-center">
                   {/* Timeline dot */}
-                  <div className="hidden lg:flex w-14 h-14 rounded-full bg-sky-500 text-white items-center justify-center text-sm font-semibold mb-6 relative z-10">
+                  <div className="home-step-number">
                     {stage.num}
                   </div>
 
                   {/* Card */}
-                  <div className="w-full h-full rounded-2xl border border-sky-100/70 bg-sky-50/50 p-6 shadow-[0_2px_18px_rgba(42,136,219,0.04)] transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_18px_48px_rgba(42,136,219,0.12)]">
+                  <div className="home-step-copy">
                     {/* Large watermark number */}
                     <div
-                      className="text-[48px] font-semibold leading-none lg:hidden"
+                      className="hidden"
                       style={{ color: 'rgba(42, 136, 219, 0.15)' }}
                     >
                       {stage.num}

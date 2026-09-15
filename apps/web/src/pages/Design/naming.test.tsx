@@ -56,6 +56,9 @@ async function openEntry(entry: Entry): Promise<HTMLInputElement> {
   if (entry === 'guided rename') {
     await act(async () => container.querySelector<HTMLButtonElement>('[title="点一下改名字"]')!.click())
   }
+  if (entry === 'new design') {
+    await act(async () => document.querySelector<HTMLInputElement>('input[value="guided"]')!.click())
+  }
   const input = document.querySelector('input')
   expect(input).toBeInstanceOf(HTMLInputElement)
   return input!
@@ -79,6 +82,8 @@ function expectCommitted(entry: Entry) {
   if (entry === 'guided rename') {
     expect(useDesignStore.getState().getActiveDesign()?.name).toBe(chineseName)
     expect(container.querySelector('[title="点一下改名字"]')?.textContent).toBe(chineseName)
+  } else if (entry === 'new design') {
+    expect(confirmed).toHaveBeenCalledExactlyOnceWith(chineseName, 'guided')
   } else {
     expect(confirmed).toHaveBeenCalledExactlyOnceWith(chineseName)
   }
@@ -123,6 +128,18 @@ describe.each<Entry>(['new design', 'dashboard rename', 'guided rename'])('%s', 
     }
     expectCommitted(entry)
   })
+})
+
+it('requires an explicit assembly mode and can start a free design', async () => {
+  await act(async () => root.render(<NameDroneDialog open onConfirm={confirmed} onCancel={cancelled} />))
+  const start = [...document.querySelectorAll('button')].find(button => button.textContent === '开始搭建')!
+  expect(start.disabled).toBe(true)
+  const name = document.querySelector<HTMLInputElement>('input[aria-label="无人机名字"]')!
+  await pressEnter(name)
+  expect(confirmed).not.toHaveBeenCalled()
+  await act(async () => document.querySelector<HTMLInputElement>('input[value="free"]')!.click())
+  await act(async () => start.click())
+  expect(confirmed).toHaveBeenCalledExactlyOnceWith('', 'free')
 })
 
 it('commits guided Enter and blur once without a render-phase store update', async () => {

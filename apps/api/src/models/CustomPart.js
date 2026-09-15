@@ -27,7 +27,7 @@ const Socket = new Schema({
   rotation: { type: Number, required: true }, // 度
 }, { _id: false })
 
-// Generic slot position/direction only; these guides do not grant assembly connections.
+// Slot intent; assembly independently verifies the owned revision, contour and paired endpoints.
 const JointGuide = new Schema({
   id:       { type: String, required: true, trim: true, maxlength: 80, match: /^[A-Za-z0-9_-]+$/ },
   kind:     { type: String, required: true, enum: ['edge-slot', 'through-slot'] },

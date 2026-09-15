@@ -15,6 +15,7 @@ WORKDIR /app
 
 # 先只拷依赖清单，最大化利用 Docker 层缓存
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY patches ./patches
 COPY apps/api/package.json ./apps/api/
 COPY packages/geometry/package.json ./packages/geometry/
 COPY packages/parts-schema/package.json ./packages/parts-schema/
@@ -42,6 +43,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY patches ./patches
 COPY apps/api/package.json ./apps/api/
 COPY packages/geometry/package.json ./packages/geometry/
 COPY packages/parts-schema/package.json ./packages/parts-schema/

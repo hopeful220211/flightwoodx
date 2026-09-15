@@ -51,7 +51,7 @@ export function PillButton({
   ...rest
 }: PillButtonProps) {
   const base = cn(
-    'group inline-flex items-center justify-center gap-3 rounded-pill font-grotesk font-medium',
+    'site-pill-button group inline-flex items-center justify-center gap-3 rounded-pill font-grotesk font-medium',
     'min-h-[56px] min-w-[180px] transition active:translate-y-[1px] active:scale-[0.98]',
     arrow ? 'pl-7 pr-2' : 'px-7',
     'text-base whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60',

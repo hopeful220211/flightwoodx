@@ -100,6 +100,7 @@ test('registration and logout require a new choice without inheriting visitor co
   const suffix = randomBytes(6).toString('hex')
   await page.getByLabel('用户名', { exact: true }).fill(`e2e_${suffix}`)
   await page.getByLabel('邮箱', { exact: true }).fill(`e2e_${suffix}@example.test`)
+  await page.getByRole('checkbox', { name: /我已阅读并同意/ }).check()
   try {
     await page.getByLabel('密码', { exact: true }).fill(randomBytes(24).toString('hex'))
     await page.getByRole('button', { name: '创建账号', exact: true }).click()

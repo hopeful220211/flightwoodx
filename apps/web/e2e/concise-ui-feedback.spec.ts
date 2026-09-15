@@ -17,7 +17,7 @@ async function localOnly(context: BrowserContext) {
 
 function observe(page: Page, expectedFailure: () => boolean) {
   const failures: string[] = []
-  page.on('pageerror', error => failures.push(error.message))
+  page.on('pageerror', error => failures.push(error.stack || error.message))
   page.on('console', message => {
     if (message.type() === 'error' && !(expectedFailure() && message.text().includes('503'))) failures.push(message.text())
     if (message.text().includes('Texture marked for update but no image data found')) failures.push(message.text())
@@ -41,6 +41,7 @@ async function register(page: Page) {
   await page.goto('/register')
   await page.getByLabel('用户名', { exact: true }).fill(username)
   await page.getByLabel('邮箱', { exact: true }).fill(`${username}@example.test`)
+  await page.getByRole('checkbox', { name: /我已阅读并同意/ }).check()
   try {
     try { await page.getByLabel('密码', { exact: true }).fill(password) }
     catch { throw new Error('Could not fill the isolated registration password field.') }
@@ -144,11 +145,12 @@ for (const viewport of [
     const creating = page.waitForResponse(response => new URL(response.url()).pathname === '/api/custom-parts' && response.request().method() === 'POST')
     await page.getByRole('button', { name: '保存', exact: true }).click()
     expect((await creating).status()).toBe(201)
-    await page.getByRole('button', { name: `放入自由拼装：${name}`, exact: true }).click()
-    const placeDialog = page.getByRole('dialog', { name: '放入自由拼装', exact: true })
-    await expect(placeDialog).toContainText('放入后可调整位置和旋转。自制零件暂不支持自动连接。')
+    await page.getByRole('button', { name: `放入作品：${name}`, exact: true }).click()
+    const placeDialog = page.getByRole('dialog', { name: '放入作品', exact: true })
+    await expect(placeDialog).toContainText('放入后，点击连接零件，选择双方的边缘插接口。')
     await expect(placeDialog).not.toContainText(/未验证|不代表|尚未连接/)
-    await page.getByLabel('自由作品名称', { exact: true }).fill(`${name} 作品`)
+    await page.getByLabel('新作品名称', { exact: true }).fill(`${name} 作品`)
+    await page.getByLabel('新作品拼装方式', { exact: true }).selectOption('free')
     await placeDialog.getByRole('button', { name: '确认放入', exact: true }).click()
     await expect(page).toHaveURL(/\/design\/design-[^/]+$/)
     await expect(page.getByText('已保存到账号', { exact: true }).first()).toBeVisible()
@@ -214,6 +216,7 @@ for (const viewport of [
     await page.goto('/dashboard')
     await page.getByRole('button', { name: '新建作品', exact: true }).first().click()
     await page.getByLabel('无人机名字', { exact: true }).fill('官方零件设计')
+    await page.getByRole('radio', { name: /按步骤拼装/ }).check()
     await page.getByRole('button', { name: '开始搭建', exact: true }).click()
     await expect(page).toHaveURL(/\/design\/design-[^/]+$/)
     const officialId = new URL(page.url()).pathname.split('/').at(-1)!

@@ -52,13 +52,15 @@ Use progressive disclosure: keep the three root documents as the mandatory entry
 1. Run the narrowest relevant tests during iteration, then expand to affected packages and applications.
 2. For UI or end-to-end behavior, start the actual application and exercise the real user path in a browser. Check the required viewports, console, network requests, persistence after refresh, error handling, and server-side permission denial. A screenshot or route existence alone is not acceptance evidence.
 3. When external services are in scope, use isolated test accounts and objects, verify the remote read-back and cleanup/rollback path, and distinguish mocked checks from real integration evidence.
-4. Run `pnpm run harness` and `pnpm run ci` before claiming a code change complete. If the environment or an existing failure prevents either, report the exact command, failure, affected scope, and what remains unverified.
+4. During development run affected tests. At completion reuse valid full CI for the exact current commit; for an unpushed local delivery run `pnpm run ci` once (it includes harness). Do not run harness twice or repeat local full CI merely to upload a completed version. Production still requires trusted cloud checks and their tested artifact. Report the exact failure and remaining verification when blocked.
 5. For review-only work, stay read-only unless a change is requested. Report findings with file/line evidence, consequence, and verification; do not infer completion from code presence.
 6. For restoration work, compare branches and worktrees before copying anything, preserve WIP, recover behavior behind a regression test, and verify compatibility or migration paths.
 
 ## Record status and deliver evidence
 
 - For every upload, version update or production release, follow [the fixed release procedure](../../../deploy/automation/release-procedure.md). Start with `pnpm release`; use `pnpm release --publish` only after release authorization. Reuse valid evidence for the same exact commit and artifact, keep required checks, record phase durations, and do not restart unrelated development or duplicate full verification at production promotion.
+
+- Apply the release procedure's timing targets and stop conditions: 2–5 minutes with valid evidence, 12–18 minutes with new full CI (targets, not measured guarantees). One frontend build, three isolated ordinary browser groups and one privacy group; all must pass. Production acceptance covers changed operations once and only layout differences at other viewports. Use compact summaries, no repeated unchanged polling output, no automatic failed-run retries and no unrelated agents or exploration during release.
 
 - Update `CURRENT_STATUS.md` and relevant contracts or RFCs only when new evidence changes their stated status. Include the date, commit or working tree, commands, results, browser path and viewport, and remaining failures required by the root rules.
 - Report changed files, automated results, real browser or integration evidence, migrations or environment changes, rollback concerns, unfinished work, and any claim the evidence does not support.

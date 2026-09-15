@@ -72,11 +72,10 @@ const TESTIMONIALS: Testimonial[] = [
 function InitialAvatar({ testimonial }: { testimonial: Testimonial }) {
   return (
     <div
-      className="h-24 w-24 md:h-[120px] md:w-[120px] rounded-2xl flex items-center justify-center shadow-lg"
-      style={{ backgroundColor: testimonial.avatarColor, color: testimonial.avatarTextColor }}
+      className="home-review-avatar"
       aria-hidden="true"
     >
-      <span className="font-display font-semibold text-[40px]">
+      <span className="text-base font-semibold">
         {testimonial.avatarInitial}
       </span>
     </div>
@@ -143,7 +142,7 @@ export function LovedBySection() {
     <section
       id="home-testimonials"
       aria-label="用户评价"
-      className="bg-white py-24 lg:py-32"
+      className="home-reviews site-section"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -159,7 +158,7 @@ export function LovedBySection() {
         {/* Owner-confirmed testimonials; original quotes and attribution. */}
         <div className="relative">
           {/* Avatar — overlapping top of card */}
-          <div className="flex justify-center mb-[-40px] relative z-10">
+          <div className="flex justify-center mb-6 relative z-10">
             <div
               key={testimonial.id + '-avatar'}
               style={{
@@ -173,11 +172,10 @@ export function LovedBySection() {
           {/* Quote content */}
           <div
             key={testimonial.id}
-            className="rounded-2xl px-8 py-12 md:px-12 md:py-14 pt-16 md:pt-20 transition-colors duration-300"
-            style={{ backgroundColor: testimonial.background }}
+            className="home-review-copy"
           >
             <blockquote
-              className="font-display text-lg md:text-[22px] leading-[1.6] text-sky-900 text-center"
+              className="home-review-quote"
               style={{
                 animation: 'fadeInLeft 400ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
               }}
@@ -229,14 +227,14 @@ export function LovedBySection() {
               <div className="flex gap-2">
                 <button
                   onClick={() => handleManualChange(current - 1)}
-                  className="flex h-12 w-12 items-center justify-center rounded-md bg-sky-100 text-sky-700 transition-colors hover:bg-sky-200"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-sky-700 transition-colors hover:bg-sky-200"
                   aria-label="上一条"
                 >
                   <ChevronLeft size={20} />
                 </button>
                 <button
                   onClick={() => handleManualChange(current + 1)}
-                  className="flex h-12 w-12 items-center justify-center rounded-md bg-sky-600 text-white transition-colors hover:bg-sky-700"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-800 text-white transition-colors hover:bg-sky-700"
                   aria-label="下一条"
                 >
                   <ChevronRight size={20} />
