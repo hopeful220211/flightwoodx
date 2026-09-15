@@ -13,6 +13,9 @@ vi.mock('../../features/analytics/client', () => ({ trackEvent: mocked.track }))
 vi.mock('../../stores/authStore', () => ({ useAuthStore: (select: (state: { isAuthenticated: boolean }) => unknown) => select({ isAuthenticated: mocked.authenticated }) }))
 vi.mock('../../components/common/ScrollReveal', () => ({ ScrollReveal: ({ children }: { children: ReactNode }) => children }))
 vi.mock('./components/WorkbenchAnimation', () => ({ WorkbenchAnimation: () => null }))
+// Analytics tests exercise clicks, not browser viewport observers. The actual
+// three-aircraft animation is covered by hero-hover.spec.ts in real browsers.
+vi.mock('./sections/hero/HeroDrone3D', () => ({ HeroDrone3D: () => null }))
 beforeEach(() => { vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); mocked.track.mockClear(); mocked.authenticated = false })
 afterEach(() => vi.unstubAllGlobals())
 
