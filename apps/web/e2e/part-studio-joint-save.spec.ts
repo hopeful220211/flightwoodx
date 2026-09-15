@@ -139,13 +139,17 @@ test('curved-edge insertion preserves its bottom in the real API and database', 
   expect(guide).toMatchObject({ kind: 'edge-slot', axis: 'y', entry: 'start' })
   expect(guide.y + guide.lengthMm).toBeCloseTo(20, 2)
   expect(validateJointGuides(svgGeometryToPart2D(created.geometry), created.jointGuides!).ok).toBe(true)
-  // Finish the save-triggered list refresh before observing the reload request.
+  // A fresh page cannot accidentally match an in-flight GET from the save.
   await expect(page.getByRole('button', { name: `查看插槽：${name}`, exact: true })).toBeVisible()
-  const reading = page.waitForResponse(response => isCustomPart(response, 'GET')).then(response => response.json())
-  await page.reload()
+  const restoredPage = await context.newPage()
+  const restoredFailures = observe(restoredPage)
+  const reading = restoredPage.waitForResponse(response => isCustomPart(response, 'GET')).then(response => response.json())
+  await restoredPage.goto('/part-studio')
   const restored = UserPartSchema.array().parse((await reading).data.items).find(item => item.id === created.id)!
   expect(restored.geometry).toEqual(created.geometry)
   expect(restored.jointGuides).toEqual(created.jointGuides)
+  await expect(restoredPage.getByRole('button', { name: `查看插槽：${name}`, exact: true })).toBeVisible()
+  expect(restoredFailures).toEqual([])
   expect(failures).toEqual([])
 })
 
