@@ -62,7 +62,12 @@ async function connect(page: Page, child: string, own: string, parent: string, t
   await page.getByLabel('移动插接口',{exact:true}).selectOption(own)
   await page.getByLabel('固定零件',{exact:true}).selectOption(parent)
   await page.getByLabel('固定插接口',{exact:true}).selectOption(target)
-  const saving = page.waitForResponse(r => new URL(r.url()).pathname === '/api/drone-designs' && r.request().method() === 'PUT')
+  const saving = page.waitForResponse(r => {
+    if (new URL(r.url()).pathname !== '/api/drone-designs' || r.request().method() !== 'PUT') return false
+    const snapshot = r.request().postDataJSON()?.designData as DroneDesignSnapshot | undefined
+    const connected = snapshot?.parts.find(p => p.instanceId === child)
+    return connected?.activeConnectorId === own && connected.attachedTo?.parentInstanceId === parent && connected.attachedTo.parentConnectorId === target
+  })
   await page.getByRole('button',{name:'连接插接口',exact:true}).click()
   expect((await saving).status()).toBe(expectedSaveStatus)
   await expect(page.getByRole('dialog',{name:'连接零件',exact:true})).toHaveCount(0)
@@ -140,7 +145,10 @@ test('both modes expose own parts; slot connections survive real saving, reload 
   await page.getByRole('button',{name:'关闭模态框',exact:true}).click()
   let failSave = true
   await page.route('**/api/drone-designs', async route => {
-    if (route.request().method() === 'PUT' && failSave) { failSave = false; await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'隔离测试：暂时无法保存'})}) }
+    const request = route.request()
+    const snapshot = request.method() === 'PUT' ? request.postDataJSON()?.designData as DroneDesignSnapshot | undefined : undefined
+    const isTargetConnection = snapshot?.parts.find(p => p.instanceId === a.instanceId)?.attachedTo?.parentInstanceId === official.instanceId
+    if (isTargetConnection && failSave) { failSave = false; await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'隔离测试：暂时无法保存'})}) }
     else await route.continue()
   })
   design = await connect(page,a.instanceId,aFrames[1]!.id,official.instanceId,officialFrames[0]!.id,503)

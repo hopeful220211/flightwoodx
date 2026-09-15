@@ -106,7 +106,9 @@ test('registration and logout require a new choice without inheriting visitor co
     await page.getByRole('button', { name: '创建账号', exact: true }).click()
     await expect(page).toHaveURL(/\/dashboard$/)
   } finally {
-    if (await page.getByLabel('密码', { exact: true }).count()) await page.getByLabel('密码', { exact: true }).fill('')
+    // Navigation can remove the form between count() and fill(). Clear any
+    // remaining password nodes atomically without waiting for a removed form.
+    await page.locator('input[type="password"]').evaluateAll(inputs => inputs.forEach(input => { (input as HTMLInputElement).value = ''; input.setAttribute('value','') }))
   }
   await expect(page.getByTestId('analytics-notice')).toBeVisible()
   await page.getByRole('button', { name: '不允许', exact: true }).click()

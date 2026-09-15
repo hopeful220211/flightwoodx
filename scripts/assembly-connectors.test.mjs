@@ -4,11 +4,16 @@ import { readFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
+import ts from 'typescript'
 const require = createRequire(new URL('../apps/web/package.json',import.meta.url))
 const { Vector3, Quaternion } = require('three')
 const { GLTFLoader } = await import(pathToFileURL(require.resolve('three/examples/jsm/loaders/GLTFLoader.js')).href)
 const catalog = JSON.parse(await readFile(new URL('../packages/geometry/src/official-connectors.json',import.meta.url),'utf8'))
-const { PART_REGISTRY } = createRequire(new URL('../apps/api/package.json',import.meta.url))('@fwx/parts-schema/runtime-cjs')
+// Root tests run before API pretest builds. Read the authoritative registry
+// directly so a clean checkout needs no previously generated CJS files.
+const source = await readFile(new URL('../packages/parts-schema/src/registry.ts',import.meta.url),'utf8')
+const compiled = ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
+const { PART_REGISTRY } = await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'))
 
 test('all official connector frames match shipped GLBs and the actual Three loader', async () => {
   for (const part of PART_REGISTRY) {

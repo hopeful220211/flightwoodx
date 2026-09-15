@@ -4,10 +4,13 @@ import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
+import ts from 'typescript'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const require = createRequire(resolve(root, 'apps/web/package.json'))
 const { Matrix4, Vector3, Quaternion, PropertyBinding } = require('three')
-const { PART_REGISTRY } = createRequire(resolve(root, 'apps/api/package.json'))('@fwx/parts-schema/runtime-cjs')
+const source = await readFile(resolve(root,'packages/parts-schema/src/registry.ts'),'utf8')
+const compiled = ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
+const { PART_REGISTRY } = await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'))
 const catalog = {}
 for (const part of PART_REGISTRY) {
   const bytes = await readFile(resolve(root, 'apps/web/public', part.modelPath.slice(1)))
