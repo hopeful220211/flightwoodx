@@ -62,8 +62,29 @@ export function curvePath(points: Point2D[], handles: CurveHandle[], closed = tr
   return d + (closed ? ' Z' : '')
 }
 export function curveShape(points: Point2D[], handles = points.map(zeroHandle), original?: SketchShape): SketchShape | null {
-  const sampled = flatten(points, handles)
-  const xs = sampled.map(p => p[0]), ys = sampled.map(p => p[1])
+  // Validate complexity as before, but compute the box from cubic extrema.
+  // Flattened samples can miss an extremum between two subdivision points.
+  flatten(points, handles)
+  const extents: [number[], number[]] = [[], []]
+  points.forEach((point, i) => {
+    const next = (i + 1) % points.length
+    for (const axis of [0, 1] as const) {
+      const a = point[axis], b = a + handles[i]!.out[axis]
+      const d = points[next]![axis], c = d + handles[next]!.in[axis]
+      const quadratic = -a + 3 * b - 3 * c + d
+      const linear = 2 * (a - 2 * b + c), constant = b - a
+      const discriminant = linear * linear - 4 * quadratic * constant
+      const roots = Math.abs(quadratic) < 1e-12
+        ? Math.abs(linear) < 1e-12 ? [] : [-constant / linear]
+        : discriminant < 0 ? [] : [(-linear + Math.sqrt(discriminant)) / (2 * quadratic), (-linear - Math.sqrt(discriminant)) / (2 * quadratic)]
+      extents[axis].push(a, d)
+      for (const t of roots) if (t > 0 && t < 1) {
+        const u = 1 - t
+        extents[axis].push(u ** 3 * a + 3 * u * u * t * b + 3 * u * t * t * c + t ** 3 * d)
+      }
+    }
+  })
+  const [xs, ys] = extents
   const x = Math.min(...xs), y = Math.min(...ys), width = Math.max(...xs) - x, height = Math.max(...ys) - y
   if (width < 0.1 || height < 0.1) return null
   return { id: original?.id ?? crypto.randomUUID(), kind: 'polygon', operation: original?.operation ?? 'add', x, y, width, height, radius: 0, mirror: original?.mirror,

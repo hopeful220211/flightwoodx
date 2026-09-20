@@ -5,6 +5,16 @@ afterAll(() => vi.unstubAllGlobals())
 import { curveShape, smoothFreehand, curvePoints } from './curves'
 import { compileSketch, shapePoints } from './model'
 
+it('uses exact cubic extrema for the selection box instead of flattened samples', () => {
+  // y(t) = -90t(1-t)^2 reaches its minimum at t=1/3, not a subdivision point.
+  const shape = curveShape([[20, 20], [60, 20], [60, 60], [20, 60]], [
+    { in: [0, 0], out: [10, -30] }, { in: [-10, 0], out: [0, 0] },
+    { in: [0, 0], out: [0, 0] }, { in: [0, 0], out: [0, 0] },
+  ])!
+  expect(shape.y).toBeCloseTo(20 - 40 / 3, 8)
+  expect(shape.height).toBeCloseTo(40 + 40 / 3, 8)
+})
+
 it('retains editable cubic handles and compiles the same curved geometry after resize', () => {
   const shape = curveShape([[20, 20], [60, 20], [60, 60], [20, 60]], [
     { in: [0, 0], out: [10, -8] }, { in: [-10, -8], out: [0, 0] },

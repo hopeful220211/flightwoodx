@@ -100,9 +100,10 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
     await page.mouse.down(); await page.mouse.move(control!.x + control!.width / 2 - 5, control!.y + control!.height / 2 + 5); await page.mouse.up()
     expect(await source.locator('path').getAttribute('d')).not.toBe(afterNode)
     await canvas.focus()
-    // Chromium on macOS uses Meta for native clipboard; Ctrl is verified on history too.
-    await page.keyboard.press('Meta+c')
-    await page.keyboard.press('Meta+v')
+    // Clipboard events are native: macOS uses Command, Linux/Windows use Ctrl.
+    const clipboardModifier = process.platform === 'darwin' ? 'Meta' : 'Control'
+    await page.keyboard.press(`${clipboardModifier}+c`)
+    await page.keyboard.press(`${clipboardModifier}+v`)
     await expect(canvas.locator('[data-shape-id]')).toHaveCount(2)
     await page.keyboard.press('Meta+z')
     await expect(canvas.locator('[data-shape-id]')).toHaveCount(1)
