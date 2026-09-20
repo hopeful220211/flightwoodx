@@ -213,6 +213,23 @@ test('only empty ordinary single-link .gitkeep build placeholders are omitted', 
   await assert.rejects(packageWeb(f.dist, commit, f.archive), /Hidden|link/i);
 });
 
+test('production upload survives skipped reused shards but rejects failed or cancelled checks', async () => {
+  const workflow = await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const deploy = workflow.slice(workflow.indexOf('\n  deploy-production:'));
+  const condition = deploy.match(/\n    if: ([^\n]+)/)[1];
+  assert.match(condition, /always\(\)/, 'An explicit status function is required after skipped transitive dependencies');
+  const evaluate = new Function('github', 'needs', 'always', 'cancelled', `return (${condition.replaceAll('needs.docker-smoke', 'needs["docker-smoke"]')})`);
+  const github = { event_name: 'push', ref: 'refs/heads/production' };
+  const needs = Object.fromEntries(['evidence', 'verify', 'browser', 'docker-smoke'].map(name => [name, { result: 'success' }]));
+  assert.equal(evaluate(github, needs, () => true, () => false), true);
+  assert.equal(evaluate(github, needs, () => true, () => true), false);
+  assert.equal(evaluate({ ...github, event_name: 'pull_request' }, needs, () => true, () => false), false);
+  assert.equal(evaluate({ ...github, ref: 'refs/heads/codex/test' }, needs, () => true, () => false), false);
+  for (const name of Object.keys(needs)) for (const result of ['failure', 'skipped', 'cancelled']) {
+    assert.equal(evaluate(github, { ...needs, [name]: { result } }, () => true, () => false), false, `${name}: ${result}`);
+  }
+});
+
 test('CI deploys only the tested production SHA without rebuilding or exposing credentials to pull requests', async () => {
   const workflow = await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.match(workflow, /- production/);
