@@ -14,7 +14,7 @@ export function DesignListModal({ designs, onSelect, onClose }: DesignListModalP
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 max-h-[70vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-800">我的设计</h2>
+          <h2 className="text-lg font-semibold text-gray-800">我的设计</h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"

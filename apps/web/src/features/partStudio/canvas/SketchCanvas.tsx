@@ -7,6 +7,7 @@ import type { SketchTool } from './SketchTools'
 import { getResizeHandles, resizeShape, resolveSelectionHandle, type ResizeHandle } from './resizeShape'
 import { JointDirectionMark } from '../JointDirectionMark'
 import { createInsertionSlot, nearestOuterEdge } from './insertionSlot'
+import { absoluteHandles, curvePath, curveShape, smoothFreehand, zeroHandle, type CurveHandle } from '../sketch/curves'
 
 export type SlotMode = 'cut' | 'edge-slot' | 'through-slot'
 
@@ -33,8 +34,10 @@ type Gesture =
   | { kind: 'draw'; tool: SketchTool; slotMode?: SlotMode; board?: Part2D; start: Point2D; end: Point2D }
   | { kind: 'move'; shape: SketchShape; start: Point2D; end: Point2D }
   | { kind: 'vertex'; shape: SketchShape; index: number; start: Point2D; end: Point2D }
+  | { kind: 'curve-handle'; shape: SketchShape; index: number; side: 'in' | 'out'; start: Point2D; end: Point2D }
   | { kind: 'resize'; shape: SketchShape; handle: ResizeHandle; start: Point2D; end: Point2D; snap: boolean; lockAspect: boolean }
   | { kind: 'freehand'; start: Point2D; end: Point2D }
+  | { kind: 'pen'; start: Point2D; end: Point2D }
 
 const MAX_SHAPES = 32
 const MAX_POINTS = 128
@@ -43,7 +46,8 @@ const tip: Record<SketchTool, string> = {
   rectangle: '拖出矩形；选中后可以输入宽、高和圆角半径。',
   ellipse: '拖出圆形；选中后可分别调整宽、高，得到椭圆。',
   polygon: '逐个点击顶点，Shift 锁定水平或垂直；按 Enter 或点击完成闭合，不需要点回起点。',
-  freehand: '按住绘制辅助草图，再点击完成闭合；按约 1 mm 间距采点，最多 128 点。',
+  pen: '点击画直线，按住拖动画曲线；点击起点或按 Enter 闭合。选中后可编辑节点和曲线。',
+  freehand: '按住画出轮廓，完成闭合后自动平滑；选中后可编辑节点和曲线。手绘不吸附网格。',
   'circle-hole': '拖出圆孔；红色区域将从实体中切除。',
   slot: '普通切孔：拖出矩形，调整宽、高；拼接时选择插槽工具。',
   'insert-slot': '从木板边缘向内拖到槽底；自动水平或竖直，槽宽 2 mm。',
@@ -83,7 +87,13 @@ function shapeFromDrag(gesture: Gesture): SketchShape | null {
   if (gesture.kind === 'vertex') {
     const points = vertices(gesture.shape)
     points[gesture.index] = gesture.end
-    return polygonShape(points, gesture.shape)
+    return gesture.shape.curveHandles ? curveShape(points, absoluteHandles(gesture.shape), gesture.shape) : polygonShape(points, gesture.shape)
+  }
+  if (gesture.kind === 'curve-handle') {
+    const points = vertices(gesture.shape)
+    const handles = absoluteHandles(gesture.shape)
+    handles[gesture.index]![gesture.side] = [endX - points[gesture.index]![0], endY - points[gesture.index]![1]]
+    return curveShape(points, handles, gesture.shape)
   }
   if (gesture.kind !== 'draw') return null
   if (gesture.tool === 'insert-slot') return gesture.board ? createInsertionSlot(gesture.board, gesture.start, gesture.end) : null
@@ -107,7 +117,7 @@ function shapeFromDrag(gesture: Gesture): SketchShape | null {
 
 function ShapeMark({ shape }: { shape: SketchShape }) {
   if (shape.kind === 'ellipse') return <ellipse vectorEffect="non-scaling-stroke" cx={shape.x + shape.width / 2} cy={shape.y + shape.height / 2} rx={shape.width / 2} ry={shape.height / 2} />
-  if (shape.kind === 'polygon') return <path vectorEffect="non-scaling-stroke" d={line(vertices(shape))} />
+  if (shape.kind === 'polygon') return <path vectorEffect="non-scaling-stroke" d={shape.curveHandles ? curvePath(vertices(shape), absoluteHandles(shape)) : line(vertices(shape))} />
   return <rect vectorEffect="non-scaling-stroke" x={shape.x} y={shape.y} width={shape.width} height={shape.height} rx={shape.radius} />
 }
 
@@ -128,10 +138,13 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
   const [touchTargets, setTouchTargets] = useState(() => window.matchMedia?.('(any-pointer: coarse)').matches ?? false)
   const [draft, setDraft] = useState<Point2D[]>([])
   const draftRef = useRef<Point2D[]>([])
+  const [draftHandles, setDraftHandles] = useState<CurveHandle[]>([])
+  const draftHandlesRef = useRef<CurveHandle[]>([])
+  const [draftFuture, setDraftFuture] = useState<{ points: Point2D[]; handles: CurveHandle[] }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [overflow, setOverflow] = useState(false)
   const overflowRef = useRef(false)
-  const pending = gesture !== null || draft.length > 0
+  const pending = gesture !== null || draft.length > 0 || draftFuture.length > 0
   const margin = Math.max(reference.width, reference.height) * 0.08
   const viewWidth = reference.width + margin * 2
   const viewHeight = reference.height + margin * 2
@@ -139,7 +152,8 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
   const tickStep = gridStep * 2
   const displayScale = Math.max(reference.width, reference.height) / 130
   const selected = shapes.find(shape => shape.id === selectedId)
-  const preview = gesture ? shapeFromDrag(gesture) : null
+  let preview: SketchShape | null = null
+  try { preview = gesture ? shapeFromDrag(gesture) : null } catch { /* Keep the original during an invalid curve gesture. */ }
   const selection = preview?.id === selected?.id ? preview : selected
   const editingVertices = selected?.kind === 'polygon' && vertexEditingId === selectedId
   const hitSize = (touchTargets ? 44 : 24) / screenScale
@@ -172,12 +186,13 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
 
   function updateGesture(value: Gesture | null) { gestureRef.current = value; setGesture(value) }
   function updateDraft(value: Point2D[]) { draftRef.current = value; setDraft(value) }
+  function updateDraftHandles(value: CurveHandle[]) { draftHandlesRef.current = value; setDraftHandles(value) }
   function failOverflow() { overflowRef.current = true; setOverflow(true); setError('顶点不能超过 128 个。请取消这次绘制后重画，原有形状不会丢失。') }
   function resetPending() {
     if (activePointerId.current !== null && svgRef.current?.hasPointerCapture?.(activePointerId.current)) svgRef.current.releasePointerCapture(activePointerId.current)
     activePointerId.current = null
     pointerOrigin.current = null
-    updateGesture(null); updateDraft([]); overflowRef.current = false; setOverflow(false)
+    updateGesture(null); updateDraft([]); updateDraftHandles([]); setDraftFuture([]); overflowRef.current = false; setOverflow(false)
   }
   function cancel() { resetPending(); setError(null) }
   function coordinate(event: PointerEvent<SVGSVGElement> | PointerEvent<SVGGElement>, applySnap = snap): Point2D | null {
@@ -228,18 +243,26 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
     event.preventDefault()
     flushSync(() => svgRef.current?.focus({ preventScroll: true }))
     if (disabledRef.current) return
-    let point = coordinate(event)
+    let point = coordinate(event, tool === 'freehand' ? false : snap)
     if (!point) return
     if (tool === 'select') { onSelectRef.current(null); return }
     if (shapesRef.current.length >= MAX_SHAPES) { setError('形状不能超过 32 个，请先删除不需要的形状。'); return }
     event.preventDefault()
     svgRef.current?.focus({ preventScroll: true })
-    if (tool === 'polygon') {
+    if (tool === 'pen' || tool === 'polygon') {
+      const first = draftRef.current[0]
+      if (tool === 'pen' && draftRef.current.length >= 3 && first && Math.hypot(point[0] - first[0], point[1] - first[1]) < (event.pointerType === 'touch' ? 22 : 12) / screenScale) { finish(); return }
       if (draftRef.current.length >= MAX_POINTS) { failOverflow(); return }
       const previous = draftRef.current[draftRef.current.length - 1]
       if (previous) point = alignPoint(point, previous, event.shiftKey)
       if (previous && previous[0] === point[0] && previous[1] === point[1]) return
+      setDraftFuture([])
       updateDraft([...draftRef.current, point])
+      if (tool === 'pen') {
+        updateDraftHandles([...draftHandlesRef.current, zeroHandle()])
+        updateGesture({ kind: 'pen', start: point, end: point })
+        beginCapture(event)
+      }
       setError(null)
       return
     }
@@ -251,7 +274,7 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
       point = anchor
     }
     setError(null)
-    if (tool === 'freehand') updateDraft([point])
+    if (tool === 'freehand') { updateDraft([point]); setDraftFuture([]) }
     updateGesture({ kind: tool === 'freehand' ? 'freehand' : 'draw', tool, slotMode, board: tool === 'insert-slot' && part ? part : undefined, start: point, end: point })
     beginCapture(event)
   }
@@ -291,6 +314,18 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
     updateGesture({ kind: 'resize', shape: committed, handle, start: point, end: point, snap, lockAspect: event.shiftKey })
     beginCapture(event)
   }
+  function startCurveHandle(event: PointerEvent<SVGGElement>, shape: SketchShape, index: number, side: 'in' | 'out') {
+    event.stopPropagation()
+    if (disabled || event.button !== 0 || event.isPrimary === false || gestureRef.current) return
+    const point = coordinate(event, false)
+    if (!point) return
+    updateGesture({ kind: 'curve-handle', shape, index, side, start: point, end: point })
+    beginCapture(event)
+  }
+  function updatePenHandle(start: Point2D, end: Point2D) {
+    const delta: Point2D = [end[0] - start[0], end[1] - start[1]]
+    updateDraftHandles(draftHandlesRef.current.map((handle, index, all) => index === all.length - 1 ? { in: [-delta[0], -delta[1]], out: delta } : handle))
+  }
   function move(event: PointerEvent<SVGSVGElement>) {
     const current = gestureRef.current
     if (!current && inserting && !disabled) {
@@ -300,31 +335,35 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
       return
     }
     if (!current || disabled || event.pointerId !== activePointerId.current) return
-    let point = coordinate(event, current.kind === 'resize' ? false : snap)
+    let point = coordinate(event, ['resize', 'pen', 'freehand', 'curve-handle'].includes(current.kind) ? false : snap)
     if (!point) return
     if (pointerOrigin.current?.[0] === event.clientX && pointerOrigin.current?.[1] === event.clientY) point = current.start
     if (current.kind === 'move' || current.kind === 'vertex') point = alignPoint(point, current.start, event.shiftKey)
     if (current.kind === 'freehand') {
       const last = draftRef.current[draftRef.current.length - 1]!
-      if (Math.hypot(point[0] - last[0], point[1] - last[1]) >= 1) {
-        if (draftRef.current.length >= MAX_POINTS) { failOverflow(); return }
+      if (Math.hypot(point[0] - last[0], point[1] - last[1]) >= 0.15) {
+        if (draftRef.current.length >= 2048) { overflowRef.current = true; setOverflow(true); setError('这段手绘过长，请取消后分段设计。'); return }
         updateDraft([...draftRef.current, point])
       }
     }
+    if (current.kind === 'pen') updatePenHandle(current.start, point)
     updateGesture(current.kind === 'resize' ? { ...current, end: point, lockAspect: event.shiftKey } : { ...current, end: point })
   }
   function end(event: PointerEvent<SVGSVGElement>) {
     const current = gestureRef.current
     if (!current || disabled || event.pointerId !== activePointerId.current) return
     const unmoved = pointerOrigin.current?.[0] === event.clientX && pointerOrigin.current?.[1] === event.clientY
-    let point = unmoved ? current.start : coordinate(event, current.kind === 'resize' ? false : snap) ?? current.end
+    let point = unmoved ? current.start : coordinate(event, ['resize', 'pen', 'freehand', 'curve-handle'].includes(current.kind) ? false : snap) ?? current.end
     if (current.kind === 'move' || current.kind === 'vertex') point = alignPoint(point, current.start, event.shiftKey)
     activePointerId.current = null
     pointerOrigin.current = null
     updateGesture(null)
+    if (current.kind === 'pen') { updatePenHandle(current.start, point); return }
     if (current.kind === 'freehand') return // Explicit close or cancel follows.
     if (unmoved && current.kind !== 'draw') return
-    const next = shapeFromDrag(current.kind === 'resize' ? { ...current, end: point, lockAspect: event.shiftKey } : { ...current, end: point })
+    let next: SketchShape | null
+    try { next = shapeFromDrag(current.kind === 'resize' ? { ...current, end: point, lockAspect: event.shiftKey } : { ...current, end: point }) }
+    catch { setError('曲线过于复杂，请缩短控制线后重试。'); return }
     if (!next) { setError(current.kind === 'draw' && current.tool === 'insert-slot' ? '请从板边向内拖动至少 2 mm，保留两侧和槽底。' : '形状需要有宽度和高度，请重新拖动。'); return }
     if (current.kind === 'draw') {
       next.id = crypto.randomUUID()
@@ -340,7 +379,9 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
   }
   function finish() {
     if (disabled || overflowRef.current || gestureRef.current) return
-    const shape = polygonShape(draftRef.current)
+    let shape: SketchShape | null
+    try { shape = tool === 'pen' ? curveShape(draftRef.current, draftHandlesRef.current) : tool === 'freehand' ? smoothFreehand(draftRef.current) : polygonShape(draftRef.current) }
+    catch { setError('轮廓过于复杂，请减少节点后重试。'); return }
     if (!shape) { setError('至少添加 3 个不在同一直线上的顶点，再完成闭合。'); return }
     if (shapes.length >= MAX_SHAPES) { setError('形状不能超过 32 个，请先取消并删除不需要的形状。'); return }
     onChange([...shapes, shape])
@@ -350,7 +391,18 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
     svgRef.current?.focus({ preventScroll: true })
   }
   function keyDown(event: KeyboardEvent<SVGSVGElement>) {
-    if (disabled) return
+    if (disabled || event.nativeEvent.isComposing) return
+    if ((event.metaKey || event.ctrlKey) && ['z', 'y'].includes(event.key.toLowerCase()) && (draft.length || draftFuture.length) && !gesture) {
+      event.preventDefault(); event.stopPropagation()
+      if (event.shiftKey || event.key.toLowerCase() === 'y') {
+        const next = draftFuture.at(-1)
+        if (next) { updateDraft(next.points); updateDraftHandles(next.handles); setDraftFuture(draftFuture.slice(0, -1)) }
+      } else if (draft.length) {
+        setDraftFuture([...draftFuture, { points: draft, handles: draftHandles }])
+        updateDraft(tool === 'freehand' ? [] : draft.slice(0, -1)); updateDraftHandles(draftHandles.slice(0, -1))
+      }
+      return
+    }
     if (event.key === 'Escape') { event.preventDefault(); if (pending) cancel(); else onSelect(null); return }
     if (event.key === 'Enter' && draft.length) { event.preventDefault(); finish(); return }
     if (event.key === 'Enter' && tool === 'insert-slot' && !pending) { event.preventDefault(); setError('请从木板外边缘向内拖动，指定插接口位置。'); return }
@@ -376,7 +428,7 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
   }
   const handles = editingVertices && selection ? vertices(selection) : []
   return <div className="w-full bg-slate-50">
-    <div data-testid="sketch-stage" className="relative h-[clamp(728px,calc(100dvh-176px),1048px)] pb-[172px] min-[440px]:h-[clamp(680px,calc(100dvh-224px),1000px)] min-[440px]:pb-[124px]">
+    <div data-testid="sketch-stage" className="relative h-[clamp(776px,calc(100dvh-128px),1096px)] pb-[220px] min-[440px]:h-[clamp(680px,calc(100dvh-224px),1000px)] min-[440px]:pb-[124px]">
     <svg ref={svgRef} data-testid="sketch-canvas" aria-label="二维零件绘制画布" aria-describedby={inserting ? `${gridId}-insertion-hint` : `${gridId}-tip`} role="application" tabIndex={0}
       viewBox={`${-margin} ${-margin} ${viewWidth} ${viewHeight}`} preserveAspectRatio="xMidYMid meet"
       className="block h-full w-full outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-sky-400"
@@ -419,9 +471,13 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
       </g>}
       {preview && gesture?.kind === 'draw' && <g fill={preview.operation === 'cut' ? '#ef444430' : '#60a5fa30'} stroke={preview.operation === 'cut' ? '#dc5252' : '#0070d5'} strokeWidth={1} pointerEvents="none"><ShapeMark shape={preview} />{preview.joint && <JointDirectionMark guide={{ id: preview.id, ...preview.joint, x: preview.x, y: preview.y, lengthMm: preview.joint.axis === 'x' ? preview.width : preview.height }} scale={screenScale} />}</g>}
       {gesture?.kind === 'draw' && gesture.tool === 'insert-slot' && <circle data-testid="insertion-mouth" cx={gesture.start[0]} cy={gesture.start[1]} r={4 / screenScale} fill="white" stroke="#b91c1c" strokeWidth={1.5} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
-      {draft.length > 0 && <g pointerEvents="none"><path d={line(draft, false)} fill="none" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      {draft.length > 0 && <g pointerEvents="none"><path d={tool === 'pen' ? curvePath(draft, draftHandles, false) : line(draft, false)} fill="none" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" />
         {draft.length > 1 && <path d={line([draft[draft.length - 1]!, draft[0]!], false)} fill="none" stroke="#7197b6" strokeWidth={1} vectorEffect="non-scaling-stroke" strokeDasharray="4 4" />}
-        {draft.map(([x, y], index) => <circle key={index} cx={x} cy={y} r={0.65 * displayScale} fill={index === 0 ? '#16a34a' : '#0070d5'} />)}</g>}
+        {tool !== 'freehand' && draft.map(([x, y], index) => <circle key={index} cx={x} cy={y} r={markSize / 2} fill={index === 0 ? '#16a34a' : '#0070d5'} />)}
+        {tool === 'pen' && draft.map(([x, y], index) => <g key={index}>{(['in', 'out'] as const).map(side => {
+          const h = draftHandles[index]?.[side]
+          return h && (h[0] || h[1]) ? <g key={side}><path d={`M ${x} ${y} l ${h[0]} ${h[1]}`} stroke="#7197b6" strokeWidth={1} vectorEffect="non-scaling-stroke" /><circle cx={x + h[0]} cy={y + h[1]} r={markSize / 3} fill="white" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" /></g> : null
+        })}</g>)}</g>}
       {tool === 'select' && selection && <rect data-testid="selection-outline" x={selection.x} y={selection.y} width={selection.width} height={selection.height} fill="none" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
       {tool === 'select' && selected && selection && !editingVertices && getResizeHandles(selected).map(handle => {
         const x = selection.x + handle.x * selection.width
@@ -431,21 +487,30 @@ export function SketchCanvas({ shapes, reference, part, tool, slotMode = 'cut', 
           <rect data-handle-mark="" x={x - markSize / 2} y={y - markSize / 2} width={markSize} height={markSize} fill="white" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
         </g>
       })}
+      {tool === 'select' && selected && selection?.curveHandles && handles.map(([x, y], index) => <g key={`controls-${index}`}>{(['in', 'out'] as const).map(side => {
+        const h = absoluteHandles(selection)[index]![side]
+        if (!h[0] && !h[1]) return null
+        return <g key={side} data-curve-handle={`${index}-${side}`} onPointerDown={event => startCurveHandle(event, selected, index, side)} style={{ cursor: 'crosshair' }}>
+          <path d={`M ${x} ${y} l ${h[0]} ${h[1]}`} stroke="#7197b6" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
+          <rect x={x + h[0] - hitSize / 2} y={y + h[1] - hitSize / 2} width={hitSize} height={hitSize} fill="transparent" />
+          <circle cx={x + h[0]} cy={y + h[1]} r={markSize / 2} fill="white" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
+        </g>
+      })}</g>)}
       {tool === 'select' && selected && handles.map(([x, y], index) => <g key={index} data-vertex-index={index} onPointerDown={event => selectShape(event, selected, index)} style={{ cursor: 'crosshair' }}>
         <rect x={x - hitSize / 2} y={y - hitSize / 2} width={hitSize} height={hitSize} fill="transparent" />
         <circle cx={x} cy={y} r={markSize / 2} fill="white" stroke="#0070d5" strokeWidth={1} vectorEffect="non-scaling-stroke" pointerEvents="none" />
       </g>)}
       {selection?.joint && <JointDirectionMark scale={screenScale} guide={(!gesture && jointGuides.find(guide => guide.id === selection.id)) || { id: selection.id, ...selection.joint, x: selection.x, y: selection.y, lengthMm: selection.joint.axis === 'x' ? selection.width : selection.height }} />}
     </svg>
-    {inserting && <div className="pointer-events-none absolute inset-0 z-10 p-3 pb-[176px] min-[440px]:pb-[128px]"><div data-testid="insertion-guidance" className="sticky top-[76px] w-fit max-w-full rounded-lg border border-red-100 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-sm">
+    {inserting && <div className="pointer-events-none absolute inset-0 z-10 p-3 pb-[224px] min-[440px]:pb-[128px]"><div data-testid="insertion-guidance" className="sticky top-[76px] w-fit max-w-full rounded-lg border border-red-100 bg-white/95 px-3 py-2 text-xs text-slate-700 shadow-sm">
       <p className="mb-0.5 font-semibold text-red-700">插接口 <span className="font-normal text-slate-500">· 槽宽 2 mm</span></p>
       <p id={`${gridId}-insertion-hint`} role={error ? 'alert' : 'status'} aria-atomic="true">{insertionHint}</p>
     </div></div>}
     {children}
-    {draft.length > 0 && <div className="absolute bottom-[176px] left-3 z-20 flex max-w-[calc(100%-24px)] flex-wrap items-center gap-2 rounded-lg border border-sky-100 bg-white p-2 shadow-sm min-[440px]:bottom-[128px]">
+    {(draft.length > 0 || draftFuture.length > 0) && <div className="absolute bottom-[224px] left-3 z-20 flex max-w-[calc(100%-24px)] flex-wrap items-center gap-2 rounded-lg border border-sky-100 bg-white p-2 shadow-sm min-[440px]:bottom-[128px]">
       <button type="button" onClick={finish} disabled={disabled || gesture !== null || draft.length < 3 || overflow} className="rounded-lg bg-sky-600 px-3 py-2 text-sm text-white disabled:opacity-40">完成闭合</button>
       <button type="button" onClick={cancel} disabled={disabled} className="rounded-lg border border-sky-200 px-3 py-2 text-sm text-sky-900 disabled:opacity-40">取消绘制</button>
-      <span className="text-xs text-slate-500">{draft.length} / 128 个顶点</span>
+      <span className="text-xs text-slate-500">{tool === 'freehand' ? '闭合后自动平滑' : `${draft.length} / 128 个顶点`}</span>
     </div>}
     </div>
     <div className="shrink-0 border-t border-sky-100 bg-white px-3 py-2">

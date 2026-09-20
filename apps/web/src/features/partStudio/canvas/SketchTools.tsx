@@ -19,11 +19,11 @@ export function DimensionInput({ label, value, min = 0.1, max = 2000, disabled =
     onEditingChange?.(inputId, false)
   }
   return <label className={`flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs text-slate-600 ${compact ? 'justify-between' : ''}`}>
-    {label}<input aria-label={`${label}（毫米）`} type="number" min={min} max={max} step="0.1" disabled={disabled} placeholder="—" value={draft ?? value ?? ''} aria-invalid={invalid}
+    {label}<input aria-label={`${label}（毫米）`} type="number" min={min} max={max} step="0.1" disabled={disabled} placeholder="—" value={draft ?? (value === undefined ? '' : Math.round(value * 100) / 100)} aria-invalid={invalid}
       title={invalid ? `请输入${min}至${max}毫米` : `${label}，单位毫米`}
-      className={`h-9 min-w-0 rounded-lg border bg-white px-2 text-sm text-sky-950 outline-none focus:ring-2 focus:ring-sky-300 disabled:bg-slate-50 disabled:text-slate-400 ${compact ? 'w-16' : 'w-[72px]'} ${invalid ? 'border-red-500' : 'border-sky-200'}`}
+      className={"site-form-control site-compact-field " + (`h-9 min-w-0 rounded-lg border bg-white px-2 text-sm text-sky-950 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none focus:ring-2 focus:ring-sky-300 disabled:bg-slate-50 disabled:text-slate-400 ${compact ? 'w-16' : 'w-[72px]'} ${invalid ? 'border-red-500' : 'border-sky-200'}`)}
       onChange={event => { setDraft(event.target.value); setInvalid(false); onEditingChange?.(inputId, true) }}
-      onBlur={event => commit(event.currentTarget.value)}
+      onBlur={event => { if (draft !== null) commit(event.currentTarget.value) }}
       onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commit(event.currentTarget.value) }; if (event.key === 'Escape') { setDraft(null); setInvalid(false); onEditingChange?.(inputId, false) } }} />
     {!compact && <span className="text-slate-400">mm</span>}
   </label>
@@ -38,7 +38,7 @@ export function ShapeParameters({ shape, onChange, onEditingChange }: { shape: S
       <DimensionInput compact label="槽长" value={shape.joint.axis === 'x' ? shape.width : shape.height} min={USER_PART_THICKNESS_MM} onEditingChange={onEditingChange} onChange={length => onChange({ ...shape, ...(shape.joint!.axis === 'x' ? { width: length } : { height: length }) })} />
       <DimensionInput compact label="槽宽" value={USER_PART_THICKNESS_MM} disabled onChange={() => {}} />
       <div className="col-span-2 flex min-w-0 items-center gap-2">
-        <label className="min-w-0 flex-1 text-xs"><span className="sr-only">插入方向</span><select aria-label="插入方向" className="h-9 w-full min-w-0 rounded-lg border border-sky-200 px-1.5" value={shape.joint.entry} onChange={event => onChange({ ...shape, joint: { ...shape.joint!, entry: event.target.value as NonNullable<SketchShape['joint']>['entry'] } })}>
+        <label className="min-w-0 flex-1 text-xs"><span className="sr-only">插入方向</span><select aria-label="插入方向" className="site-form-control site-compact-field h-9 w-full min-w-0 rounded-lg border border-sky-200 px-1.5" value={shape.joint.entry} onChange={event => onChange({ ...shape, joint: { ...shape.joint!, entry: event.target.value as NonNullable<SketchShape['joint']>['entry'] } })}>
           {shape.joint.kind === 'through-slot' ? <><option value="front">从正面插入</option><option value="back">从背面插入</option></> : <><option value="start">{shape.joint.axis === 'x' ? '从左向右' : '从上向下'}</option><option value="end">{shape.joint.axis === 'x' ? '从右向左' : '从下向上'}</option></>}
         </select></label>
         {mirror}

@@ -23,7 +23,7 @@ export function EmptyState({ icon, title, description, action, className }: Empt
           {icon}
         </div>
       ) : null}
-      <div className="text-base font-extrabold">{title}</div>
+      <div className="text-base font-semibold">{title}</div>
       {description ? <div className="max-w-md text-sm text-slate-600 dark:text-slate-300">{description}</div> : null}
       {action ? (
         <Button onClick={action.onClick} {...action.buttonProps}>
@@ -33,4 +33,3 @@ export function EmptyState({ icon, title, description, action, className }: Empt
     </div>
   )
 }
-

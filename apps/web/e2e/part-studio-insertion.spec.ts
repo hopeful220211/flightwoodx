@@ -66,6 +66,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
     await expect(page.getByText('请从板边向内拖动至少 2 mm，保留两侧和槽底。', { exact: true })).toBeVisible()
     await expect(page.getByTestId('part-3d-preview')).toHaveAttribute('data-wood-ready', 'true')
     await page.getByRole('button', { name: '清空', exact: true }).click()
+    await page.getByRole('button', { name: '确认清空', exact: true }).click()
     await drawStudioShape(page, '圆形', [35, 35], [95, 95])
     await drawStudioShape(page, '插接口', [80, 39.05], [80, 55])
     await expect(page.getByRole('button', { name: '保存', exact: true })).toBeEnabled()

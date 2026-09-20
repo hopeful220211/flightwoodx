@@ -76,6 +76,9 @@ export default {
       fontWeight: { bold: '600', extrabold: '600', black: '600' },
       /* ── RFC-020：流体字号令牌（映射 index.css 的 CSS 变量，便于 text-hero 等直接用） ── */
       fontSize: {
+        xs: ['12px', { lineHeight: '20px' }],
+        sm: ['14px', { lineHeight: '20px' }],
+        base: ['16px', { lineHeight: '24px' }],
         hero: ['var(--fs-hero)', { lineHeight: '1', letterSpacing: '-0.3px' }],
         h2: ['var(--fs-h2)', { lineHeight: '1.1' }],
         h3: ['var(--fs-h3)', { lineHeight: '1.125' }],

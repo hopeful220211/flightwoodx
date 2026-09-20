@@ -216,7 +216,7 @@ export function DashboardPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索作品名称"
             aria-label="搜索作品"
-            className="w-full rounded-lg border border-sky-200 bg-white py-2.5 pl-10 pr-4 text-sm text-sky-900 outline-none transition focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
+            className="site-form-control w-full rounded-lg border border-sky-200 bg-white py-2.5 pl-10 pr-4 text-sm text-sky-900 outline-none transition focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
           />
         </div>
         <button

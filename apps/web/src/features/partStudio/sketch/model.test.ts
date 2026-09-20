@@ -344,6 +344,19 @@ describe('millimetre sketch geometry', () => {
   })
 })
 
+it('rounds only when requested and preserves an explicit insertion slot', () => {
+  const board = rectangle({ x: 20, y: 20, width: 60, height: 40 })
+  const slot = rectangle({ id: 'slot', operation: 'cut', x: 40, y: 18, width: 2, height: 12, joint: { kind: 'edge-slot', axis: 'y', entry: 'start' } })
+  const original = compileSketch([board, slot], { width: 130, height: 130 }, true)
+  const rounded = compileSketch([board, slot], { width: 130, height: 130 }, true, 1)
+  expect(rounded.error).toBeNull()
+  expect(rounded.rounding?.rounded).toBeGreaterThan(0)
+  expect(rounded.part!.contour.points.length).toBeGreaterThan(original.part!.contour.points.length)
+  expect(rounded.part!.contour.points).toContainEqual([40, 30])
+  expect(rounded.part!.contour.points).toContainEqual([42, 30])
+  expect(compileSketch([board, slot], { width: 130, height: 130 }, true, 0)).toEqual(original)
+})
+
 it('snaps to millimetres only when enabled and rejects invalid grid values', () => {
   expect(snapCoordinate(3.6, true)).toBe(4)
   expect(snapCoordinate(3.6, false)).toBe(3.6)

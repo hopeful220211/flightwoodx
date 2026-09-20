@@ -58,7 +58,7 @@ export function RenameDialog({ current, onCancel, onConfirm }: RenameDialogProps
           if (e.key === 'Enter' && !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229) submit()
         }}
         placeholder="给作品起个名字"
-        className="w-full rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm text-sky-900 outline-none transition focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
+        className="site-form-control w-full rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm text-sky-900 outline-none transition focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
       />
     </Modal>
   )

@@ -55,7 +55,7 @@ function PartChip({ part, onDelete, onUse, onInspect }: { part: UserPartDTO; onD
       <p className="mt-1 truncate text-center text-xs font-medium text-slate-700" title={part.name}>
         {part.name}
       </p>
-      <p className="text-center text-[10px] text-slate-400">
+      <p className="text-center text-xs text-slate-400">
         {USER_PART_CATEGORY_LABELS[part.category]}
       </p>
       <button type="button" onClick={() => onUse(part)} className="mt-2 min-h-11 w-full rounded bg-sky-100 px-1 py-2 text-xs text-sky-800" aria-label={`放入作品：${part.name}`}>放入作品</button>

@@ -42,11 +42,11 @@ export function AdminUsersPage() {
     <form onSubmit={submitSearch} className="flex flex-wrap items-end gap-3 rounded-xl border border-sky-100 bg-white p-4">
       <label className="w-full text-sm font-medium text-slate-700 sm:min-w-0 sm:w-auto sm:flex-1">
         用户名或昵称
-        <input className="mt-1.5 block min-h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100" type="search" maxLength={100} value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索用户" />
+        <input className="site-form-control mt-1.5 block min-h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100" type="search" maxLength={100} value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索用户" />
       </label>
       <label className="text-sm font-medium text-slate-700">
         角色
-        <select aria-label="角色" className="mt-1.5 block min-h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal" value={query.role} onChange={event => setQuery(value => ({ ...value, role: event.target.value, page: 1 }))}>
+        <select aria-label="角色" className="site-form-control mt-1.5 block min-h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal" value={query.role} onChange={event => setQuery(value => ({ ...value, role: event.target.value, page: 1 }))}>
           <option value="">全部角色</option>
           {Object.entries(ROLES).map(([role, label]) => <option key={role} value={role}>{label}</option>)}
         </select>

@@ -49,7 +49,7 @@ function PartThumb({ name, category, thumbnailUrl }: { name: string; category: s
   return (
     <div className="w-full h-full bg-gradient-to-br from-sky-50 to-sky-100 dark:from-slate-700 dark:to-slate-800 flex flex-col items-center justify-center gap-1 p-2">
       <span className="text-3xl">{icon}</span>
-      <span className="text-[10px] text-sky-700 dark:text-slate-400 text-center leading-tight">{name}</span>
+      <span className="text-xs text-sky-700 dark:text-slate-400 text-center leading-tight">{name}</span>
     </div>
   )
 }

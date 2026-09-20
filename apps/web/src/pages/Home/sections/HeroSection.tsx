@@ -4,11 +4,15 @@ import { Button } from '../../../components/common/Button'
 import { HeroHonors } from './hero/HeroHonors'
 import { HeroDrone3D } from './hero/HeroDrone3D'
 import { trackEvent } from '../../../features/analytics/client'
+import { useAuthStore } from '../../../stores/authStore'
+import { useUIStore } from '../../../stores/uiStore'
 
 const brandStyle = { fontSize: 'clamp(64px, 9vw, 130px)', fontFamily: 'Montserrat, "Arial Black", Arial, sans-serif', fontWeight: 900, fontSynthesis: 'none' } as const
 
 export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
   const navigate = useNavigate()
+  const signedIn = useAuthStore(s => s.isAuthenticated && !!s.token && !s.user?.isGuest)
+  const openLogin = useUIStore(s => s.openLoginModal)
   return (
     <section id="home-hero" className="home-hero">
       <div className="home-hero-copy">
@@ -22,7 +26,7 @@ export function HeroSection({ onWatchVideo }: { onWatchVideo: () => void }) {
           设计 ｜ 搭建 ｜ 导出 ｜ 社区分享
         </p>
         <div className="home-hero-actions">
-          <Button onClick={() => { trackEvent('home_cta_clicked', { placement: 'hero', destination: 'design' }); navigate('/design') }} rightIcon={<ArrowRight size={14} />}>开始设计</Button>
+          <Button onClick={() => { trackEvent('home_cta_clicked', { placement: 'hero', destination: signedIn ? 'design' : 'login' }); if (signedIn) navigate('/design'); else openLogin('/design') }} rightIcon={<ArrowRight size={14} />}>开始设计</Button>
           <Button variant="outline" onClick={onWatchVideo} leftIcon={<Play size={14} />}>观看视频</Button>
         </div>
       </div>

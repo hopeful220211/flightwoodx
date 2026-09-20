@@ -23,7 +23,7 @@ function Markers({ part, connectors }: { part: DesignPartInstance; connectors: A
   const used = occupiedAssemblyConnectors(parts ?? [])
   return <group position={part.position} rotation={part.rotation} scale={part.scale}>
     {connectors.map((c,i) => <Html key={c.id} position={c.position} center style={{ pointerEvents: 'none' }} zIndexRange={[30,20]}>
-      <span title={`插接口 ${i+1}${used.has(`${part.instanceId}/${c.id}`) ? ' · 已占用' : ''}`} className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white shadow ${used.has(`${part.instanceId}/${c.id}`) ? 'bg-slate-500' : 'bg-sky-600'}`}>{i+1}</span>
+      <span title={`插接口 ${i+1}${used.has(`${part.instanceId}/${c.id}`) ? ' · 已占用' : ''}`} className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-xs font-semibold text-white shadow ${used.has(`${part.instanceId}/${c.id}`) ? 'bg-slate-500' : 'bg-sky-600'}`}>{i+1}</span>
     </Html>)}
   </group>
 }

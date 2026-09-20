@@ -54,7 +54,7 @@ export function CommunityPage() {
       <PageContainer className="py-12 lg:py-16">
         {/* ── Hero：巨字 + 大留白「大气压场」── */}
         <header className="mb-10 lg:mb-12">
-          <span className="fwx-display text-[12px] font-medium uppercase tracking-[0.16em] text-sky-500">
+          <span className="fwx-display text-[12px] font-medium uppercase tracking-normal text-sky-500">
             FlightWoodX 社区
           </span>
           <h1
@@ -77,7 +77,7 @@ export function CommunityPage() {
               value={qInput}
               onChange={(e) => setQInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && submitSearch()}
-              className="w-full rounded-full border border-black/[0.08] bg-white py-3 pl-11 pr-4 text-[15px] text-black/80 outline-none transition placeholder:text-black/35 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+              className="site-form-control w-full rounded-full border border-black/[0.08] bg-white py-3 pl-11 pr-4 text-[15px] text-black/80 outline-none transition placeholder:text-black/35 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
             />
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2 gap-y-2.5 self-start sm:flex-nowrap sm:self-auto">
@@ -152,7 +152,7 @@ export function CommunityPage() {
               </p>
             )}
             {!hasNextPage && (
-              <p className="fwx-display pb-2 pt-16 text-center text-[13px] uppercase tracking-[0.16em] text-black/40">
+              <p className="fwx-display pb-2 pt-16 text-center text-[13px] uppercase tracking-normal text-black/40">
                 共 {total} 件作品
               </p>
             )}

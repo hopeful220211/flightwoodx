@@ -19,7 +19,7 @@ export function Select({ label, options, className, id, ...rest }: SelectProps) 
       <select
         id={selectId}
         className={cn(
-          'w-full rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm text-ink-900 transition',
+          'site-form-control w-full rounded-md border border-sky-200 bg-white px-4 py-2.5 text-sm text-ink-900 transition-colors',
           'focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20',
           className,
         )}

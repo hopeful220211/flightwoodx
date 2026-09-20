@@ -19,7 +19,7 @@ export function Input({ label, error, className, id, ...rest }: InputProps) {
       <input
         id={inputId}
         className={cn(
-          'w-full rounded-lg border border-sky-200 bg-white px-4 py-2.5 text-sm text-ink-900 transition placeholder:text-ink-400',
+          'site-form-control w-full rounded-md border border-sky-200 bg-white px-4 py-2.5 text-sm text-ink-900 transition-colors placeholder:text-ink-400',
           'focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20',
           error && 'border-error focus:border-error focus:ring-error/20',
           className,

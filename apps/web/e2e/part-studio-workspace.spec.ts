@@ -78,39 +78,39 @@ for (const width of [390, 768, 1440]) {
     const transparent = 'rgba(0, 0, 0, 0)'
     const selectedBlue = { background: 'rgb(0, 112, 213)', icon: white, stroke: white }
     await expect(rectangle).toHaveAttribute('aria-pressed', 'true')
-    expect(await colors('矩形')).toEqual(selectedBlue)
+    await expect.poll(() => colors('矩形')).toEqual(selectedBlue)
     for (const name of ['选择', '圆形', '多边形', '自由画']) {
-      expect(await colors(name)).toEqual({ background: transparent, icon: blue, stroke: blue })
+      await expect.poll(() => colors(name)).toEqual({ background: transparent, icon: blue, stroke: blue })
     }
     for (const name of ['圆孔', '孔 / 开口']) {
       await expect(tools.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'false')
-      expect(await colors(name)).toEqual({ background: transparent, icon: red, stroke: red })
+      await expect.poll(() => colors(name)).toEqual({ background: transparent, icon: red, stroke: red })
     }
     if (process.env.FWX_UI_CAPTURE_DIR) await toolbar.screenshot({ path: `${process.env.FWX_UI_CAPTURE_DIR}/tool-strip-${width}.png` })
 
     for (const name of ['圆孔', '孔 / 开口']) {
       const cut = tools.getByRole('button', { name, exact: true })
       await cut.hover()
-      expect(await colors(name)).toEqual({ background: 'rgb(254, 242, 242)', icon: red, stroke: red })
+      await expect.poll(() => colors(name)).toEqual({ background: 'rgb(254, 242, 242)', icon: red, stroke: red })
       expect(await layout()).toEqual(initialLayout)
       await cut.click()
       await expect(cut).toHaveAttribute('aria-pressed', 'true')
       await expect(tools.locator('button[aria-pressed="true"]')).toHaveCount(1)
-      expect(await colors(name)).toEqual({ background: red, icon: white, stroke: white })
+      await expect.poll(() => colors(name)).toEqual({ background: red, icon: white, stroke: white })
       await expect(rectangle).toHaveAttribute('aria-pressed', 'false')
-      expect(await colors('矩形')).toEqual({ background: transparent, icon: blue, stroke: blue })
+      await expect.poll(() => colors('矩形')).toEqual({ background: transparent, icon: blue, stroke: blue })
       expect(await layout()).toEqual(initialLayout)
       if (name === '孔 / 开口' && process.env.FWX_UI_CAPTURE_DIR) {
         await toolbar.screenshot({ path: `${process.env.FWX_UI_CAPTURE_DIR}/toolbar-selected-${width}.png` })
       }
 
       await rectangle.hover()
-      expect(await colors('矩形')).toEqual({ background: 'rgb(247, 249, 250)', icon: blue, stroke: blue })
+      await expect.poll(() => colors('矩形')).toEqual({ background: 'rgb(247, 249, 250)', icon: blue, stroke: blue })
       await rectangle.click()
       await expect(rectangle).toHaveAttribute('aria-pressed', 'true')
       await expect(cut).toHaveAttribute('aria-pressed', 'false')
-      expect(await colors('矩形')).toEqual(selectedBlue)
-      expect(await colors(name)).toEqual({ background: transparent, icon: red, stroke: red })
+      await expect.poll(() => colors('矩形')).toEqual(selectedBlue)
+      await expect.poll(() => colors(name)).toEqual({ background: transparent, icon: red, stroke: red })
       expect(await layout()).toEqual(initialLayout)
     }
     await expect(page.getByTestId('sketch-canvas').locator('[data-shape-id]')).toHaveCount(0)

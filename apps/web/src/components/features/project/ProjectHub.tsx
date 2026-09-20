@@ -191,19 +191,19 @@ export function ProjectHub() {
                 onBlur={saveName}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditing(false) }}
                 maxLength={40}
-                className="min-w-0 flex-1 rounded-lg border border-sky-300 bg-white px-3 py-1.5 text-2xl font-bold text-sky-900 outline-none focus:ring-2 focus:ring-sky-200 sm:text-3xl"
+                className="site-form-control min-w-0 flex-1 rounded-lg border border-sky-300 bg-white px-3 py-1.5 text-2xl font-semibold text-sky-900 outline-none focus:ring-2 focus:ring-sky-200 sm:text-3xl"
               />
               <button type="button" onClick={saveName} className="shrink-0 rounded-lg bg-sky-500 p-2 text-white transition hover:bg-sky-600" aria-label="保存"><Check size={18} /></button>
               <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setEditing(false)} className="shrink-0 rounded-lg p-2 text-sky-400 transition hover:bg-sky-50" aria-label="取消"><X size={18} /></button>
             </div>
           ) : (
             <div className="flex min-w-0 items-center gap-2">
-              <h1 className="truncate text-2xl font-bold tracking-tight text-sky-900 sm:text-3xl">{hub.name}</h1>
+              <h1 className="truncate text-2xl font-semibold tracking-tight text-sky-900 sm:text-3xl">{hub.name}</h1>
               {canEditName && (
                 <button type="button" onClick={startEdit} className="shrink-0 text-sky-400 transition hover:text-sky-600" aria-label="编辑项目名"><Pencil size={18} /></button>
               )}
               {hub.source === 'local-draft' && (
-                <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">本地草稿</span>
+                <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">本地草稿</span>
               )}
             </div>
           )}
@@ -263,7 +263,7 @@ export function ProjectHub() {
         <div className="relative flex items-center gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20"><Rocket size={22} /></span>
           <div>
-            <p className="text-base font-bold">运行模拟</p>
+            <p className="text-base font-semibold">运行模拟</p>
             <p className="mt-0.5 text-xs text-sky-100">
               {flyDisabled ? '请先在编程页编写程序，再运行模拟。' : '查看当前程序的模拟运行过程。'}
             </p>
@@ -286,7 +286,7 @@ export function ProjectHub() {
             <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-sky-100 to-sky-50">
               <div className="pointer-events-none absolute inset-0">{st.preview}</div>
               {st.tag && (
-                <span className="absolute left-3 top-3 rounded-full bg-amber-100/90 px-2 py-0.5 text-[10px] font-medium text-amber-700 backdrop-blur-sm">{st.tag}</span>
+                <span className="absolute left-3 top-3 rounded-full bg-amber-100/90 px-2 py-0.5 text-xs font-medium text-amber-700 backdrop-blur-sm">{st.tag}</span>
               )}
               <div className="absolute inset-0 flex items-end justify-end p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <span className="rounded-full bg-sky-600/90 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">进入{st.label} →</span>
@@ -295,7 +295,7 @@ export function ProjectHub() {
             <div className="flex items-center gap-2.5 border-t border-sky-100/70 p-4">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-600"><st.icon size={16} /></span>
               <div>
-                <p className="text-sm font-bold text-sky-900">{st.label}</p>
+                <p className="text-sm font-semibold text-sky-900">{st.label}</p>
                 <p className="text-xs text-sky-500">{st.desc}</p>
               </div>
             </div>
@@ -308,7 +308,7 @@ export function ProjectHub() {
         <button type="button" onClick={() => toast.push('info', '历史版本与分支管理暂未开放')} className={`flex items-center gap-3 p-4 text-left transition hover:ring-sky-200 ${CARD}`}>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-600"><GitBranch size={18} /></span>
           <div>
-            <p className="text-sm font-bold text-sky-900">版本与分支</p>
+            <p className="text-sm font-semibold text-sky-900">版本与分支</p>
             <p className="text-xs text-sky-500">历史查看、分支与版本恢复暂未开放</p>
           </div>
         </button>

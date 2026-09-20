@@ -102,7 +102,7 @@ for (const viewport of [
     const toolbar = page.getByRole('group', { name: '绘图工具', exact: true })
     await expect(toolbar).toBeVisible()
     await toolbar.scrollIntoViewIfNeeded()
-    await expect(toolbar.getByRole('button')).toHaveCount(8)
+    await expect(toolbar.getByRole('button')).toHaveCount(9)
     await expect(toolbar.getByRole('button', { name: '插接口', exact: true })).toBeVisible()
     await expect(page.getByText('板厚 2 mm', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: '预览 3D →', exact: true })).toHaveCount(0)

@@ -47,7 +47,7 @@ export function AdminGate({ onVerified }: AdminGateProps) {
               value={key}
               onChange={(e) => setKey(e.target.value)}
               placeholder="请输入管理密码"
-              className="w-full rounded-tag border border-sky-200 px-4 py-2.5 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent-spark"
+              className="site-form-control w-full rounded-tag border border-sky-200 px-4 py-2.5 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent-spark"
             />
           </div>
 

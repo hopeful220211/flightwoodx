@@ -80,6 +80,7 @@ export default function App() {
       </Route>
 
       {/* ── Editor Layout (full-screen, step switcher) ── */}
+      <Route element={<ProtectedRoute />}>
       <Route element={<EditorLayout />}>
         <Route path="/design" element={<DesignPageRouter />} />
         <Route path="/design/:id" element={<DesignPageRouter />} />
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="/code/:id" element={<CodingPage />} />
         <Route path="/simulator" element={<SimulatorPage />} />
         <Route path="/simulator/:id" element={<SimulatorPage />} />
+      </Route>
       </Route>
 
       {/* ── Main App (Navbar layout) ── */}

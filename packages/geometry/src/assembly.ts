@@ -2,12 +2,12 @@ import type { UserPart } from '@fwx/parts-schema'
 import { bbox, svgGeometryToPart2D, validateJointGuides } from './index'
 import catalog from './official-connectors.json' with { type: 'json' }
 import { edgeSlotQuaternion, type AssemblyConnector } from './assemblyTransforms'
-export { connectAssembly, moveAssemblyTree, worldConnector, occupiedAssemblyConnectors, validateAssemblyConnections } from './assemblyTransforms'
+export { connectAssembly, moveAssemblyTree, worldConnector, occupiedAssemblyConnectors, validateAssemblyConnections, repairLegacyAssemblyConnections } from './assemblyTransforms'
 export type { AssemblyConnector, ConnectorResolver } from './assemblyTransforms'
 
 export function officialConnectors(partId: string): AssemblyConnector[] {
-  const entry = (catalog as unknown as Record<string, { connectors: AssemblyConnector[] }>)[partId]
-  return entry?.connectors ?? []
+  const entry = (catalog as unknown as Record<string, { boardNormal: [number,number,number]; connectors: AssemblyConnector[] }>)[partId]
+  return entry?.connectors.map(c => ({...c,boardNormal:entry.boardNormal})) ?? []
 }
 
 /** Centered renderer coordinates: drawing mm -> local X/Z metres; board normal +Y. */

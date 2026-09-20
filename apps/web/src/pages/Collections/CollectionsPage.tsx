@@ -210,7 +210,7 @@ function Hero({ action }: { action?: React.ReactNode }) {
   return (
     <header className="mb-8 flex flex-wrap items-start justify-between gap-4 lg:mb-10">
       <div className="min-w-0">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-500 ring-1 ring-sky-100 backdrop-blur">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-normal text-sky-500 ring-1 ring-sky-100 backdrop-blur">
           <Sparkles size={12} /> 我的收藏夹
         </span>
         <h1 className="fwx-display mt-4 text-4xl font-semibold tracking-tight text-black/90 lg:text-5xl">我的收藏</h1>
@@ -252,7 +252,7 @@ function BoardCard({ collection, onOpen }: { collection: CollectionDTO; onOpen: 
           </div>
         )}
         {!collection.isPublic && (
-          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/85 px-2 py-0.5 text-[11px] font-medium text-black/55 shadow-soft backdrop-blur-md">
+          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/85 px-2 py-0.5 text-xs font-medium text-black/55 shadow-soft backdrop-blur-md">
             <Lock size={11} /> 私密
           </span>
         )}

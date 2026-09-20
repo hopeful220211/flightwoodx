@@ -147,7 +147,7 @@ describe('free design feedback', () => {
     await act(async () => details.click())
     await act(async () => button('添加到设计').click())
     expect(add).toHaveBeenCalledWith(hub.id)
-    expect(mocks.push).toHaveBeenCalledWith('success', '已添加零件')
+    expect(mocks.push).toHaveBeenCalledWith('success', '已放入画板，尚未连接；点击连接零件选择插接口')
     expect(useDesignStore.getState().getActiveDesign()?.parts).toHaveLength(1)
     expect(useDesignStore.getState().getActiveDesign()?.parts[0]?.attachedTo).toBeUndefined()
   })

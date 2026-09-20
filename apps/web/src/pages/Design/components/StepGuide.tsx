@@ -22,7 +22,7 @@ export function StepGuide({ currentStep, canAdvance, advanceReason }: StepGuideP
   return (
     <div className="p-4 space-y-4">
       <div>
-        <h3 className="text-sm font-bold text-gray-800">
+        <h3 className="text-sm font-semibold text-gray-800">
           第 {info.number} 步 · {info.label}
         </h3>
         <p className="text-sm text-gray-600 mt-1">{info.description}</p>

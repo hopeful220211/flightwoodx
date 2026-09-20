@@ -70,7 +70,7 @@ export function ProjectSettingsModal({ open, onClose, projectId, name }: Project
           <div className="flex items-start gap-3 rounded-lg bg-error/10 p-4">
             <AlertTriangle size={20} className="mt-0.5 shrink-0 text-error" />
             <div>
-              <p className="text-sm font-bold text-error">删除「{name}」？</p>
+              <p className="text-sm font-semibold text-error">删除「{name}」？</p>
               <p className="mt-1 text-sm text-error">删除后无法恢复，这个项目里的设计、程序记录都会一起消失。</p>
             </div>
           </div>
@@ -101,7 +101,7 @@ export function ProjectSettingsModal({ open, onClose, projectId, name }: Project
                 onChange={(e) => setNameInput(e.target.value)}
                 maxLength={40}
                 placeholder="给项目起个名字"
-                className="min-w-0 flex-1 rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm text-sky-900 outline-none focus:ring-2 focus:ring-sky-200"
+                className="site-form-control min-w-0 flex-1 rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm text-sky-900 outline-none focus:ring-2 focus:ring-sky-200"
               />
               <Button onClick={handleSaveName} disabled={!nameDirty || updateMutation.isPending}>
                 {updateMutation.isPending ? '保存中…' : '保存'}

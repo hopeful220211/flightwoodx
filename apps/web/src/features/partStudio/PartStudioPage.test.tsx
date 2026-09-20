@@ -51,6 +51,70 @@ async function completeCanvasShape(overrides: Partial<SketchShape> = {}) {
   return shape
 }
 
+it('keeps rounding off until enabled and supports undo without altering editable source shapes', async () => {
+  const ui = await mount()
+  try {
+    await completeCanvasShape()
+    const original = canvas.current!.part
+    await act(async () => ui.button('轮廓圆角').click())
+    const toggle = ui.container.querySelector<HTMLInputElement>('input[aria-label="开启轮廓圆角"]')!
+    expect(toggle.checked).toBe(false)
+    await act(async () => toggle.click())
+    expect(canvas.current!.part!.contour.points.length).toBeGreaterThan(original!.contour.points.length)
+    expect(canvas.current!.shapes[0]!.radius).toBe(0)
+    await act(async () => ui.button('撤销').click())
+    expect(canvas.current!.part).toEqual(original)
+  } finally { await ui.close() }
+})
+
+it('displays concise curve dimensions without changing geometry on focus and blur', async () => {
+  const ui = await mount()
+  try {
+    await completeCanvasShape({ width: 60.1234567 })
+    const input = ui.container.querySelector<HTMLInputElement>('input[aria-label="宽（毫米）"]')!
+    expect(input.value).toBe('60.12')
+    await act(async () => { input.focus(); input.blur() })
+    expect(canvas.current!.shapes[0]!.width).toBe(60.1234567)
+  } finally { await ui.close() }
+})
+
+it('confirms clear with a distinct icon, preserves on cancel and undoes one confirmed clear', async () => {
+  const ui = await mount()
+  try {
+    await completeCanvasShape()
+    expect(ui.button('清空').querySelector('.lucide-eraser')).toBeNull()
+    await act(async () => ui.button('清空').click())
+    expect(canvas.current!.shapes).toHaveLength(1)
+    const dialog = document.querySelector('[role="dialog"]')!
+    expect(dialog.textContent).toContain('清空画布')
+    const action = (label: string) => [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(button => button.textContent === label)!
+    await act(async () => action('取消').click())
+    expect(canvas.current!.shapes).toHaveLength(1)
+    await act(async () => ui.button('清空').click())
+    await act(async () => action('确认清空').click())
+    expect(canvas.current!.shapes).toHaveLength(0)
+    await act(async () => ui.button('撤销').click())
+    expect(canvas.current!.shapes).toHaveLength(1)
+  } finally { await ui.close() }
+})
+
+it('deletes selected shapes with Delete/Backspace, supports both undo modifiers and leaves input editing native', async () => {
+  const ui = await mount()
+  try {
+    await completeCanvasShape()
+    const editor = ui.container.querySelector('.part-studio-root')!
+    const key = async (target: Element, key: string, modifiers = {}) => act(async () => target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...modifiers })))
+    await key(ui.container.querySelector('input[aria-label="零件名称"]')!, 'Backspace')
+    expect(canvas.current!.shapes).toHaveLength(1)
+    await key(editor, 'Delete')
+    expect(canvas.current!.shapes).toHaveLength(0)
+    await key(editor, 'z', { metaKey: true })
+    expect(canvas.current!.shapes).toHaveLength(1)
+    await key(editor, 'z', { ctrlKey: true, shiftKey: true })
+    expect(canvas.current!.shapes).toHaveLength(0)
+  } finally { await ui.close() }
+})
+
 it('starts with canvas drawing tools and shows no add button, shape dropdown or unselected properties', async () => {
   const ui = await mount()
   try {
@@ -275,6 +339,8 @@ it('offers dimensioned shape tools, fixed thickness, live preview and undoable c
     expect(ui.button('保存').disabled).toBe(false)
     expect(ui.container.querySelector('[data-testid="extrude-preview"]')?.textContent).toContain('"thicknessMm":2')
     await act(async () => ui.button('清空').click())
+    const confirm = [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find(button => button.textContent === '确认清空')!
+    await act(async () => confirm.click())
     expect(ui.button('保存').disabled).toBe(true)
     await act(async () => ui.button('撤销').click())
     expect(ui.button('保存').disabled).toBe(false)

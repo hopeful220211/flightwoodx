@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { useDesignStore } from '../../stores/designStore'
 import { partsData } from '../../data/parts'
 import { getCachedPartConnectors } from '../../hooks/usePartConnectors'
+import { useCustomPlacementTargets } from '../../features/partStudio/useCustomPlacementTargets'
 
 import { isConnectionAllowed, computeOccupiedConnectors } from '../../utils/connectionRules'
 
@@ -15,6 +16,7 @@ interface SocketInfo {
 }
 
 export function SocketHighlights() {
+  const customTargets = useCustomPlacementTargets()
   const draggingPartId = useDesignStore((state) => state.draggingPartId)
   const activeDesign = useDesignStore((state) => state.getActiveDesign())
   // NOTE: do NOT subscribe to highlightedSocket here — it changes 60x/sec
@@ -35,7 +37,7 @@ export function SocketHighlights() {
         return p?.category === 'mainboard'
       })
 
-      if (!existingHub) {
+      if (!existingHub && customTargets.length === 0) {
         // 第一个机身不需要连接点
         return []
       }
@@ -53,7 +55,7 @@ export function SocketHighlights() {
     // 计算已占用的连接点（父件 + 子件两侧都算占用）
     const occupiedSockets = computeOccupiedConnectors(activeDesign.parts)
 
-    const sockets: SocketInfo[] = []
+    const sockets: SocketInfo[] = [...customTargets]
 
     // 遍历场景中的所有零件，找出可用的连接点（socket 和 plug）
     for (const inst of activeDesign.parts) {
@@ -98,7 +100,7 @@ export function SocketHighlights() {
     }
 
     return sockets
-  }, [draggingPartId, activeDesign])
+  }, [draggingPartId, activeDesign, customTargets])
 
   if (!draggingPartId || availableSockets.length === 0) {
     return null

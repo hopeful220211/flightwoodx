@@ -1,5 +1,6 @@
 import paper from 'paper'
-import { validatePart, validatePolyline, type Part2D, type Point2D } from '@fwx/geometry'
+import { roundOuterCorners, validatePart, validatePolyline, type CornerRounding, type Part2D, type Point2D } from '@fwx/geometry'
+import { curvePoints, type CurveHandle } from './curves'
 
 export type { Point2D } from '@fwx/geometry'
 
@@ -17,6 +18,7 @@ export interface SketchShape {
   joint?: { kind: 'edge-slot' | 'through-slot'; axis: 'x' | 'y'; entry: 'start' | 'end' | 'front' | 'back' }
   /** Polygon vertices are local normalized coordinates in [0, 1]. */
   points?: Point2D[]
+  curveHandles?: CurveHandle[]
   /** Duplicate this shape across the reference width's vertical centre line. */
   mirror?: boolean
 }
@@ -35,6 +37,7 @@ export interface SketchCompilation {
   error: string | null
   bounds: SketchBounds | null
   issue?: SketchIssue
+  rounding?: Omit<CornerRounding, 'part'>
 }
 
 class SketchValidationError extends RangeError {
@@ -123,6 +126,7 @@ export function shapePoints(shape: SketchShape): Point2D[] {
       return [x + point[0] * width, y + point[1] * height]
     })
     if (equalPoint(points[0]!, points[points.length - 1]!)) points.pop()
+    if (shape.curveHandles) points = curvePoints(shape)
   } else if (shape.kind === 'ellipse') {
     const count = quarterSegments(Math.max(width, height) / 2) * 4
     points = Array.from({ length: count }, (_, index) => {
@@ -170,7 +174,7 @@ function withinReference([x, y]: Point2D, reference: SketchReference): boolean {
  * Only one connected solid is accepted; interior rings become holes and cuts
  * intersecting an outer edge become real openings in that contour.
  */
-export function compileSketch(shapes: SketchShape[], reference: SketchReference, constrain: boolean): SketchCompilation {
+export function compileSketch(shapes: SketchShape[], reference: SketchReference, constrain: boolean, cornerRadius = 0): SketchCompilation {
   let scope: paper.PaperScope | null = null
   const items = new Set<paper.Item>()
   try {
@@ -243,19 +247,26 @@ export function compileSketch(shapes: SketchShape[], reference: SketchReference,
       ;(depth % 2 === 0 ? outer : holes).push(ring)
     })
     if (outer.length !== 1) throw new SketchValidationError('存在多个不相连的实体，请连接形状后再生成一个零件', { code: 'disconnected', shapeIds: [], componentCount: outer.length })
-    const contour = outer[0]!
-    const part: Part2D = {
+    let contour = outer[0]!
+    let part: Part2D = {
       contour: { points: area(contour) > 0 ? contour : [...contour].reverse() },
       ...(holes.length ? { holes: holes.map(points => ({ points: area(points) < 0 ? points : [...points].reverse() })) } : {}),
     }
     const validation = validatePart(part)
     if (!validation.ok) throw new RangeError(validation.reason ?? '组合后的零件几何无效')
+    let rounding: SketchCompilation['rounding']
+    if (cornerRadius !== 0) {
+      const protectedRegions = shapes.filter(shape => shape.joint).flatMap(shape => [shape, ...(shape.mirror ? [{ ...shape, x: reference.width - shape.x - shape.width }] : [])])
+      const result = roundOuterCorners(part, cornerRadius, protectedRegions)
+      part = result.part; contour = part.contour.points
+      rounding = { rounded: result.rounded, limited: result.limited, protected: result.protected }
+    }
     if (constrain && contour.some(point => !withinReference(point, reference))) throw new SketchValidationError('组合后的零件超出参考范围，请调整尺寸或位置', { code: 'outside-reference', shapeIds: [] })
     const xs = contour.map(point => point[0])
     const ys = contour.map(point => point[1])
     const bounds = { x: Math.min(...xs), y: Math.min(...ys), width: rounded(Math.max(...xs) - Math.min(...xs)), height: rounded(Math.max(...ys) - Math.min(...ys)) }
     if (bounds.width > MAX_SKETCH_SIZE_MM || bounds.height > MAX_SKETCH_SIZE_MM) throw new RangeError(`零件范围不能超过 ${MAX_SKETCH_SIZE_MM} 毫米`)
-    return { part, error: null, bounds }
+    return { part, error: null, bounds, ...(rounding ? { rounding } : {}) }
   } catch (error) {
     return { part: null, error: error instanceof RangeError ? error.message : '几何运算失败，请调整形状后重试', bounds: null,
       issue: error instanceof SketchValidationError ? error.issue : { code: 'invalid-sketch', shapeIds: [] } }

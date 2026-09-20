@@ -14,6 +14,7 @@ export interface SketchDocument {
   reference: { width: number; height: number; shape?: 'rectangle' | 'ellipse' }
   category: UserPartCategory
   constrain: boolean
+  cornerRadius?: number
 }
 export interface EditorHistory { past: SketchDocument[]; present: SketchDocument; future: SketchDocument[] }
 export type EditorAction = { type: 'commit'; document: SketchDocument } | { type: 'undo' | 'redo' | 'reset' }
@@ -21,7 +22,7 @@ export function initialDocument(): SketchDocument {
   return { shapes: [], reference: { width: 130, height: 130, shape: 'ellipse' }, category: 'mainboard', constrain: true }
 }
 export function editorHistory(state: EditorHistory, action: EditorAction): EditorHistory {
-  if (action.type === 'reset') return { past: [], present: { ...state.present, shapes: [] }, future: [] }
+  if (action.type === 'reset') return { past: [], present: { ...state.present, shapes: [], cornerRadius: 0 }, future: [] }
   if (action.type === 'commit') return { past: [...state.past, state.present].slice(-60), present: action.document, future: [] }
   if (action.type === 'undo' && state.past.length) return { past: state.past.slice(0, -1), present: state.past[state.past.length - 1], future: [state.present, ...state.future] }
   if (action.type === 'redo' && state.future.length) return { past: [...state.past, state.present], present: state.future[0], future: state.future.slice(1) }

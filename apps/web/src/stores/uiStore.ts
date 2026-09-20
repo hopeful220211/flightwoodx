@@ -7,12 +7,29 @@ import { create } from 'zustand'
  */
 interface UIState {
   loginModalOpen: boolean
-  openLoginModal: () => void
+  loginReturnTo: string | null
+  loginIntentId: number
+  openLoginModal: (returnTo?: string | null) => void
   closeLoginModal: () => void
+  completeLogin: (intentId: number) => string | null
 }
 
-export const useUIStore = create<UIState>((set) => ({
+export function safeLoginTarget(value: unknown): string | null {
+  if (typeof value !== 'string' || value.length > 2048 || /[\\\s]|%2f|%5c/i.test(value)) return null
+  return /^\/(design|code|simulator|dashboard|projects|collections|feed|fly|me|profile|part-studio)(?:\/|\?|#|$)/.test(value) ? value : null
+}
+
+export const useUIStore = create<UIState>((set, get) => ({
   loginModalOpen: false,
-  openLoginModal: () => set({ loginModalOpen: true }),
-  closeLoginModal: () => set({ loginModalOpen: false }),
+  loginReturnTo: null,
+  loginIntentId: 0,
+  openLoginModal: returnTo => set(state => ({ loginModalOpen: true, loginReturnTo: safeLoginTarget(returnTo), loginIntentId: state.loginIntentId + 1 })),
+  closeLoginModal: () => set(state => ({ loginModalOpen: false, loginReturnTo: null, loginIntentId: state.loginIntentId + 1 })),
+  completeLogin: intentId => {
+    const state = get()
+    if (!state.loginModalOpen || intentId !== state.loginIntentId) return null
+    const target = state.loginReturnTo
+    state.closeLoginModal()
+    return target
+  },
 }))

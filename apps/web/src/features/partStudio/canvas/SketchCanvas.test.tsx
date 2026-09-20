@@ -44,6 +44,54 @@ it('draws a snapped rectangle in mm and commits only once when the gesture ends'
   expect(props.onPendingChange).toHaveBeenLastCalledWith(false)
 })
 
+it('draws a pen curve with editable handles and closes on the first anchor', async () => {
+  props.tool = 'pen'
+  await render()
+  await draw(20, 20, 30, 15)
+  await draw(65, 20, 75, 30)
+  await draw(65, 65, 55, 75)
+  await act(async () => pointEvent('pointerdown', 20, 20))
+  expect(props.onChange).toHaveBeenCalledTimes(1)
+  const created = vi.mocked(props.onChange).mock.calls[0]![0][0]!
+  expect(created.curveHandles).toHaveLength(3)
+  expect(created.curveHandles![0]!.out[0]).not.toBe(0)
+  expect(props.onSelect).toHaveBeenCalledWith(created.id)
+})
+
+it('undoes and redoes unfinished pen anchors without confusing Shift+Z with undo', async () => {
+  props.tool = 'pen'
+  await render()
+  await draw(20, 20, 30, 15)
+  await draw(65, 20, 75, 30)
+  await draw(65, 65, 55, 75)
+  const key = async (key: string, modifiers = {}) => act(async () => svg().dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, ...modifiers })))
+  await key('z', { metaKey: true })
+  expect(container.textContent).toContain('2 / 128')
+  await key('z', { metaKey: true, shiftKey: true })
+  expect(container.textContent).toContain('3 / 128')
+  await key('z', { ctrlKey: true }); await key('z', { ctrlKey: true }); await key('z', { ctrlKey: true })
+  expect(props.onPendingChange).toHaveBeenLastCalledWith(true)
+  await key('y', { ctrlKey: true }); await key('y', { ctrlKey: true }); await key('y', { ctrlKey: true })
+  await key('Enter')
+  expect(props.onChange).toHaveBeenCalledTimes(1)
+  expect(vi.mocked(props.onChange).mock.calls[0]![0][0]!.curveHandles).toHaveLength(3)
+})
+
+it('freehand does not quantize samples even when grid snapping is enabled', async () => {
+  props.tool = 'freehand'
+  await render()
+  await act(async () => pointEvent('pointerdown', 30.25, 20.25))
+  for (let i = 1; i < 100; i++) {
+    const a = i / 99 * Math.PI * 2
+    await act(async () => pointEvent('pointermove', 30.25 + 15 * Math.sin(a), 35.25 - 15 * Math.cos(a)))
+  }
+  await act(async () => pointEvent('pointerup', 30.25, 20.25))
+  await act(async () => svg().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))
+  const created = vi.mocked(props.onChange).mock.calls[0]![0][0]!
+  expect(created.curveHandles!.length).toBeGreaterThan(3)
+  expect(created.x % 1).not.toBe(0)
+})
+
 it('anchors the insertion tool at the board edge and commits one selected 2mm notch', async () => {
   props = { ...props, tool: 'insert-slot', shapes: [shape], part: { contour: { points: [[20, 20], [60, 20], [60, 50], [20, 50]] } } }
   await render()
@@ -323,7 +371,10 @@ it('keeps a freehand stroke uncommitted until the user explicitly closes it', as
   const close = [...container.querySelectorAll('button')].find(button => button.textContent === '完成闭合')!
   close.focus()
   await act(async () => close.click())
-  expect(vi.mocked(props.onChange).mock.calls[0]![0][0]).toMatchObject({ kind: 'polygon', points: [[0, 0], [1, 0], [0.5, 1]] })
+  const result = vi.mocked(props.onChange).mock.calls[0]![0][0]!
+  expect(result.kind).toBe('polygon')
+  expect(result.points).toHaveLength(3)
+  expect(result.curveHandles).toHaveLength(3)
   expect(props.onPendingChange).toHaveBeenLastCalledWith(false)
   expect(document.activeElement === svg()).toBe(true)
   expect(props.onSelect).toHaveBeenCalledWith(vi.mocked(props.onChange).mock.calls[0]![0][0]!.id)

@@ -17,7 +17,7 @@
 | 当前系统怎样分层、数据怎样流动 | [`ARCHITECTURE.md`](../ARCHITECTURE.md) | 当前架构，不证明完成度 |
 | 当前做到哪里、证据和阻塞是什么 | [`CURRENT_STATUS.md`](../CURRENT_STATUS.md) | 只对文中日期和 commit 有效 |
 | 产品主线应满足什么 | [`product-specs/core-flow.md`](./product-specs/core-flow.md) | 目标与验收，不证明已经实现 |
-| 网站哪里要改设计、怎样设计新页面 | [`design/dji-reference.md`](./design/dji-reference.md) | 用户已确认的白灰/蓝色视觉基准；先复用现有页面与共享组件 |
+| 网站哪里要改设计、怎样设计新页面 | [`DESIGN.md`](../DESIGN.md)、[`design/dji-reference.md`](./design/dji-reference.md) | awesome-design-md 接入入口与已确认的白灰/蓝色视觉基准；先复用现有页面与共享组件 |
 | 如何评估质量、安全、可靠性和债务 | [`quality/`](./quality/) | 质量要求和登记，不替代验证结果 |
 | 某轮工作准备怎样执行、实际验证了什么 | [`exec-plans/`](./exec-plans/) | 计划与执行记录，不自动更新当前状态 |
 | 为什么曾提出某方案 | [`rfcs/`](./rfcs/) | 目标设计和历史决策，不是完成证据 |
@@ -40,6 +40,7 @@
 
 - [`product-specs/core-flow.md`](./product-specs/core-flow.md)：定义核心流程、逐段验收条件和证据边界；未决产品数值仍需负责人确认。
 - [`product-specs/analytics.md`](./product-specs/analytics.md)：可选使用统计的事件位置、指标口径、隐私选择、接口与开启流程。
+- [`product-specs/account-verification-and-parametric-design.md`](./product-specs/account-verification-and-parametric-design.md)：Cookie 当前行为、邮箱/手机号验证的开通及数据库建议、受约束参数化设计的实施边界；验证服务与参数化机架尚未实施。
 - [`exec-plans/completed/2026-09-14-privacy-pages.md`](./exec-plans/completed/2026-09-14-privacy-pages.md)：公开隐私页面、提示生命周期、国内政策依据和验证记录；正文与页面在 `apps/web/src/pages/Privacy/`。
 
 后续规格应写目标行为、非目标和验收方法；实现进度仍写入 `CURRENT_STATUS.md`。
@@ -53,6 +54,8 @@
 - [`quality/TECH_DEBT.md`](./quality/TECH_DEBT.md)：当前技术与验证债务登记。
 
 ## 执行计划
+
+- [`exec-plans/completed/2026-09-20-editor-auth-ux.md`](./exec-plans/completed/2026-09-20-editor-auth-ux.md)：登录入口、曲线绘制、手动圆角、快捷键与清空确认的本地验收，以及验证码/参数化建议边界。
 
 - [`exec-plans/completed/2026-09-15-combined-release.md`](./exec-plans/completed/2026-09-15-combined-release.md)：首页悬停、视觉/注册/拼装及发布提速的本轮合并发布记录。
 - [`exec-plans/completed/2026-09-15-release-efficiency.md`](./exec-plans/completed/2026-09-15-release-efficiency.md)：单次构建、四组浏览器检查、减少重复证据查询及固定发布时限。

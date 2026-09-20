@@ -209,10 +209,10 @@ export function CommentSection({ postId }: { postId: string }) {
             placeholder="输入评论，请勿填写个人隐私信息"
             rows={3}
             maxLength={MAX_LEN}
-            className={cn(
+            className={"site-form-control " + (cn(
               'w-full resize-none rounded-xl border border-transparent bg-white px-4 py-3 text-sm leading-relaxed text-black/90 shadow-soft transition placeholder:text-black/45',
               'focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100',
-            )}
+            ))}
           />
           <div className="mt-2.5 flex items-center justify-between pl-1">
             <span className={cn('text-xs tabular-nums transition-colors', nearLimit ? 'text-rose-500' : 'text-black/45')}>

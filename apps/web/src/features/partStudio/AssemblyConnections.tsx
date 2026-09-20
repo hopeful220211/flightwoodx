@@ -60,14 +60,14 @@ function ConnectionForm({ onDone }: { onDone: () => void }) {
     } catch (cause) { setError(cause instanceof Error ? cause.message : '连接失败，请重试') }
     finally { setBusy(false) }
   }
-  const partPicker = (role: '移动' | '固定', value: string, change: (id: string) => void) => <label className="block text-sm font-medium">{role}零件<select aria-label={`${role}零件`} value={value} disabled={busy} onChange={e => {change(e.target.value);setError('')}} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3">
+  const partPicker = (role: '移动' | '固定', value: string, change: (id: string) => void) => <label className="block text-sm font-medium">{role}零件<select aria-label={`${role}零件`} value={value} disabled={busy} onChange={e => {change(e.target.value);setError('')}} className="site-form-control mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3">
     <option value="">请选择零件</option>{parts.filter(p => role === '移动' || p.instanceId !== childId).map(p => <option key={p.instanceId} value={p.instanceId}>{parts.indexOf(p)+1}. {p.source ? lookup(p.instanceId)?.data?.name ?? '自制零件' : getPartById(p.partId)?.name.zh ?? p.partId}{p.attachedTo ? ' · 已连接' : ''}</option>)}
   </select></label>
   const connectorPicker = (role: '移动' | '固定', id: string, value: string, change: (id: string) => void) => {
     if (!id) return null
     const query = lookup(id), connectors = query?.data?.connectors ?? []
     return <div className="space-y-1 text-xs">
-      {query?.isError ? <p role="alert" className="text-red-700">{query.error.message}<button className="ml-2 min-h-11 underline" onClick={() => void query.refetch()}>重试</button></p> : query?.isPending ? <p role="status">读取插接口…</p> : connectors.length === 0 ? <p className="text-slate-600">此零件没有边缘插接口。请在绘制页沿板边添加插接口后，保存为新零件。</p> : <label className="block">{role}零件的插接口<select aria-label={`${role}插接口`} disabled={busy} className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-2 text-sm" value={value} onChange={e => change(e.target.value)}><option value="">请选择插接口</option>{connectors.map((c,i) => <option key={c.id} value={c.id} disabled={used.has(`${id}/${c.id}`)}>插接口 {i+1} · {c.position.map(n => +(n*1000).toFixed(1)).join(', ')} mm{used.has(`${id}/${c.id}`) ? ' · 已占用' : ''}</option>)}</select><p className="mt-1 text-slate-500">坐标相对于零件中心；画板中可查看接口编号。</p></label>}
+      {query?.isError ? <p role="alert" className="text-red-700">{query.error.message}<button className="ml-2 min-h-11 underline" onClick={() => void query.refetch()}>重试</button></p> : query?.isPending ? <p role="status">读取插接口…</p> : connectors.length === 0 ? <p className="text-slate-600">此零件没有边缘插接口。请在绘制页沿板边添加插接口后，保存为新零件。</p> : <label className="block">{role}零件的插接口<select aria-label={`${role}插接口`} disabled={busy} className="site-form-control mt-1 min-h-11 w-full rounded-md border border-slate-300 px-2 text-sm" value={value} onChange={e => change(e.target.value)}><option value="">请选择插接口</option>{connectors.map((c,i) => <option key={c.id} value={c.id} disabled={used.has(`${id}/${c.id}`)}>插接口 {i+1} · {c.position.map(n => +(n*1000).toFixed(1)).join(', ')} mm{used.has(`${id}/${c.id}`) ? ' · 已占用' : ''}</option>)}</select><p className="mt-1 text-slate-500">坐标相对于零件中心；画板中可查看接口编号。</p></label>}
     </div>
   }
   return <div className="space-y-4">

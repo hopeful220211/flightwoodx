@@ -215,3 +215,100 @@
 @media (pointer: coarse) {
   .site-marketing-button, .home-page .site-button, .site-nav-login, .about-hero a { min-height: 44px; }
 }
+
+/* DESIGN.md detail contract. This refines the existing DJI-derived language;
+   it does not import another brand's palette, imagery, layout or copy. */
+:root {
+  --site-control-height: 44px;
+  --site-control-radius: 4px;
+  --site-panel-radius: 8px;
+  --site-control-leading: 20px;
+  --site-caption-leading: 20px;
+  --site-detail-duration: 160ms;
+}
+
+/* Shared type rhythm also reaches standalone pages, portals and status UI.
+   Exclude canvas/SVG graphics: their dimensions represent geometry, not type. */
+:where(button, input, select, textarea) { font-family: var(--font-site); }
+:where(button, a, input, select, textarea):focus-visible {
+  outline-color: var(--site-accent);
+  outline-style: solid;
+  outline-width: 2px;
+  outline-offset: 3px;
+}
+:where(button, a, input, select, textarea) { -webkit-tap-highlight-color: transparent; }
+:where(button, input, select, textarea):disabled { cursor: not-allowed; }
+:where(p, li, dd, label) { overflow-wrap: break-word; }
+:where(input[type='number'], time, .site-table, .fwx-mono) { font-variant-numeric: tabular-nums; }
+:where(a) { text-underline-offset: .2em; text-decoration-thickness: 1px; }
+:where(button, a[role='button']) { transition-duration: var(--site-detail-duration); }
+
+.site-form-control {
+  min-height: var(--site-control-height);
+  border-radius: var(--site-control-radius);
+  line-height: var(--site-control-leading);
+}
+.site-form-control:disabled { opacity: .6; }
+.site-form-control[type='search'] { border-radius: 6px; }
+.site-form-control.site-compact-field { min-height: 32px; }
+textarea.site-form-control { line-height: 24px; }
+.site-form-control:focus-visible { outline: 2px solid var(--site-accent); outline-offset: 2px; }
+.site-button, .site-pill-button { line-height: var(--site-control-leading); }
+.site-button[data-size='lg'] { line-height: 24px; }
+.site-button:disabled { pointer-events: auto; }
+.site-tabs [role='tab'] { line-height: var(--site-control-leading); }
+.site-modal { border-radius: var(--site-panel-radius); box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+.site-modal > :is(div:first-child, div:last-child) { padding: 16px 24px; }
+.site-modal > div:nth-child(2) { padding: 24px; }
+.site-modal > div:not(:first-child):not(:last-child) { padding: 24px; }
+.site-modal > div:first-child > [id][class*='font-semibold'] { font-size: 20px; line-height: 28px; }
+.site-table { line-height: 20px; }
+.site-table th { vertical-align: bottom; white-space: nowrap; }
+.site-table td { vertical-align: middle; overflow-wrap: anywhere; }
+.site-table tbody tr:last-child { border-bottom: 0; }
+
+/* Do not let community data titles inherit unbounded viewport-sized display
+   text. Long user names and work titles wrap; their contents remain intact. */
+.site-page-title,
+.community-shell h1.fwx-display,
+.site-page-container h1.fwx-display,
+.privacy-page h1,
+.admin-shell h1 {
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -.03em;
+  overflow-wrap: anywhere;
+}
+.community-shell :is(p, span)[class*='uppercase'] { letter-spacing: normal; }
+.community-shell [role='dialog'] h2 { font-size: 24px; line-height: 32px; }
+.privacy-page { max-width: 1248px; padding-inline: 24px; }
+.privacy-page article { max-width: 800px; }
+.privacy-page article p { line-height: 32px; }
+.admin-shell > main > div { max-width: 1200px; padding-inline: 24px; }
+.admin-shell nav a, .admin-shell aside > button { min-height: 44px; border-radius: 6px; }
+.admin-shell nav { align-items: center; }
+.admin-shell aside nav a { display: flex; }
+
+/* Dense editors retain their panel/canvas geometry and functional colours. */
+.editor-shell > header > button, .editor-shell > header [role='tab'] { min-height: 44px; }
+.editor-shell nav[aria-label='作品编辑模式'] button { min-height: 44px; line-height: 20px; }
+.editor-shell [aria-label^='关闭 '] { min-width: 28px; min-height: 28px; }
+.part-studio-root [data-testid='sketch-panel-heading'] h2,
+.part-studio-root [data-testid='preview-panel-heading'] h2 { font-weight: 600; letter-spacing: -.02em; }
+.part-studio-root [aria-label='图形属性'] { border-radius: var(--site-panel-radius); }
+
+@media (max-width: 767px) {
+  .site-page-title, .community-shell h1.fwx-display, .site-page-container h1.fwx-display,
+  .privacy-page h1, .admin-shell h1 { font-size: 28px; line-height: 32px; }
+  .privacy-page, .admin-shell > main > div { padding-inline: 16px; }
+  .site-modal > :is(div:first-child, div:last-child, div:nth-child(2)) { padding: 16px; }
+}
+@media (pointer: coarse) {
+  /* 16px prevents native phone form focus from zooming the surrounding page. */
+  .site-form-control { font-size: 16px; line-height: 24px; }
+  .editor-shell [aria-label^='关闭 '] { min-width: 44px; min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --site-detail-duration: .01ms; }
+}

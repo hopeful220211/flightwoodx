@@ -16,6 +16,10 @@
 
 ## 已结束记录
 
+- [`completed/2026-09-20-custom-joint-alignment.md`](./completed/2026-09-20-custom-joint-alignment.md)：自制与官方件接口对齐、真实板面方向、自动添加/鼠标触控拖入和旧连接修复；1,028项自动测试、5项最终构建浏览器流程通过，未发布。
+
+- [`completed/2026-09-20-editor-auth-ux.md`](./completed/2026-09-20-editor-auth-ux.md)：登录返回、钢笔与平滑手绘、手动圆角、快捷键及清空确认；1,016项自动测试、38项最终构建浏览器验收通过，未发布。
+
 - [`completed/2026-09-15-free-assembly.md`](./completed/2026-09-15-free-assembly.md)：显式模式选择、两种模式使用自制件、真实接口连接、账号保存恢复及三尺寸验收；981项自动测试、3项真实浏览器主流程通过，未发布。
 
 - [`completed/2026-09-14-combined-release.md`](./completed/2026-09-14-combined-release.md)：两项任务的插接口、工具提示、首页、使用统计及隐私页面合并上线；正式前端71697fc、API4b05017，959项自动测试、92项云端浏览器用例和公网三尺寸验收通过。当前上线结果以本条为准，下列未发布表述为各轮历史。

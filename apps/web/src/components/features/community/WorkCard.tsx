@@ -68,7 +68,7 @@ export function WorkCard({
       <div className="p-4">
         <h3 className="fwx-display truncate text-[15px] font-medium text-black/90">{post.title}</h3>
         <div className="mt-2 flex items-center gap-1.5">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-100 text-[10px] font-semibold text-sky-600">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-100 text-xs font-semibold text-sky-600">
             {post.author?.avatar ? (
               <img src={post.author.avatar} alt="" className="h-full w-full object-cover" />
             ) : (

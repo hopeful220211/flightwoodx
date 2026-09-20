@@ -63,7 +63,7 @@ export function LeaderboardPage() {
       <PageContainer className="py-10 lg:py-14">
         {/* ── Hero ── */}
         <header className="mb-10 lg:mb-14">
-          <span className="fwx-display inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-[12px] font-medium uppercase tracking-[0.2em] text-sky-600 ring-1 ring-sky-100 backdrop-blur">
+          <span className="fwx-display inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-[12px] font-medium uppercase tracking-normal text-sky-600 ring-1 ring-sky-100 backdrop-blur">
             <Trophy size={12} /> 社区榜单
           </span>
           <h1 className="fwx-display mt-5 font-semibold leading-[1.05] tracking-tight text-black/90 [font-size:max(40px,4.5vw)]">
@@ -153,7 +153,7 @@ function PodiumCard({ row, rank }: { row: LeaderRow; rank: 1 | 2 | 3 }) {
     >
       {/* 名次徽标 */}
       <span
-        className={`absolute left-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full ${p.badge} text-base font-bold text-white shadow-soft ring-2 ring-white`}
+        className={`absolute left-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full ${p.badge} text-base font-semibold text-white shadow-soft ring-2 ring-white`}
       >
         {rank}
       </span>
@@ -186,12 +186,12 @@ function PodiumCard({ row, rank }: { row: LeaderRow; rank: 1 | 2 | 3 }) {
       </div>
 
       <div className={`p-4 ${isChamp ? 'sm:p-5' : ''}`}>
-        <span className={`inline-flex items-center gap-1 text-[12px] font-medium uppercase tracking-[0.16em] ${p.score}`}>
+        <span className={`inline-flex items-center gap-1 text-[12px] font-medium uppercase tracking-normal ${p.score}`}>
           <Medal size={13} /> {p.label}
         </span>
         <h3 className={`fwx-display mt-2 truncate font-semibold text-black/90 ${isChamp ? 'text-lg' : 'text-base'}`}>{row.title}</h3>
         <div className="mt-1.5 flex items-center gap-1.5">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-100 text-[10px] font-semibold text-sky-600">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-100 text-xs font-semibold text-sky-600">
             {row.author?.avatar ? (
               <img src={row.author.avatar} alt="" className="h-full w-full object-cover" />
             ) : (
@@ -246,7 +246,7 @@ function RankRow({ row, rank }: { row: LeaderRow; rank: number }) {
         <div className="min-w-0 flex-1">
           <h3 className="fwx-display truncate text-[15px] font-semibold text-black/90 sm:text-base">{row.title}</h3>
           <div className="mt-1 flex items-center gap-1.5">
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-100 text-[9px] font-semibold text-sky-600">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full bg-sky-100 text-xs font-semibold text-sky-600">
               {row.author?.avatar ? (
                 <img src={row.author.avatar} alt="" className="h-full w-full object-cover" />
               ) : (

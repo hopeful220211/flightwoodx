@@ -59,10 +59,10 @@ export function PlaceCustomPartDialog({ part, onClose }: { part: UserPart | null
   return <Modal open={!!part} onClose={() => { if (!busy) onClose() }} title="放入作品">
     <div className="space-y-4 text-sm">
       <p>放入后，点击连接零件，选择双方的边缘插接口。</p>
-      <label className="block">选择作品<select aria-label="自制零件目标作品" className="mt-1 min-h-11 w-full rounded border p-2" value={destination} onChange={event => setDestination(event.target.value)}><option value="">新建作品</option>{designs.map(design => <option key={design.id} value={design.id}>{design.name} · {design.buildMode === 'guided' ? '按步骤拼装' : '自由拼装'}</option>)}</select></label>
+      <label className="block">选择作品<select aria-label="自制零件目标作品" className="site-form-control mt-1 min-h-11 w-full rounded border p-2" value={destination} onChange={event => setDestination(event.target.value)}><option value="">新建作品</option>{designs.map(design => <option key={design.id} value={design.id}>{design.name} · {design.buildMode === 'guided' ? '按步骤拼装' : '自由拼装'}</option>)}</select></label>
       {!destination && <>
-        <label className="block">作品名称<input aria-label="新作品名称" maxLength={80} className="mt-1 min-h-11 w-full rounded border p-2" value={name} onChange={event => setName(event.target.value)} /></label>
-        <label className="block">拼装方式<select aria-label="新作品拼装方式" className="mt-1 min-h-11 w-full rounded border p-2" value={newMode} onChange={event => setNewMode(event.target.value as typeof newMode)}><option value="">请选择拼装方式</option><option value="guided">按步骤拼装</option><option value="free">自由拼装</option></select></label>
+        <label className="block">作品名称<input aria-label="新作品名称" maxLength={80} className="site-form-control mt-1 min-h-11 w-full rounded border p-2" value={name} onChange={event => setName(event.target.value)} /></label>
+        <label className="block">拼装方式<select aria-label="新作品拼装方式" className="site-form-control mt-1 min-h-11 w-full rounded border p-2" value={newMode} onChange={event => setNewMode(event.target.value as typeof newMode)}><option value="">请选择拼装方式</option><option value="guided">按步骤拼装</option><option value="free">自由拼装</option></select></label>
       </>}
       {error && <p role="alert" className="text-red-700">{error}</p>}
       <div className="flex justify-end gap-2"><Button variant="outline" disabled={busy} onClick={onClose}>取消</Button><Button disabled={busy || (!destination && (!name.trim() || !newMode))} onClick={() => void place()}>{busy ? '正在放入…' : '确认放入'}</Button></div>

@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { useToast } from '../../components/common/Toast'
 import { useAuthStore } from '../../stores/authStore'
-import { useUIStore } from '../../stores/uiStore'
+import { safeLoginTarget, useUIStore } from '../../stores/uiStore'
 import { CloudLayer } from '../Home/components/CloudLayer'
 import { Sparkles } from 'lucide-react'
 
@@ -10,6 +10,8 @@ import { Sparkles } from 'lucide-react'
 // 视觉向登录弹窗看齐——白底产品界面，天空蓝只做极淡环境光，控件克制不糖果化。
 export function AuthPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = safeLoginTarget(location.state?.returnTo)
   const toast = useToast()
   const { register, enterGuestMode } = useAuthStore()
   const openLoginModal = useUIStore((s) => s.openLoginModal)
@@ -32,7 +34,7 @@ export function AuthPage() {
 
       if (result.success) {
         toast.push('success', '注册成功！')
-        navigate('/dashboard')
+        navigate(returnTo || '/dashboard', { replace: true })
       } else {
         toast.push('error', result.message)
       }
@@ -46,12 +48,12 @@ export function AuthPage() {
 
   const handleGuestMode = () => {
     enterGuestMode()
-    navigate('/dashboard')
+    navigate(returnTo || '/dashboard', { replace: true })
   }
 
   // 已有账号：回首页并弹出登录弹窗（登录走弹窗，不再有全屏登录页）
   const goLogin = () => {
-    openLoginModal()
+    openLoginModal(returnTo)
     navigate('/')
   }
 
@@ -86,7 +88,7 @@ export function AuthPage() {
               />
               <span className="text-lg font-semibold leading-7 tracking-normal text-[#303233]">FlightWoodX 账号</span>
             </div>
-            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#303233]">创建账号</h1>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#303233]">创建账号</h1>
             <p className="mt-1.5 text-sm text-sky-700/75">
               注册后可保存无人机设计和程序，<br />
               并在其他设备登录查看。
@@ -104,7 +106,7 @@ export function AuthPage() {
                 minLength={3}
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value.trim() })}
-                className={inputCls}
+                className={"site-form-control " + (inputCls)}
                 placeholder="至少 3 个字符"
                 autoComplete="username"
               />
@@ -118,7 +120,7 @@ export function AuthPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value.trim() })}
-                className={inputCls}
+                className={"site-form-control " + (inputCls)}
                 placeholder="your@email.com"
                 autoComplete="email"
               />
@@ -133,7 +135,7 @@ export function AuthPage() {
                 minLength={6}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className={inputCls}
+                className={"site-form-control " + (inputCls)}
                 placeholder="至少 6 个字符"
                 autoComplete="new-password"
               />

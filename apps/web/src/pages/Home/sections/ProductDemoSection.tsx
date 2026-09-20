@@ -4,6 +4,7 @@ import { ScrollReveal } from '../../../components/common/ScrollReveal'
 import { SectionHeading } from '../components/SectionHeading'
 import { Button } from '../../../components/common/Button'
 import { useAuthStore } from '../../../stores/authStore'
+import { useUIStore } from '../../../stores/uiStore'
 import { WorkbenchAnimation } from '../components/WorkbenchAnimation'
 import { trackEvent } from '../../../features/analytics/client'
 
@@ -16,7 +17,8 @@ const features = [
 
 export function ProductDemoSection() {
   const navigate = useNavigate()
-  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated && !!s.token && !s.user?.isGuest)
+  const openLogin = useUIStore(s => s.openLoginModal)
 
   return (
     <section className="home-demo site-section">
@@ -52,7 +54,7 @@ export function ProductDemoSection() {
               </ul>
 
               <Button
-                onClick={() => { trackEvent('home_cta_clicked', { placement: 'demo', destination: isAuthenticated ? 'design' : 'login' }); navigate(isAuthenticated ? '/design' : '/auth') }}
+                onClick={() => { trackEvent('home_cta_clicked', { placement: 'demo', destination: isAuthenticated ? 'design' : 'login' }); if (isAuthenticated) navigate('/design'); else openLogin('/design') }}
                 rightIcon={<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />}
                 className="group mt-2"
               >

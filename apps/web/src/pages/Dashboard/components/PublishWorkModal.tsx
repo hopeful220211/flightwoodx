@@ -114,7 +114,7 @@ export function PublishWorkModal({ open, onClose, design, serverId, initialReusa
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             placeholder="介绍使用的零件、结构或设计方法"
-            className="w-full rounded-lg border border-sky-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-sky-400"
+            className="site-form-control w-full rounded-lg border border-sky-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-sky-400"
           />
         </div>
 

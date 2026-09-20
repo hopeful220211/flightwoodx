@@ -59,7 +59,7 @@ export function FollowingFeedPage() {
       <PageContainer className="py-10 lg:py-14">
         {/* ── Hero ── */}
         <header className="mb-8 lg:mb-10">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-500 ring-1 ring-sky-100 backdrop-blur">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-normal text-sky-500 ring-1 ring-sky-100 backdrop-blur">
             <Heart size={12} /> 我的关注
           </span>
           <h1 className="fwx-display mt-4 text-4xl font-semibold tracking-tight text-black/90 lg:text-5xl">关注动态</h1>

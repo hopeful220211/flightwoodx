@@ -170,7 +170,7 @@ export function Navbar() {
                   </NavLink>
                   <button
                     type="button"
-                    onClick={openLoginModal}
+                    onClick={() => openLoginModal()}
                     className="site-nav-login"
                   >
                     登录
@@ -226,7 +226,7 @@ export function Navbar() {
                   <button
                     type="button"
                     onClick={() => { openLoginModal(); setMobileOpen(false) }}
-                    className="mt-2 inline-flex min-h-[46px] w-full items-center justify-center rounded-xl border border-sky-100 bg-white text-[15px] font-bold text-sky-600 shadow-sm transition hover:bg-sky-50"
+                    className="mt-2 inline-flex min-h-[46px] w-full items-center justify-center rounded-xl border border-sky-100 bg-white text-[15px] font-semibold text-sky-600 shadow-sm transition hover:bg-sky-50"
                   >
                     登录
                   </button>

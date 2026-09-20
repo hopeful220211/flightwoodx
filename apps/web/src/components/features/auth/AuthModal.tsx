@@ -99,7 +99,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               onChange={(e) => setLoginUsername(e.target.value.trim())}
               onKeyPress={(e) => handleKeyPress(e, handleLogin)}
               placeholder="请输入注册邮箱"
-              className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+              className="site-form-control w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
             />
           </div>
 
@@ -113,7 +113,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               onChange={(e) => setLoginPassword(e.target.value)}
               onKeyPress={(e) => handleKeyPress(e, handleLogin)}
               placeholder="请输入密码"
-              className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+              className="site-form-control w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
             />
           </div>
 
@@ -140,7 +140,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               onChange={(e) => setRegisterUsername(e.target.value.trim())}
               onKeyPress={(e) => handleKeyPress(e, handleRegister)}
               placeholder="至少3个字符"
-              className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+              className="site-form-control w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
             />
           </div>
 
@@ -154,7 +154,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               onChange={(e) => setRegisterNickname(e.target.value)}
               onKeyPress={(e) => handleKeyPress(e, handleRegister)}
               placeholder="请输入邮箱地址"
-              className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+              className="site-form-control w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
             />
           </div>
 
@@ -168,7 +168,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               onChange={(e) => setRegisterPassword(e.target.value)}
               onKeyPress={(e) => handleKeyPress(e, handleRegister)}
               placeholder="至少6个字符"
-              className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+              className="site-form-control w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
             />
           </div>
 
@@ -182,7 +182,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
               onChange={(e) => setRegisterPasswordConfirm(e.target.value)}
               onKeyPress={(e) => handleKeyPress(e, handleRegister)}
               placeholder="再次输入密码"
-              className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+              className="site-form-control w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
             />
           </div>
 

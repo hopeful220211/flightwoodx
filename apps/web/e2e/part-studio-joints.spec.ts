@@ -56,6 +56,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
     await expect(save).toBeEnabled()
 
     await page.getByRole('button', { name: '清空', exact: true }).click()
+    await page.getByRole('button', { name: '确认清空', exact: true }).click()
     await drawStarterRectangle(page)
     await tools.getByRole('button', { name: '孔 / 开口', exact: true }).click()
     await page.getByRole('button', { name: '边缘插槽', exact: true }).click()

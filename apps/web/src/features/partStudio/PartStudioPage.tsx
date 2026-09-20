@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Undo2, Redo2, Trash2, Eraser, X, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, Undo2, Redo2, Trash2, FileX2, X, SlidersHorizontal, Radius } from 'lucide-react'
 import { UserPartSchema, USER_PART_THICKNESS_MM, type UserPartDTO } from '@fwx/parts-schema'
 import type { AnalyticsClientEventProperties } from '@fwx/shared'
 import { useToast } from '../../components/common/Toast'
@@ -13,7 +13,8 @@ import { createCustomPart, listCustomParts, deleteCustomPart } from '../../utils
 import { SketchCanvas, type SlotMode } from './canvas/SketchCanvas'
 import { DimensionInput, ShapeParameters } from './canvas/SketchTools'
 import { TOOL_ITEMS, controlClass, type SketchTool } from './canvas/sketchToolConfig'
-import { compileSketch, type SketchShape } from './sketch/model'
+import { compileSketch, MAX_SKETCH_SHAPES, type SketchShape } from './sketch/model'
+import { decodeSketchClipboard, encodeSketchClipboard, isNativeTextEdit, pastedShape } from './sketch/clipboard'
 import { editorHistory, initialDocument, REFERENCES, type SketchDocument } from './sketch/editorState'
 import { ExtrudePreview } from './preview3d/ExtrudePreview'
 import { buildUserPartDef } from './buildUserPartDef'
@@ -64,6 +65,10 @@ export function PartStudioPage() {
   const [deleting, setDeleting] = useState(false)
   const [placeTarget, setPlaceTarget] = useState<UserPartDTO | null>(null)
   const [inspectTarget, setInspectTarget] = useState<UserPartDTO | null>(null)
+  const [clearOpen, setClearOpen] = useState(false)
+  const [roundingOpen, setRoundingOpen] = useState(false)
+  const [preferredRadius, setPreferredRadius] = useState(1)
+  const pasteSequence = useRef({ text: '', count: 0 })
   const queryClient = useQueryClient()
   const selected = document.shapes.find(shape => shape.id === selectedId)
   const reference = REFERENCES.find(item => item.category === document.category)!
@@ -84,7 +89,7 @@ export function PartStudioPage() {
     }
     commit({ ...document, shapes })
   }
-  const compiled = useMemo(() => compileSketch(document.shapes, document.reference, document.constrain), [document])
+  const compiled = useMemo(() => compileSketch(document.shapes, document.reference, document.constrain, document.cornerRadius), [document])
   const joints = useMemo(() => compiled.part ? analyzeSketchJoints(document.shapes, compiled.part, document.reference.width) : { guides: [], error: null }, [compiled.part, document.shapes, document.reference.width])
   const prepared = useMemo(() => {
     if (!compiled.part) return { def: null, error: compiled.error }
@@ -125,7 +130,7 @@ export function PartStudioPage() {
     if (purpose === 'add' || purpose === 'cut') next.operation = purpose
     else {
       const axis = selected.width >= selected.height ? 'x' : 'y'
-      next.operation = 'cut'; next.kind = 'rectangle'; next.radius = 0; delete next.points
+      next.operation = 'cut'; next.kind = 'rectangle'; next.radius = 0; delete next.points; delete next.curveHandles
       next.joint = { kind: purpose as 'edge-slot' | 'through-slot', axis, entry: purpose === 'edge-slot' ? 'start' : 'front' }
       if (axis === 'x') { next.y += (next.height - USER_PART_THICKNESS_MM) / 2; next.height = USER_PART_THICKNESS_MM; next.width = Math.max(USER_PART_THICKNESS_MM, next.width) }
       else { next.x += (next.width - USER_PART_THICKNESS_MM) / 2; next.width = USER_PART_THICKNESS_MM; next.height = Math.max(USER_PART_THICKNESS_MM, next.height) }
@@ -185,10 +190,30 @@ export function PartStudioPage() {
   const handleBack = () => { if (origin) navigate(`/design/${origin.id}`); else if (window.history.length > 1) navigate(-1); else navigate('/design') }
   const panelHeadingClass = 'flex h-16 min-w-0 shrink-0 items-center gap-2 border-b border-sky-100 bg-white px-3'
   const iconButtonClass = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sky-900 hover:bg-sky-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-500 disabled:cursor-not-allowed disabled:opacity-35'
+  const editingBlocked = busy || numericBlocked || clearOpen || !!deleteTarget || !!placeTarget || !!inspectTarget
   return <div className="part-studio-root min-h-[calc(100dvh-4rem)] text-slate-800" onKeyDown={event => {
-    if (busy || numericBlocked || (event.target as HTMLElement).closest('input,select,textarea')) return
+    if (editingBlocked || event.nativeEvent.isComposing || event.defaultPrevented || isNativeTextEdit(event.target)) return
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); dispatch({ type: event.shiftKey ? 'redo' : 'undo' }) }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') { event.preventDefault(); dispatch({ type: 'redo' }) }
+    if (!event.ctrlKey && !event.metaKey && !event.altKey && selected && ['Delete', 'Backspace'].includes(event.key)) { event.preventDefault(); removeSelected() }
+  }} onCopy={event => {
+    if (editingBlocked || !selected || isNativeTextEdit(event.target) || window.getSelection()?.toString()) return
+    event.clipboardData.setData('text/plain', encodeSketchClipboard(selected))
+    event.preventDefault()
+    pasteSequence.current = { text: '', count: 0 }
+    toast.push('success', '已复制图形')
+  }} onPaste={event => {
+    if (editingBlocked || isNativeTextEdit(event.target)) return
+    const text = event.clipboardData.getData('text/plain')
+    const source = decodeSketchClipboard(text)
+    if (!source) return
+    event.preventDefault()
+    if (document.shapes.length >= MAX_SKETCH_SHAPES) { toast.push('error', '最多 32 个图形，请先删除不需要的图形'); return }
+    const count = pasteSequence.current.text === text ? pasteSequence.current.count + 1 : 1
+    pasteSequence.current = { text, count }
+    const next = pastedShape(source, count)
+    updateShapes([...document.shapes, next]); setSelectedId(next.id); setTool('select'); setInspectorCollapsed(false)
+    sketchSectionRef.current?.querySelector<SVGSVGElement>('[data-testid="sketch-canvas"]')?.focus({ preventScroll: true })
   }}>
     {partsError && <div role="alert" className="flex items-center justify-between gap-3 bg-amber-50 px-5 py-3 text-sm text-amber-900">零件列表加载失败，画布内容仍保留。<button type="button" onClick={() => void refetchMyParts()} className={controlClass}>重试</button></div>}
     <h1 className="sr-only">零件绘制</h1>
@@ -198,8 +223,8 @@ export function PartStudioPage() {
         <label className="flex items-center gap-2 text-sm font-medium">参考类型<select aria-label="参考类型" value={document.category} onChange={event => {
           const next = REFERENCES.find(item => item.category === event.target.value)!
           commit({ ...document, category: next.category, reference: { width: next.width, height: next.height, shape: next.category === 'mainboard' ? 'ellipse' : 'rectangle' } })
-        }} className={controlClass}>{REFERENCES.map(item => <option key={item.category} value={item.category}>{item.label}</option>)}</select></label>
-        <label className="flex items-center gap-2 text-xs">参考形状<select aria-label="参考形状" value={document.reference.shape ?? 'rectangle'} onChange={event => commit({ ...document, reference: { ...document.reference, shape: event.target.value as 'rectangle' | 'ellipse' } })} className={controlClass}><option value="rectangle">矩形</option><option value="ellipse">圆形 / 椭圆</option></select></label>
+        }} className={"site-form-control site-compact-field " + (controlClass)}>{REFERENCES.map(item => <option key={item.category} value={item.category}>{item.label}</option>)}</select></label>
+        <label className="flex items-center gap-2 text-xs">参考形状<select aria-label="参考形状" value={document.reference.shape ?? 'rectangle'} onChange={event => commit({ ...document, reference: { ...document.reference, shape: event.target.value as 'rectangle' | 'ellipse' } })} className={"site-form-control site-compact-field " + (controlClass)}><option value="rectangle">矩形</option><option value="ellipse">圆形 / 椭圆</option></select></label>
         <DimensionInput label="参考宽" value={document.reference.width} onEditingChange={onNumericEdit} onChange={width => commit({ ...document, reference: { ...document.reference, width } })} />
         <DimensionInput label="参考高" value={document.reference.height} onEditingChange={onNumericEdit} onChange={height => commit({ ...document, reference: { ...document.reference, height } })} />
         <span className="rounded-lg bg-sky-50 px-3 py-2 text-sm font-medium text-sky-900">板厚 2 mm</span>
@@ -213,24 +238,30 @@ export function PartStudioPage() {
         <header data-testid="sketch-panel-heading" className={panelHeadingClass}>
           <button type="button" aria-label="返回" title="返回" onClick={handleBack} disabled={saving} className={iconButtonClass}><ArrowLeft size={18} /></button>
           <h2 className="shrink-0 text-sm font-semibold text-ink-900">二维设计</h2>
-          <input aria-label="零件名称" disabled={saving} value={name} onChange={event => setName(event.target.value)} placeholder="零件名称" maxLength={40} className="ml-auto h-9 w-24 min-w-0 rounded-lg border border-sky-200 bg-white px-2 text-sm outline-none focus:ring-2 focus:ring-sky-300 sm:w-40" />
+          <input aria-label="零件名称" disabled={saving} value={name} onChange={event => setName(event.target.value)} placeholder="零件名称" maxLength={40} className="site-form-control site-compact-field ml-auto h-9 w-24 min-w-0 rounded-lg border border-sky-200 bg-white px-2 text-sm outline-none focus:ring-2 focus:ring-sky-300 sm:w-40" />
           <button type="button" onClick={() => void handleSave()} disabled={!prepared.def || !!prepared.error || busy || numericBlocked} title={numericBlocked ? '请先确认或修正尺寸输入' : prepared.error ?? (!prepared.def ? '请先完成有效的零件轮廓' : pending ? '请先完成或取消当前绘制' : '保存到我的零件')} className="min-h-10 shrink-0 rounded-lg bg-sky-500 px-3 text-sm font-semibold text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">{saving ? '保存中…' : '保存'}</button>
         </header>
         <SketchCanvas shapes={document.shapes} reference={document.reference} part={compiled.part} problemShapeIds={problemShapeIds} referenceInvalid={!pending && compiled.issue?.code === 'outside-reference'} jointGuides={joints.guides} tool={tool} slotMode={slotMode} selectedId={selectedId} snap={snap} disabled={saving || numericBlocked} onChange={updateShapes} onSelect={id => { if (!numericBlocked) { if (id !== selectedId) setInspectorCollapsed(false); setSelectedId(id); if (id) { setTool('select'); setSlotMenuOpen(false) } } }} onPendingChange={setPending} validateInsertion={shape => {
-          const next = compileSketch([...document.shapes, shape], document.reference, document.constrain)
+          const next = compileSketch([...document.shapes, shape], document.reference, document.constrain, document.cornerRadius)
           if (!next.part) return '插接口不能切断木板，请缩短深度或换一个位置。'
           return analyzeSketchJoints([...document.shapes, shape], next.part, document.reference.width).error ? '这里无法形成完整插接口，请避开已有孔槽并保留槽底。' : null
         }}>
           {selected && !inspectorCollapsed && <section aria-label="图形属性" className="absolute right-3 top-3 z-10 w-[224px] max-w-[calc(100%-24px)] rounded-xl border border-sky-100 bg-white p-3 shadow-lg shadow-sky-950/10">
-            <div className="mb-2 flex items-center justify-between gap-2"><h3 className="sr-only">图形属性</h3><select aria-label="形状用途" disabled={busy || numericBlocked} value={selected.joint?.kind ?? selected.operation} onChange={event => changePurpose(event.target.value)} className="h-9 rounded-lg border border-sky-200 bg-white px-2 text-xs text-sky-950"><option value="add">实体</option><option value="cut">普通切孔</option>{selected.kind === 'rectangle' && <><option value="edge-slot">边缘插槽</option><option value="through-slot">板内插槽</option></>}</select><span className="ml-auto text-xs text-slate-400">mm</span><button type="button" aria-label="取消选择" title="取消选择" disabled={busy || numericBlocked} onClick={event => { const canvas = event.currentTarget.closest('section[aria-label="二维设计"]')?.querySelector<SVGSVGElement>('svg[data-testid="sketch-canvas"]'); setSelectedId(null); canvas?.focus({ preventScroll: true }) }} className="-mr-1 flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-sky-50 disabled:opacity-35"><X size={15} /></button></div>
+            <div className="mb-2 flex items-center justify-between gap-2"><h3 className="sr-only">图形属性</h3><select aria-label="形状用途" disabled={busy || numericBlocked} value={selected.joint?.kind ?? selected.operation} onChange={event => changePurpose(event.target.value)} className="site-form-control site-compact-field h-9 rounded-lg border border-sky-200 bg-white px-2 text-xs text-sky-950"><option value="add">实体</option><option value="cut">普通切孔</option>{selected.kind === 'rectangle' && <><option value="edge-slot">边缘插槽</option><option value="through-slot">板内插槽</option></>}</select><span className="ml-auto text-xs text-slate-400">mm</span><button type="button" aria-label="取消选择" title="取消选择" disabled={busy || numericBlocked} onClick={event => { const canvas = event.currentTarget.closest('section[aria-label="二维设计"]')?.querySelector<SVGSVGElement>('svg[data-testid="sketch-canvas"]'); setSelectedId(null); canvas?.focus({ preventScroll: true }) }} className="-mr-1 flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-sky-50 disabled:opacity-35"><X size={15} /></button></div>
             <fieldset disabled={busy}><ShapeParameters key={selected.id} shape={selected} onEditingChange={onNumericEdit} onChange={shape => updateShapes(document.shapes.map(item => item.id === shape.id ? shape : item))} /></fieldset>
           </section>}
-          {slotMenuOpen && tool === 'slot' && !pending && !selected && <section aria-label="开孔方式" className="absolute bottom-[176px] left-3 z-20 w-60 max-w-[calc(100%-24px)] rounded-xl border border-red-100 bg-white p-2 shadow-lg min-[440px]:bottom-[128px]" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setSlotMenuOpen(false); event.currentTarget.parentElement?.querySelector<HTMLButtonElement>('button[aria-label="孔 / 开口"]')?.focus() } }}>
+          {slotMenuOpen && tool === 'slot' && !pending && !selected && <section aria-label="开孔方式" className="absolute bottom-[224px] left-3 z-20 w-60 max-w-[calc(100%-24px)] rounded-xl border border-red-100 bg-white p-2 shadow-lg min-[440px]:bottom-[128px]" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setSlotMenuOpen(false); event.currentTarget.parentElement?.querySelector<HTMLButtonElement>('button[aria-label="孔 / 开口"]')?.focus() } }}>
             <div className="flex items-center justify-between px-2 text-xs text-slate-500">开孔方式<button type="button" aria-label="关闭开孔方式" onClick={() => setSlotMenuOpen(false)} className="h-9 w-9 rounded-lg hover:bg-red-50"><X size={15} /></button></div>
             {([{ key: 'cut', label: '普通切孔', detail: '宽、高自由调整；不定义拼接。' }, { key: 'edge-slot', label: '边缘插槽', detail: '槽宽 2 mm，从板边沿槽向内插入。' }, { key: 'through-slot', label: '板内插槽', detail: '槽宽 2 mm，接收另一块板的插片。' }] as const).map(mode => <button key={mode.key} type="button" aria-label={mode.label} aria-pressed={slotMode === mode.key} onClick={event => { setSlotMode(mode.key); setSlotMenuOpen(false); event.currentTarget.closest('section[aria-label="二维设计"]')?.querySelector<SVGSVGElement>('svg[data-testid="sketch-canvas"]')?.focus({ preventScroll: true }) }} className={`block min-h-12 w-full rounded-lg px-2 py-2 text-left ${slotMode === mode.key ? 'bg-red-50 text-red-700' : 'text-slate-700 hover:bg-red-50'}`}><span className="block text-sm font-medium">{mode.label}</span><span className="block text-xs">{mode.detail}</span></button>)}
           </section>}
+          {roundingOpen && <section aria-label="轮廓圆角设置" className="absolute bottom-[224px] left-3 z-20 w-64 max-w-[calc(100%-24px)] rounded-xl border border-sky-100 bg-white p-3 shadow-lg min-[440px]:bottom-[128px]" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setRoundingOpen(false) } }}>
+            <div className="mb-2 flex items-center justify-between"><label className="flex min-h-10 items-center gap-2 text-sm font-medium"><input type="checkbox" aria-label="开启轮廓圆角" checked={!!document.cornerRadius} disabled={busy || numericBlocked} onChange={event => commit({ ...document, cornerRadius: event.target.checked ? preferredRadius : 0 })} />轮廓圆角</label><button type="button" aria-label="关闭圆角设置" onClick={() => setRoundingOpen(false)} className={iconButtonClass}><X size={16} /></button></div>
+            <DimensionInput label="圆角半径" value={document.cornerRadius || preferredRadius} min={0.1} max={20} disabled={busy || !document.cornerRadius} onEditingChange={onNumericEdit} onChange={radius => { setPreferredRadius(radius); commit({ ...document, cornerRadius: radius }) }} />
+            <p className="mt-2 text-xs leading-5 text-slate-500">仅处理外轮廓尖角，空间不足时缩小；内孔和插接口保持原尺寸。</p>
+            {!!document.cornerRadius && compiled.rounding && <p className="mt-1 text-xs text-sky-700" role="status">已处理 {compiled.rounding.rounded} 处{compiled.rounding.limited ? `，${compiled.rounding.limited} 处受空间限制` : ''}</p>}
+          </section>}
           <div data-testid="sketch-toolbar" className="absolute bottom-3 left-1/2 z-10 flex w-max max-w-[calc(100%-24px)] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-xl border border-sky-100 bg-white p-2 shadow-lg shadow-sky-950/10">
-            <fieldset disabled={busy} className="grid min-w-0 max-w-full grid-cols-4 items-center justify-center gap-0.5 min-[440px]:flex min-[440px]:flex-wrap" role="group" aria-label="绘图工具">
+            <fieldset disabled={busy} className="grid min-w-0 max-w-full grid-cols-5 items-center justify-center gap-0.5 min-[440px]:flex min-[440px]:flex-wrap" role="group" aria-label="绘图工具">
               {TOOL_ITEMS.map(item => {
                 const isCut = item.key === 'circle-hole' || item.key === 'slot' || item.key === 'insert-slot'
                 const colors = isCut
@@ -239,11 +270,12 @@ export function PartStudioPage() {
                 return <Tooltip key={item.key} content={item.key === 'slot' ? '矩形开孔' : item.label} placement="top"><button type="button" aria-label={item.label} aria-pressed={tool === item.key} aria-expanded={item.key === 'slot' ? slotMenuOpen : undefined} onClick={() => { if (numericBlocked) return; setTool(item.key); setSlotMenuOpen(item.key === 'slot'); if (item.key === 'slot') setSlotMode('cut'); if (item.key !== 'select') { setSelectedId(null); setInspectorCollapsed(false) } }} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg focus-visible:outline focus-visible:outline-2 disabled:opacity-35 ${colors}`}><item.icon size={21} /><span className="sr-only">{item.label}</span></button></Tooltip>
               })}
             </fieldset>
-            <div className="flex items-center gap-0.5 border-sky-100 px-1" role="group" aria-label="编辑操作">
+            <div className="flex max-w-full flex-wrap items-center justify-center gap-0.5 border-sky-100 px-1" role="group" aria-label="编辑操作">
               <Tooltip content="撤销" placement="top"><button type="button" aria-label="撤销" disabled={busy || numericBlocked || !history.past.length} onClick={() => dispatch({ type: 'undo' })} className={iconButtonClass}><Undo2 size={18} /></button></Tooltip>
               <Tooltip content="重做" placement="top"><button type="button" aria-label="重做" disabled={busy || numericBlocked || !history.future.length} onClick={() => dispatch({ type: 'redo' })} className={iconButtonClass}><Redo2 size={18} /></button></Tooltip>
               <Tooltip content="删除图形" placement="top"><button type="button" aria-label="删除图形" disabled={busy || numericBlocked || !selected} onClick={removeSelected} className={iconButtonClass}><Trash2 size={18} /></button></Tooltip>
-              <Tooltip content="清空" placement="top"><button type="button" aria-label="清空" disabled={busy || numericBlocked || !document.shapes.length} onClick={() => { updateShapes([]); setSelectedId(null) }} className={iconButtonClass}><Eraser size={18} /></button></Tooltip>
+              <Tooltip content="清空" placement="top"><button type="button" aria-label="清空" disabled={busy || numericBlocked || !document.shapes.length} onClick={() => setClearOpen(true)} className={`${iconButtonClass} !text-red-600 hover:!bg-red-50`}><FileX2 size={18} /></button></Tooltip>
+              <Tooltip content="轮廓圆角" placement="top"><button type="button" aria-label="轮廓圆角" aria-expanded={roundingOpen} disabled={busy || numericBlocked} onClick={() => { setRoundingOpen(value => !value); setSlotMenuOpen(false) }} className={`${iconButtonClass} ${document.cornerRadius ? 'bg-sky-50' : ''}`}><Radius size={18} /></button></Tooltip>
               <Tooltip content={inspectorCollapsed ? '显示图形属性' : '收起图形属性'} placement="top"><button type="button" aria-label={inspectorCollapsed ? '显示图形属性' : '收起图形属性'} aria-expanded={!!selected && !inspectorCollapsed} disabled={busy || numericBlocked || !selected} onClick={() => setInspectorCollapsed(value => !value)} className={`${iconButtonClass} ${selected && !inspectorCollapsed ? 'bg-sky-50' : ''}`}><SlidersHorizontal size={18} /></button></Tooltip>
               <Tooltip content="对齐到 1 mm 网格" placement="top"><label className="ml-2 flex min-h-10 items-center gap-1.5 whitespace-nowrap text-xs text-slate-600"><input type="checkbox" disabled={busy} checked={snap} onChange={event => setSnap(event.target.checked)} />1 mm 吸附</label></Tooltip>
             </div>
@@ -251,7 +283,7 @@ export function PartStudioPage() {
         </SketchCanvas>
         <div className={`min-h-12 px-4 py-3 text-xs leading-5 ${!pending && prepared.def && prepared.error ? 'bg-amber-50 text-amber-900' : 'text-slate-500'}`} role={!pending && !numericBlocked && prepared.def && prepared.error ? 'alert' : 'status'} aria-atomic="true">
           {pending ? '完成绘制或按 Esc 取消。' : numericBlocked ? '按 Enter 确认尺寸，或按 Esc 取消修改。' : prepared.def ? prepared.error ?? `零件范围 ${prepared.def.geometry.bboxMm.w} × ${prepared.def.geometry.bboxMm.h} mm · ${prepared.def.geometry.holes.length} 个内孔` : null}
-          {selected?.joint && <p className="mt-1 text-[11px] leading-5 text-slate-600">{selected.joint.kind === 'through-slot' ? '将等长、2 mm 厚的插片从标记的板面插入。' : '蓝点为槽底对接点，箭头为插入方向；配对木片垂直交叉。'}</p>}
+          {selected?.joint && <p className="mt-1 text-xs leading-5 text-slate-600">{selected.joint.kind === 'through-slot' ? '将等长、2 mm 厚的插片从标记的板面插入。' : '蓝点为槽底对接点，箭头为插入方向；配对木片垂直交叉。'}</p>}
         </div>
       </section>
       <section className="flex min-w-0 flex-col" aria-label="木板三维预览">
@@ -260,6 +292,10 @@ export function PartStudioPage() {
       </section>
     </div>
     <MyPartsStrip parts={myParts} onDelete={id => setDeleteTarget(myParts.find(part => part.id === id) ?? null)} onUse={setPlaceTarget} onInspect={setInspectTarget} />
+    <Modal open={clearOpen} title="清空画布" onClose={() => setClearOpen(false)}>
+      <p className="text-sm leading-6 text-slate-600">清空当前画布的 {document.shapes.length} 个图形？已保存的零件不受影响，清空后可撤销。</p>
+      <div className="mt-5 flex justify-end gap-3"><button type="button" data-autofocus onClick={() => setClearOpen(false)} className={controlClass}>取消</button><button type="button" onClick={() => { updateShapes([]); setSelectedId(null); setClearOpen(false) }} className="min-h-11 rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700">确认清空</button></div>
+    </Modal>
     <JointGuideDialog part={inspectTarget} onClose={() => setInspectTarget(null)} />
     {placeTarget && <PlaceCustomPartDialog part={placeTarget} onClose={() => setPlaceTarget(null)} />}
     <Modal open={!!deleteTarget} title="删除零件" onClose={() => { if (!deleting) setDeleteTarget(null) }}>

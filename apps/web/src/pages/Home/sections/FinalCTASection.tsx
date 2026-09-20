@@ -3,11 +3,13 @@ import { ArrowRight } from 'lucide-react'
 import { ScrollReveal } from '../../../components/common/ScrollReveal'
 import { SectionHeading } from '../components/SectionHeading'
 import { useAuthStore } from '../../../stores/authStore'
+import { useUIStore } from '../../../stores/uiStore'
 import { trackEvent } from '../../../features/analytics/client'
 
 export function FinalCTASection() {
   const navigate = useNavigate()
-  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated && !!s.token && !s.user?.isGuest)
+  const openLogin = useUIStore(s => s.openLoginModal)
 
   return (
     <section className="home-final site-section">
@@ -26,7 +28,7 @@ export function FinalCTASection() {
 
         <ScrollReveal delay={200} className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
-            onClick={() => { trackEvent('home_cta_clicked', { placement: 'final', destination: isAuthenticated ? 'design' : 'login' }); navigate(isAuthenticated ? '/design' : '/auth') }}
+            onClick={() => { trackEvent('home_cta_clicked', { placement: 'final', destination: isAuthenticated ? 'design' : 'login' }); if (isAuthenticated) navigate('/design'); else openLogin('/design') }}
             className="site-marketing-button site-marketing-button--primary group"
           >
             {isAuthenticated ? '打开设计工作台' : '登录平台'}

@@ -75,7 +75,7 @@ function BlockRow({ cmd }: { cmd: Command }) {
   return (
     <div className="flex flex-col">
       <div
-        className="inline-flex w-fit items-center gap-1.5 rounded-[7px] px-2.5 py-1.5 text-[11px] font-semibold leading-none text-white shadow-sm"
+        className="inline-flex w-fit items-center gap-1.5 rounded-[7px] px-2.5 py-1.5 text-xs font-semibold leading-none text-white shadow-sm"
         style={{ backgroundColor: meta.color }}
       >
         {isSensorTinted(cmd) && (
@@ -89,12 +89,12 @@ function BlockRow({ cmd }: { cmd: Command }) {
           className="ml-2 mt-1 border-l-2 pl-2.5"
           style={{ borderColor: meta.color }}
         >
-          <span className="text-[10px] font-medium text-ink-400">{br.title}</span>
+          <span className="text-xs font-medium text-ink-400">{br.title}</span>
           <div className="mt-1 flex flex-col gap-1">
             {br.body.length > 0 ? (
               br.body.map((c, j) => <BlockRow key={j} cmd={c} />)
             ) : (
-              <span className="text-[10px] text-ink-300">（空）</span>
+              <span className="text-xs text-ink-300">（空）</span>
             )}
           </div>
         </div>

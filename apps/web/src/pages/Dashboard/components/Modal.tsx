@@ -55,7 +55,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
           'relative w-full max-w-sm rounded-card border border-sky-100 bg-white p-6 shadow-sky-glow',
         )}
       >
-        <h2 className="text-lg font-bold text-sky-900">{title}</h2>
+        <h2 className="text-lg font-semibold text-sky-900">{title}</h2>
         <div className="mt-2 text-sm text-ink-600">{children}</div>
         <div className="mt-6 flex justify-end gap-2">{footer}</div>
       </div>

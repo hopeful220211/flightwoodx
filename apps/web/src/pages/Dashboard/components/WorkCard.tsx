@@ -95,7 +95,7 @@ export function WorkCard({ design, onOpen, onRename, onDelete, onPublish, onCapt
       {/* 信息 + 操作 */}
       <div className="flex items-start justify-between gap-2 p-4">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-base font-bold text-sky-900">{design.name}</h3>
+          <h3 className="truncate text-base font-semibold text-sky-900">{design.name}</h3>
           <p className="mt-0.5 text-xs text-ink-400">
             上次修改 {formatRelativeTime(design.updatedAt)}
           </p>

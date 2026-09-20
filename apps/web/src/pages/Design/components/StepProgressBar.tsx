@@ -34,7 +34,7 @@ export function StepProgressBar({ currentStep, stepReached, onStepClick }: StepP
             >
               <div
                 className={`
-                  w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors
+                  w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors
                   ${isCurrent ? 'bg-sky-500 text-white ring-2 ring-sky-200' : ''}
                   ${isCompleted ? 'bg-green-500 text-white' : ''}
                   ${isLocked ? 'bg-gray-200 text-gray-400' : ''}
@@ -43,7 +43,7 @@ export function StepProgressBar({ currentStep, stepReached, onStepClick }: StepP
                 {isCompleted ? '✓' : info.number}
               </div>
               <span
-                className={`max-w-full text-[10px] sm:text-xs truncate ${
+                className={`max-w-full text-xs sm:text-xs truncate ${
                   isCurrent ? 'text-sky-600 font-semibold' : isCompleted ? 'text-green-600' : 'text-gray-400'
                 }`}
               >

@@ -186,6 +186,7 @@ for (const viewport of [
     await expectWoodPreview(page, 80, 60)
 
     await page.getByRole('button', { name: '清空', exact: true }).click()
+    await page.getByRole('button', { name: '确认清空', exact: true }).click()
     await expect(shapes).toHaveCount(0)
     await expect(save).toBeDisabled()
     await expect(page.getByTestId('part-3d-preview')).toHaveCount(0)
@@ -202,6 +203,7 @@ for (const viewport of [
     // A short rectangular reference still creates a circle, not an ellipse
     // silently squeezed along its height.
     await page.getByRole('button', { name: '清空', exact: true }).click()
+    await page.getByRole('button', { name: '确认清空', exact: true }).click()
     await page.getByRole('combobox', { name: '参考类型', exact: true }).selectOption('landing')
     await expect(page.getByRole('spinbutton', { name: '参考宽（毫米）', exact: true })).toHaveValue('80')
     await expect(page.getByRole('spinbutton', { name: '参考高（毫米）', exact: true })).toHaveValue('50')

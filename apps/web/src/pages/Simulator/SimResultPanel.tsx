@@ -37,7 +37,7 @@ export function SimResultPanel({ kind, elapsedSec, onRerun }: SimResultPanelProp
         <div className={`mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl ${c.iconBg}`}>
           <Icon size={36} aria-hidden="true" />
         </div>
-        <h3 className="text-xl font-bold text-ink-900">{c.emoji} {c.title}</h3>
+        <h3 className="text-xl font-semibold text-ink-900">{c.emoji} {c.title}</h3>
         <p className="mt-1 text-sm text-ink-500">用时 {elapsedSec.toFixed(1)} 秒</p>
         <button
           type="button"

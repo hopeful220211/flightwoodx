@@ -15,7 +15,7 @@ export interface TabsProps<TValue extends string> {
 
 export function Tabs<TValue extends string>({ items, value, onChange, className }: TabsProps<TValue>) {
   return (
-    <div className={cn('flex gap-2', className)} role="tablist">
+    <div className={cn('site-tabs flex flex-wrap gap-2', className)} role="tablist">
       {items.map((it) => {
         const active = it.value === value
         return (
@@ -40,4 +40,3 @@ export function Tabs<TValue extends string>({ items, value, onChange, className 
     </div>
   )
 }
-

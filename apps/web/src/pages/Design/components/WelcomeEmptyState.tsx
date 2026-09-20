@@ -16,7 +16,7 @@ export function WelcomeEmptyState({ onStartNew, onViewHistory, historyCount }: W
         </div>
 
         {/* Title */}
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+        <h1 className="text-2xl font-semibold text-gray-800 mb-2">
           无人机拼装
         </h1>
         <p className="text-gray-500 mb-8">

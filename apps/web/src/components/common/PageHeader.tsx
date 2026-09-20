@@ -8,12 +8,12 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-sky-900 lg:text-3xl">{title}</h1>
-        {description && <p className="mt-1 text-base text-sky-700">{description}</p>}
+    <div className="site-page-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="site-page-title text-2xl font-semibold tracking-tight text-sky-900 lg:text-3xl">{title}</h1>
+        {description && <p className="mt-3 text-base leading-6 text-sky-700">{description}</p>}
       </div>
-      {actions && <div className="mt-3 flex items-center gap-3 sm:mt-0">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-3 sm:shrink-0">{actions}</div>}
     </div>
   )
 }

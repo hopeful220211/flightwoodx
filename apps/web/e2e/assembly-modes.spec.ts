@@ -1,7 +1,8 @@
 import { randomBytes } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { DroneDesignSnapshotSchema, type DroneDesignSnapshot, type UserPart } from '@fwx/parts-schema'
-import { customConnectors, officialConnectors, validateAssemblyConnections } from '@fwx/geometry'
+import { customConnectors, officialConnectors, validateAssemblyConnections, worldConnector, type ConnectorResolver } from '@fwx/geometry'
+import { Euler, Quaternion, Vector3 } from 'three'
 import { drawStarterRectangle, drawStudioShape } from './part-studio-helpers'
 
 async function read(page: Page): Promise<DroneDesignSnapshot> {
@@ -9,6 +10,18 @@ async function read(page: Page): Promise<DroneDesignSnapshot> {
     const state = JSON.parse(localStorage.getItem('drone_app_design_store')!).state
     return state.designs.find((d: { id:string }) => d.id === state.activeDesignId)
   }))
+}
+function expectPhysicalJoints(design: DroneDesignSnapshot, resolve: ConnectorResolver) {
+  for (const child of design.parts.filter(p=>p.attachedTo)) {
+    const parent = design.parts.find(p=>p.instanceId===child.attachedTo!.parentInstanceId)!
+    const a = resolve(parent).find(c=>c.id===child.attachedTo!.parentConnectorId)!
+    const b = resolve(child).find(c=>c.id===child.activeConnectorId)!
+    const qa = new Quaternion().setFromEuler(new Euler(...parent.rotation))
+    const qb = new Quaternion().setFromEuler(new Euler(...child.rotation))
+    expect(Math.abs(new Vector3(...(a.boardNormal ?? [0,1,0])).applyQuaternion(qa).dot(new Vector3(...(b.boardNormal ?? [0,1,0])).applyQuaternion(qb)))).toBeLessThan(1e-5)
+    // GLB float32 frames near Euler gimbal lock retain sub-micrometre error.
+    expect(new Vector3(...worldConnector(parent,a).position).distanceTo(new Vector3(...worldConnector(child,b).position))).toBeLessThan(1e-7)
+  }
 }
 async function register(page: Page) {
   const name = `asm_${randomBytes(5).toString('hex')}`
@@ -137,7 +150,10 @@ test('both modes expose own parts; slot connections survive real saving, reload 
   const official = (await read(page)).parts.find(p => !p.source)!
   const officialFrames = officialConnectors(official.partId)
   await expect(page.getByText(`${officialFrames.length} 个连接点`,{exact:true})).toBeVisible()
-  design = await connect(page,official.instanceId,officialFrames[0]!.id,a.instanceId,aFrames[1]!.id)
+  // Catalog additions now attach immediately to the remaining custom slot.
+  design = await read(page)
+  expect(official.attachedTo).toEqual({parentInstanceId:a.instanceId,parentConnectorId:aFrames[1]!.id})
+  expectPhysicalJoints(design,resolve)
   expect(validateAssemblyConnections(design.parts,resolve)).toBeNull()
   await openConnect(page)
   await page.getByLabel('移动零件',{exact:true}).selectOption(official.instanceId)
@@ -152,6 +168,7 @@ test('both modes expose own parts; slot connections survive real saving, reload 
     else await route.continue()
   })
   design = await connect(page,a.instanceId,aFrames[1]!.id,official.instanceId,officialFrames[0]!.id,503)
+  expectPhysicalJoints(design,resolve)
   await page.unroute('**/api/drone-designs')
   const retry = page.waitForResponse(r => new URL(r.url()).pathname === '/api/drone-designs' && r.request().method() === 'PUT')
   await page.getByRole('button',{name:'保存',exact:true}).click()
@@ -193,10 +210,92 @@ test('both modes expose own parts; slot connections survive real saving, reload 
   const guided = await connect(page,guidedChild!.instanceId,bFrames[0]!.id,guidedParent!.instanceId,aFrames[0]!.id)
   expect(validateAssemblyConnections(guided.parts,resolve)).toBeNull()
   await page.getByRole('button',{name:'下一步 →',exact:true}).click()
+  await page.getByRole('button',{name:'添加起落架01',exact:true}).click()
+  await expect.poll(async () => (await read(page)).parts.length).toBe(3)
+  const guidedMixed = await read(page)
+  expect(guidedMixed.parts[2]!.attachedTo).toEqual({parentInstanceId:guidedParent!.instanceId,parentConnectorId:aFrames[1]!.id})
+  expectPhysicalJoints(guidedMixed,resolve)
   await page.getByRole('button',{name:'绘制零件',exact:true}).click()
   await expect(page.getByLabel('参考类型',{exact:true})).toHaveValue('landing')
   await page.getByRole('button',{name:'返回',exact:true}).click()
   await expect(page).toHaveURL(/\/design\/design-/)
   expect((await read(page)).buildMode).toBe('guided')
   expect(errors).toEqual([])
+})
+
+test('real arm 37 connector roll stays perpendicular to a drawn board after reconnecting and server restore', async ({page},info) => {
+  await register(page)
+  await newWork(page,'free')
+  await openLibrary(page)
+  await page.getByRole('link',{name:'绘制零件',exact:true}).click()
+  const source = await drawPart(page,'接口方向回归',true)
+  const parent = (await read(page)).parts[0]!
+  await page.getByRole('button',{name:'机臂',exact:true}).click()
+  await page.getByRole('button',{name:'零件详情：起落架37',exact:true}).click()
+  await page.getByRole('button',{name:'添加到设计',exact:true}).click()
+  await expect.poll(async () => (await read(page)).parts.length).toBe(2)
+  const child = (await read(page)).parts[1]!
+  const resolve: ConnectorResolver = p=>p.source ? customConnectors(source) : officialConnectors(p.partId)
+  expect(child.attachedTo?.parentInstanceId).toBe(parent.instanceId)
+  expectPhysicalJoints(await read(page),resolve)
+  await openConnect(page)
+  await page.getByLabel('移动零件',{exact:true}).selectOption(child.instanceId)
+  await page.getByRole('dialog',{name:'连接零件',exact:true}).getByRole('button',{name:'断开连接',exact:true}).click()
+  await page.getByRole('button',{name:'关闭模态框',exact:true}).click()
+  const result = await connect(page,child.instanceId,'PLUG_3',parent.instanceId,customConnectors(source)[1]!.id)
+  expectPhysicalJoints(result,resolve)
+  await page.reload()
+  await expect(page.getByRole('button',{name:'接口方向回归',exact:true})).toBeVisible()
+  expectPhysicalJoints(await read(page),resolve)
+  await page.getByRole('button',{name:'接口方向回归',exact:true}).click()
+  await expect(page.getByTitle('插接口 2 · 已占用',{exact:true})).toBeVisible()
+  await expect(page.getByText(/正在加载零件/)).toHaveCount(0)
+  await page.screenshot({path:info.outputPath('arm37-perpendicular.png')})
+})
+
+test('mouse and touch drops choose the indicated custom slot instead of the first slot', async ({page,context}) => {
+  await register(page)
+  await newWork(page,'free')
+  await openLibrary(page)
+  await page.getByRole('link',{name:'绘制零件',exact:true}).click()
+  const source = await drawPart(page,'拖入连接测试',true)
+  const parent = (await read(page)).parts[0]!
+  const frames = customConnectors(source)
+  await page.getByRole('button',{name:'机臂',exact:true}).click()
+  const card = page.locator('[draggable="true"]').filter({has:page.getByRole('img',{name:'起落架01',exact:true})})
+  const canvas = page.getByLabel('无人机三维拼装画布',{exact:true}).locator('canvas')
+  for (const [index,input] of [[1,'mouse'],[0,'touch']] as const) {
+    await page.getByRole('button',{name:'拖入连接测试',exact:true}).click()
+    const marker = page.getByTitle(`插接口 ${index+1}`,{exact:true})
+    await expect(marker).toBeVisible()
+    const box = (await marker.boundingBox())!, origin = (await card.boundingBox())!
+    const point = {x:box.x+box.width/2,y:box.y+box.height/2}
+    const waiting = page.waitForResponse(r=>r.url().includes(`/api/custom-parts/${source.id}`) && r.request().method()==='GET')
+    const nextFrame = ()=>page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))))
+    if (input==='mouse') {
+      const transfer = await page.evaluateHandle(()=>new DataTransfer())
+      await card.dispatchEvent('dragstart',{dataTransfer:transfer,clientX:origin.x+10,clientY:origin.y+10})
+      await waiting
+      for (let move=0;move<3;move++) {
+        await nextFrame()
+        await canvas.dispatchEvent('dragover',{dataTransfer:transfer,clientX:point.x,clientY:point.y})
+      }
+      await canvas.dispatchEvent('drop',{dataTransfer:transfer,clientX:point.x,clientY:point.y})
+      await transfer.dispose()
+    } else {
+      const cdp = await context.newCDPSession(page)
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:origin.x+30,y:origin.y+30}]})
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:origin.x+55,y:origin.y+30}]})
+      await waiting
+      for (let move=0;move<3;move++) {
+        await nextFrame()
+        await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[point]})
+      }
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]})
+      await cdp.detach()
+    }
+    await expect.poll(async()=>(await read(page)).parts.filter(p=>p.attachedTo?.parentConnectorId===frames[index]!.id).length).toBe(1)
+    expect((await read(page)).parts.at(-1)!.attachedTo?.parentInstanceId).toBe(parent.instanceId)
+    expectPhysicalJoints(await read(page),p=>p.source ? frames : officialConnectors(p.partId))
+  }
 })

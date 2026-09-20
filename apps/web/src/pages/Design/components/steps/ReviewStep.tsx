@@ -36,8 +36,8 @@ function MetricCard({
       <div className="flex items-center gap-2">
         <span className="text-sky-400">{icon}</span>
         <span className="text-xs font-medium text-gray-600">{name}</span>
-        {sci && <span className="text-[10px] text-gray-400">{sci}</span>}
-        <span className="ml-auto text-sm font-bold text-ink-900 tabular-nums">{value}</span>
+        {sci && <span className="text-xs text-gray-400">{sci}</span>}
+        <span className="ml-auto text-sm font-semibold text-ink-900 tabular-nums">{value}</span>
       </div>
       {fillPct !== undefined && <div className="mt-2 h-1.5 rounded-full bg-gray-100 overflow-hidden">
         <div
@@ -107,7 +107,7 @@ export function ReviewStep() {
             <AlertCircle size={22} className="text-sky-500" />
           )}
           <span
-            className={`text-lg font-extrabold ${
+            className={`text-lg font-semibold ${
               readiness.canTakeoff ? 'text-green-600' : 'text-sky-700'
             }`}
           >

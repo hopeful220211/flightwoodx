@@ -22,7 +22,7 @@ export function PrivacyPage({ documentSlug }: { documentSlug?: 'terms' } = {}) {
     return () => { document.title = previous }
   }, [pathname, title])
   return <>
-    <div className="mx-auto max-w-6xl px-5 py-10 text-slate-700 sm:px-8 sm:py-14">
+    <div className="privacy-page mx-auto max-w-6xl px-5 py-10 text-slate-700 sm:px-8 sm:py-14">
       <Link to={slug ? '/privacy' : '/'} className={`${linkClass} text-sm`}>{slug ? '← 全部隐私说明' : '← 返回首页'}</Link>
       <h1 className="mt-6 text-3xl font-semibold leading-tight text-sky-950 sm:text-4xl">{title}</h1>
       <p className="mt-3 text-sm text-slate-500">修订日期：{slug === 'terms' ? TERMS_UPDATED : POLICY_UPDATED} · 芬奇答奥（重庆）科技有限公司</p>

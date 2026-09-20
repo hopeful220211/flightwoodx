@@ -15,7 +15,7 @@ export function FlyPage() {
         { label: '实机控制说明' },
       ]} />
 
-      <h1 className="text-2xl font-bold text-ink-900">实机控制与模拟说明</h1>
+      <h1 className="text-2xl font-semibold text-ink-900">实机控制与模拟说明</h1>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card hoverable={false}>

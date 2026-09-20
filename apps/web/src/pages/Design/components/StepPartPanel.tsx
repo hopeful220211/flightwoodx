@@ -32,7 +32,7 @@ export function StepPartPanel({ currentStep, onPartClick, onPartDragStart, pendi
   if (currentStep === 'REVIEW') {
     return (
       <div className="p-4">
-        <h3 className="text-sm font-bold text-gray-700 mb-2">第 {info.number} 步 · {info.label}</h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">第 {info.number} 步 · {info.label}</h3>
         <p className="text-xs text-gray-500">核对零件、连接和左右位置。</p>
       </div>
     )
@@ -41,7 +41,7 @@ export function StepPartPanel({ currentStep, onPartClick, onPartDragStart, pendi
   return (
     <div className="flex flex-col h-full">
       <div className="p-3 border-b border-gray-100">
-        <h3 className="text-sm font-bold text-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700">
           第 {info.number} 步 · {info.label}
           {(info as { optional?: boolean }).optional && (
             <span className="ml-1 text-xs font-normal text-ink-400">（可跳过）</span>

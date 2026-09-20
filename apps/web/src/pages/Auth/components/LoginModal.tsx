@@ -49,31 +49,38 @@ export function LoginModal() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
+    const intent = useUIStore.getState().loginIntentId
     setLoading(true)
     try {
       const result = await login(email, password)
+      if (!useUIStore.getState().loginModalOpen || useUIStore.getState().loginIntentId !== intent) return
       if (result.success) {
+        const target = useUIStore.getState().completeLogin(intent)
         toast.push('success', '登录成功！')
         resetAndClose()
+        if (target) navigate(target)
       } else {
         toast.push('error', result.message)
       }
     } catch (err: unknown) {
-      toast.push('error', err instanceof Error ? err.message : '登录失败')
+      if (useUIStore.getState().loginIntentId === intent) toast.push('error', err instanceof Error ? err.message : '登录失败')
     } finally {
-      setLoading(false)
+      if (useUIStore.getState().loginIntentId === intent) setLoading(false)
     }
   }
 
   const goRegister = () => {
+    const returnTo = useUIStore.getState().loginReturnTo
     resetAndClose()
-    navigate('/register')
+    navigate('/register', { state: { returnTo } })
   }
 
   const handleGuest = () => {
+    const target = useUIStore.getState().loginReturnTo
     enterGuestMode()
     resetAndClose()
-    navigate('/dashboard')
+    navigate(target || '/dashboard')
   }
 
   const inputCls =
@@ -112,7 +119,7 @@ export function LoginModal() {
           <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-sky-100 to-sky-200 ring-1 ring-sky-200/60">
             <img src="/web_logo.png" alt="FlightWoodX" className="h-8 w-8 object-contain" />
           </div>
-          <h2 className="text-xl font-extrabold tracking-tight text-sky-900">登录</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-sky-900">登录</h2>
           <p className="mt-1 text-sm text-sky-600/90">登录后可查看和编辑账号中保存的作品。</p>
         </div>
 
@@ -126,7 +133,7 @@ export function LoginModal() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value.trim())}
-              className={inputCls}
+              className={"site-form-control " + (inputCls)}
               placeholder="your@email.com"
               autoComplete="email"
               autoFocus
@@ -141,7 +148,7 @@ export function LoginModal() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={inputCls}
+              className={"site-form-control " + (inputCls)}
               placeholder="至少 6 个字符"
               autoComplete="current-password"
             />

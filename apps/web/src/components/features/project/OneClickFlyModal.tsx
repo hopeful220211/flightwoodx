@@ -47,7 +47,7 @@ export function OneClickFlyModal({ open, onClose, program, programName }: OneCli
           <FlightScene telemetry={telemetry} trail={trail} ledColor={ledColor} />
 
           {telemetry && (
-            <div className="absolute left-3 top-3 rounded-md bg-white/85 px-2.5 py-1 text-[11px] font-mono text-sky-700 backdrop-blur">
+            <div className="absolute left-3 top-3 rounded-md bg-white/85 px-2.5 py-1 text-xs font-mono text-sky-700 backdrop-blur">
               <span className="inline-flex items-center gap-1">
                 <Activity size={11} className="text-sky-400" />
                 X{telemetry.posCm[0].toFixed(0)} Y{telemetry.posCm[1].toFixed(0)} Z{telemetry.posCm[2].toFixed(0)}
@@ -89,7 +89,7 @@ export function OneClickFlyModal({ open, onClose, program, programName }: OneCli
           <div className="max-h-32 overflow-auto rounded-lg bg-sky-50/70 p-3">
             <ul className="space-y-0.5">
               {result.events.map((evt, i) => (
-                <li key={i} className="font-mono text-[11px] text-sky-600">
+                <li key={i} className="font-mono text-xs text-sky-600">
                   {evt}
                 </li>
               ))}

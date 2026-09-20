@@ -61,6 +61,7 @@ async function editDimension(page: Page, name: string, value: string) {
 
 async function clearDrawing(page: Page, canvas: Locator) {
   await page.getByRole('button', { name: '清空', exact: true }).click()
+  await page.getByRole('button', { name: '确认清空', exact: true }).click()
   await expect(canvas.locator('[data-shape-id]')).toHaveCount(0)
   await expect(previewFeedback(page)).toHaveCount(0)
 }

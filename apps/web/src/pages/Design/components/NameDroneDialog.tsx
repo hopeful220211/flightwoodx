@@ -56,7 +56,7 @@ export function NameDroneDialog({ open, onConfirm, onCancel }: NameDroneDialogPr
             <Plane className="h-6 w-6" strokeWidth={1.6} aria-hidden />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-sky-900">新建作品</h2>
+            <h2 className="text-lg font-semibold text-sky-900">新建作品</h2>
             <p className="mt-0.5 text-xs text-ink-500">名称用于区分作品，开始搭建后仍可修改。</p>
           </div>
         </div>
@@ -72,7 +72,7 @@ export function NameDroneDialog({ open, onConfirm, onCancel }: NameDroneDialogPr
           }}
           placeholder="未命名无人机"
           aria-label="无人机名字"
-          className="mt-5 w-full rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm text-sky-900 outline-none transition placeholder:text-sky-300 focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
+          className="site-form-control mt-5 w-full rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm text-sky-900 outline-none transition placeholder:text-sky-300 focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
         />
 
         <fieldset className="mt-5 space-y-2">

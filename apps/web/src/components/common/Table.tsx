@@ -19,7 +19,7 @@ export interface TableProps<T> {
 export function Table<T>({ columns, data, rowKey, emptyText = '暂无数据', className }: TableProps<T>) {
   return (
     <div className={cn('overflow-x-auto rounded-xl border border-sky-100', className)}>
-      <table className="w-full text-sm">
+      <table className="site-table w-full text-sm">
         <thead>
           <tr className="border-b border-sky-100 bg-sky-50/60">
             {columns.map((col) => (

@@ -31,7 +31,7 @@ export function AdminLayout() {
     }`
 
   return (
-    <div className="flex min-h-screen bg-surface-white">
+    <div className="admin-shell flex min-h-screen bg-surface-white">
       {/* 侧栏（桌面） */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-sky-100 bg-white md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-sky-100 px-6">

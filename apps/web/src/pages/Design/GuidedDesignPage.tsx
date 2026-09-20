@@ -196,7 +196,7 @@ export function GuidedDesignPage() {
                 }}
                 placeholder="未命名无人机"
                 aria-label="无人机名字"
-                className="w-56 max-w-full rounded-lg border border-sky-300 bg-white px-2.5 py-1 text-sm font-semibold text-sky-900 outline-none focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
+                className="site-form-control site-compact-field w-56 max-w-full rounded-lg border border-sky-300 bg-white px-2.5 py-1 text-sm font-semibold text-sky-900 outline-none focus:border-accent-spark focus:ring-2 focus:ring-accent-spark/30"
               />
             ) : (
               <button

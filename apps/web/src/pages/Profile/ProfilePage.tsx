@@ -125,7 +125,7 @@ function ProfileContent() {
                       value={editNickname}
                       disabled={saving}
                       onChange={(e) => setEditNickname(e.target.value)}
-                      className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                      className="site-form-control w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
                       placeholder="请输入昵称"
                     />
                   </div>
@@ -136,7 +136,7 @@ function ProfileContent() {
                       value={editSchool}
                       disabled={saving}
                       onChange={(e) => setEditSchool(e.target.value)}
-                      className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                      className="site-form-control w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
                       placeholder="请输入学校（可选）"
                     />
                   </div>
@@ -147,7 +147,7 @@ function ProfileContent() {
                       value={editGrade}
                       disabled={saving}
                       onChange={(e) => setEditGrade(e.target.value)}
-                      className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                      className="site-form-control w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
                       placeholder="请输入年级（可选）"
                     />
                   </div>
@@ -163,11 +163,11 @@ function ProfileContent() {
               ) : (
                 <div>
                   <div className="mb-4 flex items-center gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-2xl font-extrabold text-white">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-2xl font-semibold text-white">
                       {profile.nickname[0] || '设'}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h2 className="break-words text-2xl font-extrabold text-wood-900 dark:text-white">{profile.nickname}</h2>
+                      <h2 className="break-words text-2xl font-semibold text-wood-900 dark:text-white">{profile.nickname}</h2>
                       {profile.school && (
                         <p className="mt-1 break-words text-sm text-slate-600 dark:text-slate-300">
                           {profile.school} {profile.grade && `· ${profile.grade}`}
@@ -192,7 +192,7 @@ function ProfileContent() {
 
         {/* 学习统计 */}
         <Card>
-          <h3 className="mb-4 text-lg font-extrabold text-wood-900 dark:text-white">本机学习记录</h3>
+          <h3 className="mb-4 text-lg font-semibold text-wood-900 dark:text-white">本机学习记录</h3>
           <p>这些记录仅保存在当前浏览器，不与账号同步。课程功能暂未开放。</p>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-lg bg-wood-50 p-4 dark:bg-slate-800">
@@ -200,7 +200,7 @@ function ProfileContent() {
                 <BookOpen className="h-5 w-5 text-sky-600" />
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">已记录课时</span>
               </div>
-              <div className="text-2xl font-extrabold text-wood-900 dark:text-white">
+              <div className="text-2xl font-semibold text-wood-900 dark:text-white">
                 {progress.completedLessons.length}
               </div>
             </div>
@@ -209,7 +209,7 @@ function ProfileContent() {
                 <Calendar className="h-5 w-5 text-sky-600" />
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">已记录时长</span>
               </div>
-              <div className="text-2xl font-extrabold text-wood-900 dark:text-white">
+              <div className="text-2xl font-semibold text-wood-900 dark:text-white">
                 {Math.round(progress.totalStudyTime)} 分钟
               </div>
             </div>
@@ -218,7 +218,7 @@ function ProfileContent() {
                 <Calendar className="h-5 w-5 text-sky-600" />
                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">已记录天数</span>
               </div>
-              <div className="text-2xl font-extrabold text-wood-900 dark:text-white">{progress.studyDays.length} 天</div>
+              <div className="text-2xl font-semibold text-wood-900 dark:text-white">{progress.studyDays.length} 天</div>
             </div>
           </div>
         </Card>
@@ -226,7 +226,7 @@ function ProfileContent() {
         {/* 我的作品 */}
         <Card>
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-extrabold text-wood-900 dark:text-white">我的作品</h3>
+            <h3 className="text-lg font-semibold text-wood-900 dark:text-white">我的作品</h3>
             <Button
               size="sm"
               variant="primary"
@@ -248,12 +248,12 @@ function ProfileContent() {
               {myProjects.map((project) => (
                 <Card key={project.id} hoverable className="min-w-[260px] md:min-w-0">
                   <div className="aspect-video overflow-hidden rounded-lg bg-gradient-to-br from-sky-100 to-sky-200 dark:from-sky-900/30 dark:to-sky-800/30">
-                    <div className="flex h-full items-center justify-center text-sm font-extrabold text-sky-600 dark:text-sky-400">
+                    <div className="flex h-full items-center justify-center text-sm font-semibold text-sky-600 dark:text-sky-400">
                       {project.parts.length} 个零件
                     </div>
                   </div>
                   <div className="mt-3">
-                    <h4 className="mb-1 truncate font-extrabold text-wood-900 dark:text-white">{project.name}</h4>
+                    <h4 className="mb-1 truncate font-semibold text-wood-900 dark:text-white">{project.name}</h4>
                     <p className="mb-3 text-xs text-slate-600 dark:text-slate-300">
                       {new Date(project.updatedAt).toLocaleDateString('zh-CN')}
                     </p>
@@ -286,7 +286,7 @@ function ProfileContent() {
 
         {/* 设置区域 */}
         <Card>
-          <h3 className="mb-4 text-lg font-extrabold text-wood-900 dark:text-white">设置</h3>
+          <h3 className="mb-4 text-lg font-semibold text-wood-900 dark:text-white">设置</h3>
           <div className="mb-5 flex flex-wrap gap-5 text-sm text-sky-800">
             <Link to="/privacy/settings" className="underline underline-offset-4">隐私设置</Link>
             <Link to="/privacy" className="underline underline-offset-4">隐私与数据保护</Link>

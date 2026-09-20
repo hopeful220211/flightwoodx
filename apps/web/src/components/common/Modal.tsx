@@ -21,7 +21,7 @@ export function Modal({ open, title, children, footer, onClose }: ModalProps) {
     const previous = document.activeElement as HTMLElement | null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    dialogRef.current?.focus()
+    ;(dialogRef.current?.querySelector<HTMLElement>('[data-autofocus]') ?? dialogRef.current)?.focus()
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeRef.current()
       if (e.key === 'Tab') {
@@ -48,9 +48,9 @@ export function Modal({ open, title, children, footer, onClose }: ModalProps) {
         onClick={onClose}
       />
       <div className="relative mx-auto flex h-full max-w-2xl items-center justify-center px-4">
-        <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined} aria-label={title ? undefined : '对话框'} tabIndex={-1} className="max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-lg border border-black/10 bg-white shadow-lift dark:border-white/10 dark:bg-slate-950">
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined} aria-label={title ? undefined : '对话框'} tabIndex={-1} className="site-modal max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-xl border border-black/10 bg-white shadow-lift dark:border-white/10 dark:bg-slate-950">
           <div className={cn('flex items-center justify-between gap-3 p-4', title ? 'border-b border-black/5 dark:border-white/10' : '')}>
-            {title ? <div id={titleId} className="text-base font-extrabold">{title}</div> : <div />}
+            {title ? <div id={titleId} className="text-base font-semibold">{title}</div> : <div />}
             <button
               type="button"
               className="touch-target inline-flex items-center justify-center rounded-md hover:bg-wood-50 dark:hover:bg-slate-900"

@@ -382,13 +382,37 @@ export const useDesignStore = create<DesignState>()(
         }
         if (checkBeforeAdd(partData.category, partId, activeDesign.parts)) return false
 
+        // The catalog cannot resolve custom_<id>. Read those exact source revisions
+        // before the legacy official-only path, using the same snap as the picker.
+        const customParents = activeDesign.parts.filter(p => p.source && (!target || p.instanceId === target.instanceId))
+        if (customParents.length) {
+          const designId = activeDesign.id
+          const [{ loadAssemblySource }, { customPlacementTargets }, { officialConnectors }] = await Promise.all([
+            import('../features/partStudio/assemblySources'), import('../features/partStudio/customPlacement'), import('@fwx/geometry'),
+          ])
+          const resolved = await Promise.all(customParents.map(async p => ({part:p, data:await loadAssemblySource(p)})))
+          const latest = get().getActiveDesign()
+          if (!latest || latest.id !== designId || checkBeforeAdd(partData.category, partId, latest.parts)) return false
+          const resolve: ConnectorResolver = p => {
+            if (!p.source) return officialConnectors(p.partId)
+            const entry = resolved.find(r => r.part.instanceId === p.instanceId)
+            return entry && JSON.stringify(entry.part.source) === JSON.stringify(p.source) ? entry.data.connectors : []
+          }
+          const candidates = customPlacementTargets(latest.parts, partId, resolve)
+          const chosen = target ? candidates.find(c => c.instanceId === target.instanceId && c.socketId === target.socketId) : candidates.find(c => c.instanceId === get().selectedInstanceId) ?? candidates[0]
+          if (chosen) {
+            const child: PartInstance = { instanceId: crypto.randomUUID(), partId, category:partData.category, position:[0,0,0], rotation:[0,0,0] }
+            const result = connectAssembly([...latest.parts,child],child.instanceId,target?.plugId ?? chosen.plugId,chosen.instanceId,chosen.socketId,resolve)
+            return get().addPartToActiveDesign(result.at(-1)!)
+          }
+          if (target) return false
+          activeDesign = latest
+        }
+
         // 规则 1：第一个机身可以独立放置，第二个机身必须连接到现有零件
         if (partData.category === 'mainboard') {
           // 检查是否已存在机身
-          const existingHub = activeDesign.parts.find((inst) => {
-            const p = partsData.find((pd) => pd.id === inst.partId)
-            return p?.category === 'mainboard'
-          })
+          const existingHub = activeDesign.parts.find(inst => inst.category === 'mainboard')
 
           if (!existingHub) {
             // 第一个机身独立放置，第二个机身继续走合法连接点匹配。
@@ -402,10 +426,7 @@ export const useDesignStore = create<DesignState>()(
         }
 
         // 规则 2：非 hub 必须先有机身
-        const hasHub = activeDesign.parts.some((inst) => {
-          const p = partsData.find((pd) => pd.id === inst.partId)
-          return p?.category === 'mainboard'
-        })
+        const hasHub = activeDesign.parts.some(inst => inst.category === 'mainboard')
         if (!hasHub) {
           // 引导流程会先要求放主板，这里只做静默兜底
           return false

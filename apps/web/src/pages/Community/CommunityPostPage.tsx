@@ -194,7 +194,7 @@ export function CommunityPostPage() {
                       )}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-black/45 fwx-mono">CREATOR</p>
+                      <p className="text-xs uppercase tracking-normal text-black/45 fwx-mono">CREATOR</p>
                       {post.author ? (
                         <Link
                           to={`/u/${post.author.id}`}
@@ -239,7 +239,7 @@ export function CommunityPostPage() {
 
                 {/* 作品介绍 */}
                 <div className="max-w-[560px]">
-                  <p className="text-[12px] uppercase tracking-[0.16em] text-sky-500 fwx-mono">ABOUT</p>
+                  <p className="text-[12px] uppercase tracking-normal text-sky-500 fwx-mono">ABOUT</p>
                   <h2 className="mt-2 text-2xl font-medium tracking-tight text-black/90 fwx-display">
                     作品介绍
                   </h2>
@@ -251,7 +251,7 @@ export function CommunityPostPage() {
                 {/* 零件构成图例：仅在有真实零件时显示，编号①②③用真分类/数量 —— 用真数据做 hotspots 思路 */}
                 {hasModel && composition.length > 0 && (
                   <div>
-                    <p className="text-[12px] uppercase tracking-[0.16em] text-sky-500 fwx-mono">COMPOSITION</p>
+                    <p className="text-[12px] uppercase tracking-normal text-sky-500 fwx-mono">COMPOSITION</p>
                     <h2 className="mt-2 text-2xl font-medium tracking-tight text-black/90 fwx-display">
                       零件构成
                     </h2>
@@ -330,7 +330,7 @@ export function CommunityPostPage() {
                       {hasModel ? '木质榫卯飞行器 · 3D 预览' : '作品预览图'}
                     </p>
                     {hasModel && (
-                      <span className="shrink-0 text-[11px] font-medium text-sky-500 fwx-mono">
+                      <span className="shrink-0 text-xs font-medium text-sky-500 fwx-mono">
                         实时渲染
                       </span>
                     )}
@@ -439,7 +439,7 @@ function TechLabel({
             key={r.k}
             className={`flex flex-col gap-0.5 ${i > 0 ? 'border-l border-black/10 pl-4' : ''}`}
           >
-            <span className="text-[10px] uppercase tracking-[0.12em] text-black/60">{r.k}</span>
+            <span className="text-xs uppercase tracking-normal text-black/60">{r.k}</span>
             <span className="text-[22px] font-medium leading-none tabular-nums text-sky-600">
               {r.v}
             </span>

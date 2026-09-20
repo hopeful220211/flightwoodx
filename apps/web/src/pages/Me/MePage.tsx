@@ -20,7 +20,7 @@ export function MePage() {
           )}
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-ink-900">{user?.username || user?.nickname || '用户'}</h1>
+          <h1 className="text-2xl font-semibold text-ink-900">{user?.username || user?.nickname || '用户'}</h1>
           <p className="text-sm text-ink-400 mt-0.5">{user?.email || '个人中心'}</p>
         </div>
       </div>

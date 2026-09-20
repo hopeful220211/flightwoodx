@@ -1,5 +1,7 @@
 import { Suspense, useEffect, useLayoutEffect, useCallback } from 'react'
 import { AssemblyConnectorMarkers } from '../../features/partStudio/AssemblyConnectorMarkers'
+import { useCustomPlacementTargets } from '../../features/partStudio/useCustomPlacementTargets'
+import { useRepairMixedConnections } from '../../features/partStudio/useRepairMixedConnections'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, Grid, Html, Bounds, useBounds } from '@react-three/drei'
 import * as THREE from 'three'
@@ -27,6 +29,7 @@ interface ThreeCanvasProps {
 }
 
 export function ThreeCanvas({ cameraView = null, onCameraViewChanged }: ThreeCanvasProps = {}) {
+  useRepairMixedConnections()
   const setSelectedInstanceId = useDesignStore((state) => state.setSelectedInstanceId)
 
   const handlePointerMissed = useCallback((e: MouseEvent) => {
@@ -126,6 +129,7 @@ const SOCKET_HIGHLIGHT_THRESHOLD = 80
 
 // 拖拽处理器：监听 HTML5 drag and drop 事件
 function DragHandler() {
+  const customTargets = useCustomPlacementTargets()
   const setGhostPart = useDesignStore((state) => state.setGhostPart)
   const setHighlightedSocket = useDesignStore((state) => state.setHighlightedSocket)
   const setDraggingPartId = useDesignStore((state) => state.setDraggingPartId)
@@ -173,7 +177,7 @@ function DragHandler() {
           return p?.category === 'mainboard'
         })
 
-        if (!existingHub) {
+        if (!existingHub && customTargets.length === 0) {
           // 第一个机身不需要吸附，直接放置即可
           setHighlightedSocket(null)
           return
@@ -202,7 +206,7 @@ function DragHandler() {
         socketId: string
         plugId: string
         worldPosition: THREE.Vector3
-      }> = []
+      }> = [...customTargets]
 
       for (const inst of currentActiveDesign.parts) {
         const partData = partsData.find((p) => p.id === inst.partId)
@@ -375,7 +379,7 @@ function DragHandler() {
           return p?.category === 'mainboard'
         })
 
-        if (!existingHub) {
+        if (!existingHub && customTargets.length === 0) {
           // 第一个机身不需要吸附，直接放置即可
           setHighlightedSocket(null)
           return
@@ -404,7 +408,7 @@ function DragHandler() {
         socketId: string
         plugId: string
         worldPosition: THREE.Vector3
-      }> = []
+      }> = [...customTargets]
 
       for (const inst of currentActiveDesign.parts) {
         const partData = partsData.find((p) => p.id === inst.partId)
@@ -502,7 +506,7 @@ function DragHandler() {
       window.removeEventListener('touchDragMove', handleTouchDragMove)
       window.removeEventListener('touchDragEnd', handleTouchDragEnd)
     }
-  }, [camera, gl, setGhostPart, setHighlightedSocket, setDraggingPartId, addPartSmart])
+  }, [camera, gl, setGhostPart, setHighlightedSocket, setDraggingPartId, addPartSmart, customTargets])
 
   return null
 }

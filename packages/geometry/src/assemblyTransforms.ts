@@ -2,7 +2,7 @@ import type { DesignPartInstance } from '@fwx/parts-schema'
 
 type V = [number, number, number]
 type Q = [number, number, number, number]
-export interface AssemblyConnector { id: string; kind: 'socket' | 'plug' | 'edge-slot'; position: V; quaternion: Q }
+export interface AssemblyConnector { id: string; kind: 'socket' | 'plug' | 'edge-slot'; position: V; quaternion: Q; boardNormal?: V; mouthDirection?: V }
 export type ConnectorResolver = (part: DesignPartInstance) => AssemblyConnector[]
 const add = (a: V, b: V): V => [a[0]+b[0], a[1]+b[1], a[2]+b[2]]
 const sub = (a: V, b: V): V => [a[0]-b[0], a[1]-b[1], a[2]-b[2]]
@@ -17,14 +17,63 @@ const toEuler = (q: Q): V => {
 const unit = (p: DesignPartInstance) => !p.scale || p.scale.every(n => Math.abs(n-1)<1e-8)
 
 export function worldConnector(part: DesignPartInstance, c: AssemblyConnector) {
+  return rawWorldConnector(part,planarFrame(c))
+}
+
+function rawWorldConnector(part: DesignPartInstance, c: AssemblyConnector) {
   const q = fromEuler(part.rotation)
   return { position: add(part.position, rotate(c.position,q)), quaternion: mul(q,c.quaternion) }
 }
 
-function snap(parent: DesignPartInstance, target: AssemblyConnector, own: AssemblyConnector) {
-  const world = worldConnector(parent,target)
+/** Exported connector rolls are not uniformly aligned with the actual board.
+ * Keep their in-plane insertion direction; derive their roll from the mesh plane.
+ * Local Y points towards the mouth, local Z is the board normal. */
+function planarFrame(c: AssemblyConnector): AssemblyConnector {
+  if (!c.boardNormal) return c
+  const dot = (a: V,b: V) => a.reduce((n,v,i) => n+v*b[i]!,0)
+  const scale = (v: V,s: number): V => v.map(n => n*s) as V
+  const normalize = (v: V): V => scale(v,1/Math.hypot(...v))
+  let z = normalize(c.boardNormal)
+  if (dot(rotate([0,0,1],c.quaternion),z) < 1e-6) z = scale(z,-1)
+  const rawY = c.mouthDirection ?? rotate([0,1,0],c.quaternion)
+  const projected = sub(rawY,scale(z,dot(rawY,z)))
+  if (Math.hypot(...projected) < 1e-6) throw new Error('插接口方向不在板面内')
+  const y = normalize(projected)
+  const x: V = [y[1]*z[2]-y[2]*z[1],y[2]*z[0]-y[0]*z[2],y[0]*z[1]-y[1]*z[0]]
+  const euler: V = [Math.abs(z[0])<.9999999 ? Math.atan2(-z[1],z[2]) : Math.atan2(y[2],y[1]),Math.asin(Math.max(-1,Math.min(1,z[0]))),Math.abs(z[0])<.9999999 ? Math.atan2(-y[0],x[0]) : 0]
+  return {...c,quaternion:fromEuler(euler)}
+}
+
+function snap(parent: DesignPartInstance, target: AssemblyConnector, own: AssemblyConnector, legacy = false) {
+  if (!legacy) { target = planarFrame(target); own = planarFrame(own) }
+  const world = rawWorldConnector(parent,target)
   const q = mul(mul(mul(world.quaternion,fromEuler([0,-Math.PI/2,0])),fromEuler([Math.PI,0,0])),inv(own.quaternion))
   return { position: sub(world.position,rotate(own.position,q)), rotation: toEuler(q) }
+}
+
+const matchesPose = (part: DesignPartInstance, pose: {position:V;rotation:V}) => {
+  const a = fromEuler(part.rotation), b = fromEuler(pose.rotation)
+  return Math.hypot(...sub(pose.position,part.position)) <= .00001 && 1-Math.abs(a.reduce((n,v,i)=>n+v*b[i]!,0)) <= .00001
+}
+
+/** Correct only poses identifiable as the previous solver's result. No new
+ * links, source promotion, or rewriting of arbitrary/manual placement. */
+export function repairLegacyAssemblyConnections(parts: DesignPartInstance[], resolve: ConnectorResolver): DesignPartInstance[] {
+  let result = parts
+  const done = new Set(parts.filter(p=>!p.attachedTo).map(p=>p.instanceId))
+  for (let pass=0;pass<parts.length;pass++) for (const id of parts.map(p=>p.instanceId)) {
+    const child = result.find(p=>p.instanceId===id)!
+    if (done.has(id) || !child.attachedTo || !done.has(child.attachedTo.parentInstanceId)) continue
+    done.add(id)
+    const parent = result.find(p=>p.instanceId===child.attachedTo!.parentInstanceId)!
+    if ((!child.source && !parent.source) || !unit(child) || !unit(parent)) continue
+    const own = resolve(child).find(c=>c.id===child.activeConnectorId)
+    const target = resolve(parent).find(c=>c.id===child.attachedTo!.parentConnectorId)
+    if (!own || !target) continue
+    const corrected = snap(parent,target,own)
+    if (!matchesPose(child,corrected) && matchesPose(child,snap(parent,target,own,true))) result = moveAssemblyTree(result,id,corrected)
+  }
+  return result
 }
 
 export function occupiedAssemblyConnectors(parts: readonly DesignPartInstance[]): Set<string> {
@@ -84,9 +133,7 @@ export function validateAssemblyConnections(parts: DesignPartInstance[], resolve
     const target = resolve(parent).find(c => c.id === child.attachedTo!.parentConnectorId)
     if (!own || !target) return '插接口不存在或原零件已修改'
     const expected = snap(parent,target,own)
-    const actualQ = fromEuler(child.rotation), expectedQ = fromEuler(expected.rotation)
-    const dot = actualQ.reduce((n,v,i) => n + v*expectedQ[i]!,0)
-    if (Math.hypot(...sub(expected.position,child.position)) > 0.00001 || 1-Math.abs(dot)>0.00001) return '插接口未对齐，请重新连接'
+    if (!matchesPose(child,expected)) return '插接口未对齐，请重新连接'
   }
   return null
 }

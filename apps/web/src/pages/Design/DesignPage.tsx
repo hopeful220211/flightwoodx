@@ -215,13 +215,18 @@ export function DesignPage() {
   }, [category, parts, query])
 
   const onAddPart = async (partId: string) => {
-    let added = await addPartSmart(partId)
-    if (!added) {
-      const part = partsData.find(p => p.id === partId)
-      const current = useDesignStore.getState().getActiveDesign()
-      if (part && current?.id === activeDesignId) added = useDesignStore.getState().addPartToActiveDesign({ partId, category: part.category, position: [Math.min(current.parts.length,10)*0.06,0,0], rotation: [0,0,0] })
+    try {
+      let added = await addPartSmart(partId)
+      if (!added) {
+        const part = partsData.find(p => p.id === partId)
+        const current = useDesignStore.getState().getActiveDesign()
+        if (part && current?.id === activeDesignId) added = useDesignStore.getState().addPartToActiveDesign({ partId, category: part.category, position: [Math.min(current.parts.length,10)*0.06,0,0], rotation: [0,0,0] })
+      }
+      const placed = useDesignStore.getState().getActiveDesign()?.parts.at(-1)
+      toast.push(added ? 'success' : 'error', added ? placed?.attachedTo ? '零件已连接' : '已放入画板，尚未连接；点击连接零件选择插接口' : '未找到可用连接点，零件未添加')
+    } catch (error) {
+      toast.push('error', error instanceof Error ? error.message : '零件加载失败，请重试')
     }
-    toast.push(added ? 'success' : 'error', added ? '已添加零件' : '未找到可用连接点，零件未添加')
   }
 
   const categoryItems = [
@@ -290,7 +295,7 @@ export function DesignPage() {
         <Card hoverable={false}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="truncate text-sm font-extrabold text-ink-900 dark:text-white">{activeDesign?.name ?? '我的第一架无人机'}<span className="ml-2 text-xs font-normal text-slate-500">自由拼装</span></div>
+              <div className="truncate text-sm font-semibold text-ink-900 dark:text-white">{activeDesign?.name ?? '我的第一架无人机'}<span className="ml-2 text-xs font-normal text-slate-500">自由拼装</span></div>
               <div className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
                 已使用 {usedCount} 个零件 · {hasCustomParts ? `官方件预估 ${totalWeight}g（不含自制件）` : `预估重量 ${totalWeight}g`}
                 <span className="ml-2 inline-block whitespace-nowrap" role={saveStatus === 'error' ? 'alert' : 'status'}>{saveStatus === 'error' ? '账号保存失败，请重试' : saveStatus === 'saving' ? '正在保存…' : token ? '已保存到账号' : '本机草稿'}</span>
@@ -366,7 +371,7 @@ export function DesignPage() {
         {isPartsLibraryOpen ? (
           <Card hoverable={false} className="max-h-full overflow-y-auto">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-sm font-extrabold">零件库</div>
+              <div className="text-sm font-semibold">零件库</div>
               <button
                 type="button"
                 className="touch-target inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-sky-50 dark:hover:bg-slate-900"
@@ -406,7 +411,7 @@ export function DesignPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="搜索零件…"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+                className="site-form-control site-compact-field w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
               />
               {query ? (
                 <button
@@ -450,7 +455,7 @@ export function DesignPage() {
         {isInspectorOpen ? (
           <Card hoverable={false} className="max-h-full overflow-y-auto">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-sm font-extrabold">已使用零件</div>
+              <div className="text-sm font-semibold">已使用零件</div>
               <button
                 type="button"
                 className="touch-target inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-sky-50 dark:hover:bg-slate-900"
@@ -476,7 +481,7 @@ export function DesignPage() {
                           className="flex items-center justify-between gap-2 rounded-lg px-2 py-1 hover:bg-sky-50 dark:hover:bg-slate-900"
                         >
                           {inst.source ? <CustomPartInspector instance={inst} /> : <div className="min-w-0 flex-1">
-                            <button type="button" className="min-h-11 w-full truncate text-left text-sm font-bold" onClick={() => useDesignStore.getState().setSelectedInstanceId(inst.instanceId)}>{part?.name ?? '未知零件'}</button>
+                            <button type="button" className="min-h-11 w-full truncate text-left text-sm font-semibold" onClick={() => useDesignStore.getState().setSelectedInstanceId(inst.instanceId)}>{part?.name ?? '未知零件'}</button>
                             <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                               <span>{part?.weight ?? 0}g</span>
                               <span>·</span>
@@ -528,11 +533,11 @@ export function DesignPage() {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="rounded-lg bg-sky-50 p-3 dark:bg-slate-900">
                 <div className="text-xs text-slate-600 dark:text-slate-300">重量</div>
-                <div className="mt-1 font-extrabold">{partDetail.weight} g</div>
+                <div className="mt-1 font-semibold">{partDetail.weight} g</div>
               </div>
               <div className="rounded-lg bg-sky-50 p-3 dark:bg-slate-900">
                 <div className="text-xs text-slate-600 dark:text-slate-300">连接点</div>
-                <div className="mt-1 font-extrabold">{officialConnectors(partDetail.id).length} 个</div>
+                <div className="mt-1 font-semibold">{officialConnectors(partDetail.id).length} 个</div>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2">
