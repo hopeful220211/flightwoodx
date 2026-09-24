@@ -2,7 +2,7 @@ const honors = [
   { file: 'red-dot', alt: 'Red Dot 获奖荣誉' },
   { file: 'if-design', alt: 'iF Design Award 获奖荣誉' },
   { file: 'idea', alt: 'IDEA 获奖荣誉' },
-  { file: 'other-awards', alt: '鲲鹏奖、红棉设计奖、东莞杯、IDA、New Star Award 荣誉' },
+  { file: 'other-awards', alt: '鲲鹏奖、金芦苇工业设计奖、红棉设计奖、东莞杯、IDA、New Star Award 荣誉' },
 ] as const
 
 interface HeroHonorsProps {

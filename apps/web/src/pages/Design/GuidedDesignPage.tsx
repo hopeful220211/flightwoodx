@@ -15,10 +15,7 @@ import { AutoSaveIndicator } from './components/AutoSaveIndicator'
 import { checkBeforeAdd, checkDualMainboard } from '../../utils/realtimeChecks'
 import type { Violation } from '../../utils/realtimeChecks'
 import { ReviewStep } from './components/steps/ReviewStep'
-import { flightReadiness } from '../../utils/flightReadiness'
-import { trackEvent } from '../../features/analytics/client'
-import { getAssemblyIssue } from './assemblyFeedback'
-import type { Part, PartInstance } from '../../types/design'
+import type { Part } from '../../types/design'
 import { AssemblyConnections } from '../../features/partStudio/AssemblyConnections'
 
 export function GuidedDesignPage() {
@@ -33,21 +30,15 @@ export function GuidedDesignPage() {
   const addPartSmart = useDesignStore(s => s.addPartSmart)
   const setDraggingPartId = useDesignStore(s => s.setDraggingPartId)
   const toast = useToast()
-  const { saveToServer, saveNow, saveStatus } = useDesignSync()
+  const { saveToServer, saveStatus } = useDesignSync()
   const [violation, setViolation] = useState<Violation | null>(null)
   const [pendingPartId, setPendingPartId] = useState<string | null>(null)
   // 就地改名：null = 不在编辑；字符串 = 正在编辑的草稿
   const [nameDraft, setNameDraft] = useState<string | null>(null)
-  // 记录通过完整证据检查时的设计快照。改动设计（parts 引用变化）后快照即失效，
-  // flightPassed 在渲染期自然推导回 false，无需用 effect 重置。
-  const [passedSnapshot, setPassedSnapshot] = useState<PartInstance[] | null>(null)
-
   const currentStep = activeDesign?.currentStep ?? 'HUB'
   const stepReached = activeDesign?.stepReached ?? 0
   const canAdvance = canAdvanceCheck()
   const advanceReason = getStepAdvanceReason()
-  const parts = activeDesign?.parts
-  const flightPassed = passedSnapshot !== null && passedSnapshot === parts
 
   // 自动保存：设计内容一改动（updatedAt 变化），就走 useDesignSync 的防抖保存。
   // 用 ref 持有最新的 saveToServer（在 effect 里同步，不在渲染期写 ref），这样“内容变化”的
@@ -145,36 +136,9 @@ export function GuidedDesignPage() {
     toast.push('info', '已重置当前步骤')
   }, [resetCurrentStep, toast])
 
-  const handleSave = useCallback(async () => {
-    if (!activeDesign) return
-    const saved = await saveNow(activeDesign)
-    toast.push(saved ? 'success' : 'error', saved ? '已保存' : '账号同步失败，本机草稿仍保留')
-  }, [toast, activeDesign, saveNow])
-
-  const handleSaveAndExport = useCallback(async () => {
-    if (!activeDesign) return
-    navigate(`/design/export-preview/${activeDesign.id}`)
-  }, [activeDesign, navigate])
-
-  // 结构与证据检查——只读 flightReadiness，不在页面重算规则。
-  const handleRunFlightTest = useCallback(() => {
-    if (!activeDesign) return
-    const r = flightReadiness(activeDesign.parts)
-    trackEvent('assembly_check_completed', { designId: activeDesign.id, outcome: r.canTakeoff ? 'passed' : 'blocked' })
-    if (r.canTakeoff) {
-      setPassedSnapshot(activeDesign.parts)
-      toast.push('success', '检查通过')
-    } else {
-      setPassedSnapshot(null)
-      const issue = getAssemblyIssue(r)
-      toast.push(issue ? 'error' : 'info', issue?.message ?? '装配检查完成')
-    }
-  }, [activeDesign, toast])
-
   if (!activeDesign) return null
 
   const isReviewStep = currentStep === 'REVIEW'
-  const readiness = isReviewStep ? flightReadiness(activeDesign.parts) : null
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-gray-50">
@@ -263,21 +227,8 @@ export function GuidedDesignPage() {
               onAdvance={handleAdvance}
               onGoBack={handleGoBack}
               onReset={handleReset}
-              onSave={handleSave}
-              onExportList={handleSaveAndExport}
+              onReview={() => navigate(`/design/review/${activeDesign.id}`)}
               onContinueCoding={() => navigate(`/code/${activeDesign.id}`)}
-              onRunFlightTest={handleRunFlightTest}
-              flightPassed={flightPassed}
-              flightSummary={
-                readiness
-                  ? {
-                      passedCount: readiness.passedCount,
-                      totalChecks: readiness.totalChecks,
-                      canTakeoff: readiness.canTakeoff,
-                      primaryFix: readiness.primaryFix,
-                    }
-                  : undefined
-              }
             />
           </div>
         </>

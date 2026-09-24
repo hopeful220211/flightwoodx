@@ -212,6 +212,10 @@
   .site-page-container { padding-inline: 16px; }
   .site-page-container > :is(header,div) > h1, .site-page-container > h1 { font-size: 28px; line-height: 32px; }
 }
+@media (min-width: 640px) and (max-width: 767px) {
+  .home-hero-honors [role='group'] img:nth-child(3) { transform: none; }
+  .home-hero-honors [role='group'] img:nth-child(4) { transform: translateX(-6.6667%); }
+}
 @media (pointer: coarse) {
   .site-marketing-button, .home-page .site-button, .site-nav-login, .about-hero a { min-height: 44px; }
 }

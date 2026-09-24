@@ -53,7 +53,7 @@ it('describes design, wooden assembly and flight testing without promising real-
   expect(Array.from(container.querySelectorAll('img'), image => image.getAttribute('src'))).toEqual([
     '/optimized/picture/flight_png/untitled.160.webp',
     '/optimized/picture/learning_kids/EX4A6148.webp',
-    '/optimized/picture/learning_kids/EX4A6264 1.webp',
+    '/resource/picture/flight-testing-neutral.webp',
   ])
   expect(container.textContent).not.toMatch(/不是模拟器|真会飞|设计完就能试飞|官方配齐|不用一根钉子|不代表|需要验证|尚未验证/)
 })
@@ -127,7 +127,7 @@ it('replaces the hero text capsule with the four owner-provided honor images', (
     { src: '/optimized/picture/honors/red-dot.webp', alt: 'Red Dot 获奖荣誉', width: 2298, height: 872 },
     { src: '/optimized/picture/honors/if-design.webp', alt: 'iF Design Award 获奖荣誉', width: 2298, height: 872 },
     { src: '/optimized/picture/honors/idea.webp', alt: 'IDEA 获奖荣誉', width: 2298, height: 872 },
-    { src: '/optimized/picture/honors/other-awards.webp', alt: '鲲鹏奖、红棉设计奖、东莞杯、IDA、New Star Award 荣誉', width: 2298, height: 872 },
+    { src: '/optimized/picture/honors/other-awards.webp', alt: '鲲鹏奖、金芦苇工业设计奖、红棉设计奖、东莞杯、IDA、New Star Award 荣誉', width: 2298, height: 872 },
   ])
   expect(honors?.textContent).toBe('')
   expect(container.textContent).not.toContain('Red Dot 2024 · iF 2026 · IDEA')

@@ -1,9 +1,21 @@
 // @vitest-environment jsdom
 import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { SectionHeading } from './components/SectionHeading'
 import { Button } from '../../components/common/Button'
+import { WhyUsSection } from './sections/WhyUsSection'
+
+it('uses the supplied neutral-toned flight testing photo', () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  try {
+    const host = document.createElement('div')
+    host.innerHTML = renderToStaticMarkup(<WhyUsSection />)
+    expect(host.querySelector('img[alt="飞行测试"]')?.getAttribute('src')).toBe('/resource/picture/flight-testing-neutral.webp')
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
 
 it('loads Open Sans and removes the old site-wide Chinese display face', () => {
   const css = readFileSync('src/index.css', 'utf8')

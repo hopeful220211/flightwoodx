@@ -15,7 +15,7 @@ const cards = [
     desc: '通过榫卯连接木质零件，逐步组装无人机机架。观察各部件的位置与连接关系，理解机体的基本结构。',
   },
   {
-    img: '/optimized/picture/learning_kids/EX4A6264 1.webp',
+    img: '/resource/picture/flight-testing-neutral.webp',
     title: '飞行测试',
     subtitle: '编排动作，模拟运行',
     desc: '用图形化积木编排飞行动作，在模拟环境中查看运行过程并调整程序。',

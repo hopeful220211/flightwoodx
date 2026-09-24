@@ -117,6 +117,7 @@ export default function App() {
           <Route path="/me" element={<MePage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/design/export-preview/:designId" element={<ExportPreviewPage />} />
+          <Route path="/design/review/:designId" element={<ExportPreviewPage />} />
           <Route path="/design/ar-flight/:designId" element={<ARFlightPage />} />
         </Route>
 

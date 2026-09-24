@@ -38,25 +38,18 @@ function needsAction(check: CheckResult): boolean {
 }
 
 export function FlightCheckReport({ checks }: FlightCheckReportProps) {
-  const passed = checks.filter(c => c.level === 'pass')
   const issues = checks.filter(needsAction)
   const otherResults = checks.filter(check => !needsAction(check))
-  const warnings = checks.filter(c => c.level === 'warning').length
-  const errors = checks.filter(c => c.level === 'error').length
 
   return (
     <section className="py-12 lg:py-16 bg-white">
       <div className="mx-auto max-w-5xl px-4">
         <ScrollReveal>
-          <h2 className="font-display text-3xl lg:text-[40px] font-semibold text-ink-900">设计检查</h2>
+          <h2 className="text-[28px] font-semibold leading-8 tracking-[-.03em] text-ink-900 sm:text-[32px] sm:leading-9">设计检查</h2>
         </ScrollReveal>
 
         <ScrollReveal delay={100}>
-          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            <p className="text-accent-leaf">{passed.length} 项正常</p>
-            {warnings > 0 && <p className="text-ink-600">{warnings} 项提示</p>}
-            {errors > 0 && <p className="text-[#E04545]">{errors} 项需修改</p>}
-          </div>
+          <p className="mt-3 text-sm text-ink-600">{issues.length ? `${issues.length} 项需要处理` : '当前没有待修改项目'}</p>
         </ScrollReveal>
 
         {/* Check list */}

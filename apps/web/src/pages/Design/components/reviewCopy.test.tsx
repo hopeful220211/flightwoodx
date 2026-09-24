@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -53,17 +54,15 @@ describe('assembly review copy', () => {
     expect(flightReadiness(state.parts)).toEqual(before)
   })
 
-  it('does not duplicate the review problem inside the action bar', () => {
-    const html = renderToStaticMarkup(<StepActions currentStep="REVIEW" canAdvance onAdvance={() => {}} onGoBack={() => {}} onReset={() => {}} flightSummary={{ passedCount: 0, totalChecks: 4, canTakeoff: false, primaryFix: '请检查指定连接点' }} />)
-    expect(html).toContain('已通过 0/4 项检查')
-    expect(html).not.toContain('请检查指定连接点')
-    expect(html).toContain('结构检查')
-    expect(html).toContain('继续积木编程')
-  })
-
-  it('keeps the existing verified success branch without redundant wording', () => {
-    const html = renderToStaticMarkup(<StepActions currentStep="REVIEW" canAdvance onAdvance={() => {}} onGoBack={() => {}} onReset={() => {}} flightPassed />)
-    expect(html).toContain('检查通过')
-    expect(html).not.toContain('全部已验证条件')
+  it('offers only review and coding actions with matching size and shape', () => {
+    const html = renderToStaticMarkup(<StepActions currentStep="REVIEW" canAdvance onAdvance={() => {}} onGoBack={() => {}} onReset={() => {}} onReview={() => {}} onContinueCoding={() => {}} />)
+    const controls = new DOMParser().parseFromString(html, 'text/html').querySelectorAll('button[data-review-action]')
+    expect(controls).toHaveLength(2)
+    expect([...controls].map(control => control.textContent?.trim())).toEqual(['检查结构', '继续积木编程'])
+    expect(controls[0]?.getAttribute('data-size')).toBe(controls[1]?.getAttribute('data-size'))
+    expect(controls[0]?.classList.contains('rounded-md')).toBe(true)
+    expect(controls[1]?.classList.contains('rounded-md')).toBe(true)
+    expect(controls[0]?.getAttribute('data-variant')).not.toBe(controls[1]?.getAttribute('data-variant'))
+    expect(html).not.toMatch(/订购零件|保存草稿|导出清单|已通过 0\/4|检查通过/)
   })
 })

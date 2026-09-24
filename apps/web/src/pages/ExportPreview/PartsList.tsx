@@ -78,7 +78,7 @@ export function PartsList({ parts }: PartsListProps) {
     <section className="py-12 lg:py-16 bg-white">
       <div className="mx-auto max-w-5xl px-4">
         <ScrollReveal>
-          <h2 className="font-display text-3xl lg:text-[40px] font-semibold text-ink-900">零件清单</h2>
+          <h2 className="text-[28px] font-semibold leading-8 tracking-[-.03em] text-ink-900 sm:text-[32px] sm:leading-9">零件清单</h2>
           <p className="mt-2 text-sm text-ink-600">共 {totalParts} 个零件 · {totalCategories} 种类别</p>
         </ScrollReveal>
 

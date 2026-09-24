@@ -69,8 +69,8 @@ function checkMotorCount(parts: PartInstance[]): CheckResult {
   return { id: 'motorCount', level: 'warning', title: `电机 ${motors} 个，螺旋桨 ${props} 个` }
 }
 
-function checkConnectorPairs(parts: PartInstance[]): CheckResult {
-  if (!parts.length) return { id: 'connectorPairs', level: 'warning', title: '暂无零件连接' }
+/** Count parts whose recorded parent chain reaches a mainboard. A missing parent or cycle is detached. */
+export function summarizeConnections(parts: PartInstance[]): { connectedCount: number; detachedCount: number } {
   const byId = new Map(parts.map(part => [part.instanceId, part]))
   const reachesMainboard = (part: PartInstance): boolean => {
     const visited = new Set<string>()
@@ -83,8 +83,14 @@ function checkConnectorPairs(parts: PartInstance[]): CheckResult {
     return false
   }
   const detached = parts.filter(part => !reachesMainboard(part)).length
-  if (detached === 0) return { id: 'connectorPairs', level: 'pass', title: '零件连接可追溯到主板' }
-  return { id: 'connectorPairs', level: 'error', title: `有 ${detached} 个零件未正确连接主板`, detail: '零件未连接、连接目标不存在或形成循环连接。', fixHint: '返回工作台重新连接这些零件' }
+  return { connectedCount: parts.length - detached, detachedCount: detached }
+}
+
+function checkConnectorPairs(parts: PartInstance[]): CheckResult {
+  if (!parts.length) return { id: 'connectorPairs', level: 'warning', title: '暂无零件连接' }
+  const { detachedCount } = summarizeConnections(parts)
+  if (detachedCount === 0) return { id: 'connectorPairs', level: 'pass', title: '零件连接可追溯到主板' }
+  return { id: 'connectorPairs', level: 'error', title: `有 ${detachedCount} 个零件未正确连接主板`, detail: '零件未连接、连接目标不存在或形成循环连接。', fixHint: '返回工作台重新连接这些零件' }
 }
 
 function checkLandingGear(parts: PartInstance[]): CheckResult {

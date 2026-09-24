@@ -2,7 +2,7 @@
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 import { DesignPage } from './DesignPage'
 import { GuidedDesignPage } from './GuidedDesignPage'
 import { useDesignStore } from '../../stores/designStore'
@@ -68,7 +68,7 @@ afterEach(async () => {
 async function renderDesign(parts: PartInstance[]) {
   const id = useDesignStore.getState().createDesign('我的设计', 'free')
   useDesignStore.setState(state => ({ designs: state.designs.map(design => design.id === id ? { ...design, parts } : design), activeDesignId: id }))
-  await act(async () => root.render(<DesignPage />))
+  await act(async () => root.render(<MemoryRouter><DesignPage /></MemoryRouter>))
 }
 
 function button(text: string) {
@@ -142,7 +142,7 @@ describe('free design feedback', () => {
   it('allows free placement when no automatic connection is found', async () => {
     await renderDesign([])
     const add = vi.spyOn(useDesignStore.getState(), 'addPartSmart').mockResolvedValue(false)
-    await act(async () => root.render(<DesignPage />))
+    await act(async () => root.render(<MemoryRouter><DesignPage /></MemoryRouter>))
     const details = container.querySelector<HTMLButtonElement>(`[aria-label="零件详情：${hub.name}"]`)!
     await act(async () => details.click())
     await act(async () => button('添加到设计').click())
@@ -154,41 +154,48 @@ describe('free design feedback', () => {
 })
 
 describe('guided assembly feedback', () => {
+  function LocationProbe() {
+    return <span data-testid="route-path">{useLocation().pathname}</span>
+  }
+
   async function renderReview(parts: PartInstance[]) {
     const id = useDesignStore.getState().createDesign('我的设计', 'guided')
     useDesignStore.setState(state => ({ designs: state.designs.map(design => design.id === id ? { ...design, parts, currentStep: 'REVIEW' as const, stepReached: 4 } : design), activeDesignId: id }))
-    await act(async () => root.render(<MemoryRouter><GuidedDesignPage /></MemoryRouter>))
+    await act(async () => root.render(<MemoryRouter><GuidedDesignPage /><LocationProbe /></MemoryRouter>))
+    return id
   }
 
-  it('acknowledges the check without an evidence warning or verified-success transition', async () => {
+  it('opens the separate review page without a false completion message', async () => {
     const base = official(hub)
     const parts: PartInstance[] = [base, ...Array.from({ length: 4 }, (_, index) => ({
       ...official(landing), instanceId: `arm-${index}`, attachedTo: { parentInstanceId: base.instanceId, parentConnectorId: `socket-${index}` },
     }))]
     const before = flightReadiness(parts)
     expect(before.issues.map(issue => issue.code)).toEqual(['EVIDENCE_MISSING'])
-    await renderReview(parts)
-    await act(async () => button('结构检查').click())
-    expect(mocks.track).toHaveBeenCalledWith('assembly_check_completed', { designId: useDesignStore.getState().activeDesignId, outcome: 'blocked' })
-    expect(mocks.push).toHaveBeenCalledExactlyOnceWith('info', '装配检查完成')
+    const id = await renderReview(parts)
+    await act(async () => button('检查结构').click())
+    expect(container.querySelector('[data-testid="route-path"]')?.textContent).toBe(`/design/review/${id}`)
+    expect(mocks.track).not.toHaveBeenCalledWith('assembly_check_completed', expect.anything())
+    expect(mocks.push).not.toHaveBeenCalled()
     expect(container.textContent).not.toContain(before.issues[0]!.message)
     expect(container.textContent).not.toContain('检查通过')
-    expect(button('保存草稿')).toBeDefined()
+    expect(container.textContent).not.toContain('保存草稿')
+    expect(container.textContent).not.toContain('订购零件')
     expect(useDesignStore.getState().getActiveDesign()?.parts).toEqual(parts)
     expect(flightReadiness(parts)).toEqual(before)
     expect(before.canTakeoff).toBe(false)
   })
 
-  it('still displays the actual assembly error when the user runs the check', async () => {
+  it('keeps actual assembly errors in the review panel before navigation', async () => {
     const parts = [official(hub)]
     const before = flightReadiness(parts)
     const issue = before.issues.find(item => item.code !== 'EVIDENCE_MISSING')!
     expect(issue).toBeDefined()
-    await renderReview(parts)
-    await act(async () => button('结构检查').click())
-    expect(mocks.push).toHaveBeenCalledExactlyOnceWith('error', issue.message)
+    const id = await renderReview(parts)
     expect(container.textContent).toContain(issue.message)
-    expect(button('保存草稿')).toBeDefined()
+    await act(async () => button('检查结构').click())
+    expect(container.querySelector('[data-testid="route-path"]')?.textContent).toBe(`/design/review/${id}`)
+    expect(mocks.push).not.toHaveBeenCalled()
     expect(flightReadiness(parts)).toEqual(before)
   })
 })

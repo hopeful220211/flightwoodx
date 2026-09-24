@@ -66,3 +66,25 @@ for (const viewport of [
     expect(failures).toEqual([])
   })
 }
+
+test('honors remain centered as two rows at the narrow tablet breakpoint', async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 1024 })
+  await page.goto('/')
+  const honors = page.getByRole('group', { name: '获奖荣誉', exact: true })
+  await expect(honors).toBeVisible()
+  await expect(honors).toHaveCSS('opacity', '1')
+  const images = honors.locator('img')
+  await expect(images).toHaveCount(4)
+  const layout = await images.evaluateAll(elements => elements.map(element => {
+    const { left, top, width } = element.getBoundingClientRect()
+    return { left, top, width }
+  }))
+  expect(new Set(layout.map(image => Math.round(image.top))).size).toBe(2)
+  expect(new Set(layout.map(image => Math.round(image.width))).size).toBe(1)
+  const inkBounds = [[88, 1354], [130, 1311], [45, 1396], [76, 1365]]
+  const visibleLeft = (index: number) => layout[index]!.left + layout[index]!.width * inkBounds[index]![0]! / 1440
+  const visibleRight = (index: number) => layout[index]!.left + layout[index]!.width * inkBounds[index]![1]! / 1440
+  const firstRowCenter = (visibleLeft(0) + visibleRight(1)) / 2
+  const secondRowCenter = (visibleLeft(2) + visibleRight(3)) / 2
+  expect(Math.abs(firstRowCenter - secondRowCenter)).toBeLessThan(5)
+})

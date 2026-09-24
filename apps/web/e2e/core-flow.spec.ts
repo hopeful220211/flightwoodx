@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import sharp from 'sharp'
 import { expect, test } from '@playwright/test'
 import type { BrowserContext, Locator, Page, Response } from '@playwright/test'
@@ -141,8 +142,6 @@ async function buildAndSave(page: Page, name: string) {
   await page.getByRole('button', { name: '下一步 →', exact: true }).click()
   await page.getByRole('button', { name: '添加保护板01', exact: true }).click()
   await page.getByRole('button', { name: '下一步 →', exact: true }).click()
-  await page.getByRole('button', { name: '下一步 →', exact: true }).click()
-
   const saveResponse = page.waitForResponse(response => {
     if (!new URL(response.url()).pathname.endsWith('/api/drone-designs')
       || response.request().method() !== 'PUT') return false
@@ -151,7 +150,10 @@ async function buildAndSave(page: Page, name: string) {
     return submitted.localId === designId && submitted.designData?.currentStep === 'REVIEW'
       && submitted.designData?.parts.length === 6
   })
-  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
+  await page.getByRole('button', { name: '下一步 →', exact: true }).click()
+  await expect(page.getByRole('button', { name: '检查结构', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '保存草稿', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '订购零件', exact: true })).toHaveCount(0)
   const response = await saveResponse
   expect(response.ok(), 'The real API must accept the design save').toBe(true)
   const body = await response.json()
@@ -234,7 +236,6 @@ test('desktop: register, assemble, save, restore on another device, program, and
   })
   await nameInput.press('Enter')
   await expect(page.getByTitle('点一下改名字', { exact: true })).toHaveText(renamedName)
-  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   const renameResponse = await renamedResponse
   expect(renameResponse.ok(), 'The real API must persist the Chinese rename').toBe(true)
   const renamed = (await renameResponse.json()).design
@@ -281,10 +282,62 @@ test.describe('mobile 390 × 844', () => {
   test('independent account: complete the existing flow with visible controls', async ({ page }) => {
     const failures = observeBrowser(page)
     const name = await registerDedicatedAccount(page)
-    await buildAndSave(page, name)
-    await expectInsideViewport(page, page.getByRole('button', { name: '继续积木编程', exact: true }))
+    const designId = await buildAndSave(page, name)
+    const reviewButton = page.getByRole('button', { name: '检查结构', exact: true })
+    const codingButton = page.getByRole('button', { name: '继续积木编程', exact: true })
+    await expectInsideViewport(page, reviewButton)
+    await expectInsideViewport(page, codingButton)
+    const reviewStyle = await reviewButton.evaluate(element => ({
+      height: element.getBoundingClientRect().height,
+      radius: getComputedStyle(element).borderRadius,
+      background: getComputedStyle(element).backgroundColor,
+    }))
+    const codingStyle = await codingButton.evaluate(element => ({
+      height: element.getBoundingClientRect().height,
+      radius: getComputedStyle(element).borderRadius,
+      background: getComputedStyle(element).backgroundColor,
+    }))
+    expect(reviewStyle.height).toBe(codingStyle.height)
+    expect(reviewStyle.height).toBeGreaterThanOrEqual(44)
+    expect(reviewStyle.radius).toBe(codingStyle.radius)
+    expect(reviewStyle.background).not.toBe(codingStyle.background)
+    if (process.env.FWX_UI_CAPTURE_DIR) {
+      const bar = page.locator('[data-review-action="structure"]').locator('..').locator('..')
+      await bar.screenshot({ path: join(process.env.FWX_UI_CAPTURE_DIR, 'structure-actions-390.png'), animations: 'disabled' })
+      await page.setViewportSize({ width: 1440, height: 900 })
+      await bar.screenshot({ path: join(process.env.FWX_UI_CAPTURE_DIR, 'structure-actions-1440.png'), animations: 'disabled' })
+      await page.setViewportSize({ width: 390, height: 844 })
+    }
     await expectInsideViewport(page, page.locator('[aria-current="step"]'))
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await reviewButton.click()
+    await expect(page).toHaveURL(`/design/review/${designId}`)
+    await expect(page.getByRole('heading', { name: '结构审核', exact: true })).toBeVisible()
+    const model = page.getByLabel('作品三维展示', { exact: true })
+    await expect(model).toBeVisible()
+    await expect(model.locator('canvas')).toBeVisible()
+    const summary = page.locator('[aria-labelledby="structure-summary-heading"]')
+    await expect(summary.getByText('零件总数', { exact: true })).toBeVisible()
+    await expect(summary.getByText('6', { exact: true })).toBeVisible()
+    for (const size of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1440, height: 900 }]) {
+      await page.setViewportSize(size)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Review page should fit ${size.width}px`).toBe(true)
+      await expect(page.getByRole('heading', { name: '结构审核', exact: true })).toBeVisible()
+      if (process.env.FWX_UI_CAPTURE_DIR) {
+        for (const section of await page.locator('section').all()) {
+          await section.scrollIntoViewIfNeeded()
+          for (const revealed of await section.locator('div[style*="opacity:"]').all()) {
+            await revealed.scrollIntoViewIfNeeded()
+            await expect(revealed).toHaveCSS('opacity', '1')
+          }
+        }
+        await page.evaluate(() => window.scrollTo(0, 0))
+        await page.screenshot({ path: join(process.env.FWX_UI_CAPTURE_DIR, `structure-review-${size.width}.png`), fullPage: true, animations: 'disabled' })
+      }
+    }
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByRole('button', { name: '返回工作台', exact: true }).click()
+    await expect(page).toHaveURL(`/design/${designId}`)
     await saveExampleProgram(page)
     await expectInsideViewport(page, page.getByRole('button', { name: '运行', exact: true }))
     await runSimulation(page)

@@ -1,13 +1,7 @@
-import { ArrowRight, Rocket, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, Blocks, ClipboardCheck } from 'lucide-react'
 import type { BuildStep } from '@fwx/parts-schema'
 import { getNextStep } from '@fwx/parts-schema'
-
-export interface FlightSummary {
-  passedCount: number
-  totalChecks: number
-  canTakeoff: boolean
-  primaryFix: string | null
-}
+import { Button } from '../../../components/common/Button'
 
 interface StepActionsProps {
   currentStep: BuildStep
@@ -15,16 +9,8 @@ interface StepActionsProps {
   onAdvance: () => void
   onGoBack: () => void
   onReset: () => void
-  onSave?: () => void
-  onExportList?: () => void
-  onContinueCoding?: () => void
-  /** AR 试飞入口已从界面收起（路由 /design/ar-flight 与页面保留）；恢复时重新解构并渲染按钮。 */
-  onArFlight?: () => void
-  /** 最后一步的结构与证据检查。 */
-  onRunFlightTest?: () => void
-  /** 是否已通过带工程证据的完整检查（决定是否展示成功动作区）。 */
-  flightPassed?: boolean
-  flightSummary?: FlightSummary
+  onReview: () => void
+  onContinueCoding: () => void
 }
 
 export function StepActions({
@@ -33,12 +19,8 @@ export function StepActions({
   onAdvance,
   onGoBack,
   onReset,
-  onSave,
-  onExportList,
+  onReview,
   onContinueCoding,
-  onRunFlightTest,
-  flightPassed,
-  flightSummary,
 }: StepActionsProps) {
   const isFirstStep = currentStep === 'HUB'
   // RFC-022：最后一步用 getNextStep === null 判定，不再硬编码 'REVIEW'
@@ -71,67 +53,38 @@ export function StepActions({
     )
   }
 
-  // ── 最后一步：结构与证据检查 ──
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 md:px-4 md:py-3 bg-white border-t border-gray-100">
-      {/* 左：返回修改 */}
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 bg-white px-3 py-2 md:px-4 md:py-3">
       <button
+        type="button"
         onClick={onGoBack}
-        className="shrink-0 px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+        className="min-h-11 shrink-0 px-4 text-sm text-gray-600 hover:text-gray-800"
       >
         ← 返回修改
       </button>
-
-      {/* 中：状态摘要 / 阻塞提示 / 成功语 */}
-      <div className="order-first w-full min-w-0 text-center md:order-none md:w-auto md:flex-1">
-        {flightPassed ? (
-          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-600">
-            <CheckCircle2 size={16} /> 检查通过
-          </span>
-        ) : flightSummary ? (
-          <div className="text-sm">
-            <span className="text-ink-900 font-medium">
-              已通过 {flightSummary.passedCount}/{flightSummary.totalChecks} 项检查
-            </span>
-          </div>
-        ) : null}
+      <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+        <Button
+          data-review-action="structure"
+          variant="primary"
+          size="md"
+          onClick={onReview}
+          leftIcon={<ClipboardCheck aria-hidden="true" size={18} />}
+          className="w-full font-semibold sm:w-auto"
+        >
+          检查结构
+        </Button>
+        <Button
+          data-review-action="coding"
+          variant="outline"
+          size="md"
+          onClick={onContinueCoding}
+          leftIcon={<Blocks aria-hidden="true" size={18} />}
+          rightIcon={<ArrowRight aria-hidden="true" size={16} />}
+          className="w-full border-sky-500 font-semibold text-sky-600 sm:w-auto"
+        >
+          继续积木编程
+        </Button>
       </div>
-
-      {/* 右：主 + 次 动作 */}
-      {flightPassed ? (
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <button
-            onClick={onExportList}
-            className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100"
-          >
-            导出清单
-          </button>
-          <button
-            onClick={onSave}
-            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-green-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-600"
-          >
-            完成 <ArrowRight size={16} />
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <button
-            onClick={onSave}
-            className="whitespace-nowrap rounded-full border border-sky-500 bg-white px-5 py-2 text-sm font-medium text-sky-600 hover:bg-sky-50"
-          >
-            保存草稿
-          </button>
-          <button
-            onClick={onRunFlightTest}
-            className="inline-flex min-h-[42px] items-center gap-2 whitespace-nowrap rounded-full bg-sky-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-600"
-          >
-            <Rocket size={18} /> 结构检查
-          </button>
-        </div>
-      )}
-      <button type="button" onClick={onContinueCoding} className="inline-flex items-center justify-center gap-1 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">
-        继续积木编程 <ArrowRight size={16} />
-      </button>
     </div>
   )
 }
