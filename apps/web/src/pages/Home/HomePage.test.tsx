@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -124,13 +125,38 @@ it('replaces the hero text capsule with the four owner-provided honor images', (
   expect(Array.from(honors!.querySelectorAll('img'), image => ({
     src: image.getAttribute('src'), alt: image.alt, width: image.width, height: image.height,
   }))).toEqual([
-    { src: '/optimized/picture/honors/red-dot.webp', alt: 'Red Dot 获奖荣誉', width: 2298, height: 872 },
-    { src: '/optimized/picture/honors/if-design.webp', alt: 'iF Design Award 获奖荣誉', width: 2298, height: 872 },
-    { src: '/optimized/picture/honors/idea.webp', alt: 'IDEA 获奖荣誉', width: 2298, height: 872 },
-    { src: '/optimized/picture/honors/other-awards.webp', alt: '鲲鹏奖、金芦苇工业设计奖、红棉设计奖、东莞杯、IDA、New Star Award 荣誉', width: 2298, height: 872 },
+    { src: '/optimized/picture/honors/red-dot-320.webp', alt: 'Red Dot 获奖荣誉', width: 2298, height: 872 },
+    { src: '/optimized/picture/honors/if-design-320.webp', alt: 'iF Design Award 获奖荣誉', width: 2298, height: 872 },
+    { src: '/optimized/picture/honors/idea-320.webp', alt: 'IDEA 获奖荣誉', width: 2298, height: 872 },
+    { src: '/optimized/picture/honors/other-awards-320.webp', alt: '鲲鹏奖、金芦苇工业设计奖、红棉设计奖、东莞杯、IDA、New Star Award 荣誉', width: 2298, height: 872 },
   ])
+  for (const image of honors!.querySelectorAll('img')) {
+    const name = image.getAttribute('src')!.replace(/-320\.webp$/, '')
+    expect(image.getAttribute('srcset')).toBe(`${name}-320.webp 320w, ${name}-640.webp 640w`)
+    expect(image.getAttribute('sizes')).toBe('(max-width: 767px) calc(50vw - 16px), 149px')
+    expect(image.getAttribute('loading')).toBe('lazy')
+    expect(image.getAttribute('fetchpriority')).toBe('low')
+  }
   expect(honors?.textContent).toBe('')
   expect(container.textContent).not.toContain('Red Dot 2024 · iF 2026 · IDEA')
   expect(container.querySelector('#home-hero')?.textContent).not.toMatch(/3 项|全球设计大奖|77 个|标准化零件|5 步搭完|跟着引导一步步来/)
   expect(container.textContent).not.toMatch(/g-?mark|10\+/i)
+})
+
+it('selects screen-size drone artwork and prioritizes only the main aircraft', () => {
+  const container = document.createElement('div')
+  container.innerHTML = renderToStaticMarkup(<MemoryRouter><HomePage /></MemoryRouter>)
+  const drones = [...container.querySelectorAll<HTMLImageElement>('.home-drone-stage img')]
+  expect(drones.map(image => image.alt)).toEqual(['远处无人机', '中间无人机', '主无人机'])
+  expect(drones.map(image => image.getAttribute('loading'))).toEqual(['lazy', 'lazy', 'eager'])
+  expect(drones.map(image => image.getAttribute('fetchpriority'))).toEqual(['low', 'low', 'high'])
+  expect(drones[2].getAttribute('srcset')).toBe(
+    '/optimized/picture/UI/web_1-360.webp 360w, /optimized/picture/UI/web_1-640.webp 640w, /optimized/picture/UI/web_1-720.webp 720w, /optimized/picture/UI/web_1.webp 1396w',
+  )
+  expect(drones[2].getAttribute('sizes')).toBe('(max-width: 655px) calc(84vw - 10px), (max-width: 767px) 540px, (max-width: 843px) calc(65vw - 8px), 540px')
+  const html = readFileSync('index.html', 'utf8')
+  expect(html).toContain("if (location.pathname === '/')")
+  expect(html).toContain(`heroImage.href = '${drones[2].getAttribute('src')}'`)
+  expect(html).toContain(`heroImage.imageSrcset = '${drones[2].getAttribute('srcset')}'`)
+  expect(html).toContain(`heroImage.imageSizes = '${drones[2].getAttribute('sizes')}'`)
 })

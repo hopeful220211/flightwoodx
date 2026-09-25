@@ -11,8 +11,8 @@ vi.mock('@react-three/fiber', () => ({
   useThree: (selector: (value: unknown) => unknown) => selector({ get: () => ({ camera: state.camera, invalidate: state.invalidate }), size: { width: 640, height: 480 } }),
 }))
 vi.mock('@react-three/drei', () => ({ OrbitControls: () => null }))
-import { ExtrudePreview } from './ExtrudePreview'
 
+let ExtrudePreview: typeof import('./ExtrudePreview')['ExtrudePreview']
 let root: Root
 let container: HTMLDivElement
 let finish: (() => void) | undefined
@@ -20,7 +20,10 @@ let fail: (() => void) | undefined
 let unexpectedErrors: unknown[][]
 const geometry: UserPartGeometry = { contour: 'M0 0L80 0L80 40L0 40Z', holes: [], thicknessMm: 2, bboxMm: { w: 80, h: 40 } }
 
-beforeEach(() => {
+beforeEach(async () => {
+  // The wood texture is shared at module scope. Give each test its own loader
+  // state instead of firing a synthetic error after an already successful load.
+  vi.resetModules()
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   unexpectedErrors = []
   vi.spyOn(console, 'error').mockImplementation((...args) => {
@@ -36,11 +39,11 @@ beforeEach(() => {
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
+  ;({ ExtrudePreview } = await import('./ExtrudePreview'))
 })
 
 afterEach(async () => {
-  // Reject a still-shared test texture so the next test starts a fresh request.
-  await act(async () => { fail?.(); root.unmount() })
+  await act(async () => root.unmount())
   container.remove()
   expect(unexpectedErrors).toEqual([])
   vi.restoreAllMocks()
@@ -70,11 +73,15 @@ it('shows physical dimensions and switches real camera poses without changing th
 
 it('keeps the outline available after a wood image failure and retries with a new request', async () => {
   await act(async () => root.render(<ExtrudePreview geometry={geometry} />))
-  await act(async () => fail!())
+  await act(async () => fail!()) // WebP failed; PNG fallback starts.
+  expect(container.querySelector('[role="alert"]')).toBeNull()
+  expect(THREE.ImageLoader.prototype.load).toHaveBeenNthCalledWith(2, expect.stringContaining('/textures/wood-board.png'), expect.any(Function), undefined, expect.any(Function))
+  await act(async () => fail!()) // PNG failed too.
   expect(container.querySelector('[role="alert"]')?.textContent).toContain('二维轮廓仍保留')
   expect(container.querySelector('[data-testid="mock-gpu"]')).toBeNull()
   await act(async () => container.querySelector('button')!.click())
-  expect(THREE.ImageLoader.prototype.load).toHaveBeenCalledTimes(2)
+  expect(THREE.ImageLoader.prototype.load).toHaveBeenCalledTimes(3)
+  expect(THREE.ImageLoader.prototype.load).toHaveBeenNthCalledWith(3, expect.stringContaining('/textures/wood-board.webp'), expect.any(Function), undefined, expect.any(Function))
   await act(async () => finish!())
   expect(container.querySelector('[data-wood-ready="true"]')).not.toBeNull()
   expect(container.querySelector('[role="alert"]')).toBeNull()

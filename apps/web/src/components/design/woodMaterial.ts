@@ -13,7 +13,9 @@ export const WOOD_COLOR = new THREE.Color('#EADFCB')
 /** 偏粗糙、零金属：木头不反光，让转折面靠受光差异产生明暗层次。 */
 const WOOD_ROUGHNESS = 0.72
 const WOOD_METALNESS = 0
-const WOOD_BOARD_TEXTURE_URL = assetUrl('/textures/wood-board.png')
+const WOOD_BOARD_TEXTURE_URL = assetUrl('/textures/wood-board.webp')
+// Keep the original PNG for browsers that cannot decode WebP and for rollback.
+const WOOD_BOARD_FALLBACK_TEXTURE_URL = assetUrl('/textures/wood-board.png')
 // 适度放大木纹（6 → 4）：纹路更大、更清楚一点点，仍保持自然淡雅、不变成深重花纹。
 const WOOD_BOARD_TEXTURE_REPEAT = 4
 
@@ -34,8 +36,16 @@ function getWoodBoardTexture(): THREE.Texture | null {
   // rejection available to preview consumers without an unhandled rejection.
   void ready.catch(() => undefined)
   const texture = new THREE.TextureLoader().load(WOOD_BOARD_TEXTURE_URL, resolveReady, undefined, () => {
-    if (woodBoardTexture === texture) woodBoardTexture = null
-    rejectReady(new Error('木纹加载失败'))
+    // Keep the same texture object already attached to meshes. Replacing it
+    // would leave those meshes waiting for a failed image even after fallback.
+    new THREE.ImageLoader().load(WOOD_BOARD_FALLBACK_TEXTURE_URL, (image) => {
+      texture.image = image
+      texture.needsUpdate = true
+      resolveReady()
+    }, undefined, () => {
+      if (woodBoardTexture === texture) woodBoardTexture = null
+      rejectReady(new Error('木纹加载失败'))
+    })
   })
   woodBoardTexture = texture
   woodTextureLoads.set(texture, ready)

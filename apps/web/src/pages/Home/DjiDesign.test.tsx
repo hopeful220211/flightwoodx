@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { renderToStaticMarkup } from 'react-dom/server'
-import { readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { expect, it, vi } from 'vitest'
 import { SectionHeading } from './components/SectionHeading'
 import { Button } from '../../components/common/Button'
@@ -20,6 +20,10 @@ it('uses the supplied neutral-toned flight testing photo', () => {
 it('loads Open Sans and removes the old site-wide Chinese display face', () => {
   const css = readFileSync('src/index.css', 'utf8')
   expect(css).toContain("font-family: 'Open Sans'")
+  expect(css).toContain("/fonts/open-sans-variable.woff2")
+  expect(css).not.toContain("/fonts/open-sans-variable.ttf")
+  expect(statSync('public/fonts/open-sans-variable.woff2').size)
+    .toBeLessThan(statSync('public/fonts/open-sans-variable.ttf').size)
   expect(css).not.toContain('@import \'misans')
   expect(css).not.toContain("font-family: 'DingTalk JinBuTi'")
   expect(css).toContain("font-family: 'Montserrat'")

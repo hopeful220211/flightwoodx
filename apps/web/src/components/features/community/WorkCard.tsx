@@ -6,6 +6,13 @@ function initials(name?: string) {
   return (name || '匿').trim().slice(0, 1)
 }
 
+function cardCoverUrl(url: string) {
+  return url.replace(
+    /^\/resource\/picture\/student_works\/(work0[1-6])\.png$/,
+    '/optimized/picture/student_works/$1.webp',
+  )
+}
+
 /**
  * 社区作品卡（统一卡片）。借鉴站酷 + 张力升级：
  * - 卡片本体不动、不抬升、不投影；只在 hover 时**封面放大、超出裁切**，质感来自这个动作，描边仅 5% 黑。
@@ -33,7 +40,7 @@ export function WorkCard({
       <div className="relative aspect-[4/3] overflow-hidden bg-paper-100">
         {post.coverUrl ? (
           <img
-            src={post.coverUrl}
+            src={cardCoverUrl(post.coverUrl)}
             alt={post.title}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.06] motion-reduce:transition-none motion-reduce:group-hover:scale-100"

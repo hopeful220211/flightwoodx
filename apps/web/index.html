@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="preload" href="/fonts/montserrat-latin-900-normal-v5.2.6.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      // Only the home route needs the aircraft before the client-side route loads.
+      if (location.pathname === '/') {
+        const heroImage = document.createElement('link')
+        heroImage.rel = 'preload'
+        heroImage.as = 'image'
+        heroImage.type = 'image/webp'
+        heroImage.href = '/optimized/picture/UI/web_1-640.webp'
+        heroImage.imageSrcset = '/optimized/picture/UI/web_1-360.webp 360w, /optimized/picture/UI/web_1-640.webp 640w, /optimized/picture/UI/web_1-720.webp 720w, /optimized/picture/UI/web_1.webp 1396w'
+        heroImage.imageSizes = '(max-width: 655px) calc(84vw - 10px), (max-width: 767px) 540px, (max-width: 843px) calc(65vw - 8px), 540px'
+        heroImage.fetchPriority = 'high'
+        document.head.append(heroImage)
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FlightWoodX - 木质无人机设计平台</title>
     <meta name="description" content="在浏览器中绘制零件、拼装无人机、编写积木程序并进行模拟运行，保存和分享设计作品。" />

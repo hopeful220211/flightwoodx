@@ -52,7 +52,7 @@ export function AboutPage() {
               联系我们 <ArrowUpRight size={18} aria-hidden="true" />
             </Link>
           </div>
-          <img src="/optimized/picture/UI/web_1.webp" alt="FlightWoodX 木质无人机" width={1396} height={1127} fetchPriority="high" decoding="async" className="mx-auto w-full max-w-md object-contain lg:max-w-lg" />
+          <img src="/optimized/picture/UI/web_1.webp" srcSet="/optimized/picture/UI/web_1-360.webp 360w, /optimized/picture/UI/web_1-640.webp 640w, /optimized/picture/UI/web_1-720.webp 720w, /optimized/picture/UI/web_1.webp 1396w" sizes="(max-width: 492px) calc(100vw - 32px), 460px" alt="FlightWoodX 木质无人机" width={1396} height={1127} fetchPriority="high" decoding="async" className="mx-auto w-full max-w-md object-contain lg:max-w-lg" />
         </div>
       </header>
 
@@ -73,7 +73,7 @@ export function AboutPage() {
             <p className="text-base leading-8 text-sky-800 sm:text-lg sm:leading-9">团队的木质无人机项目起步于高校设计实践。我们围绕零件设计、榫卯结构、电子组件、在线工具和课程内容开展工作，将设计方案制作成实物，持续调整产品与学习流程。</p>
           </div>
           <figure className="mt-10">
-            <img src="/optimized/picture/about/team.webp" alt="FlightWoodX 团队与木质无人机作品合影" width={1440} height={942} loading="lazy" decoding="async" className="block h-auto w-full object-contain" />
+            <img src="/optimized/picture/about/team.webp" srcSet="/optimized/picture/about/team-384.webp 384w, /optimized/picture/about/team-768.webp 768w, /optimized/picture/about/team-1152.webp 1152w, /optimized/picture/about/team.webp 1440w, /optimized/picture/about/team-1788.webp 1788w" sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1248px) calc(100vw - 48px), 1200px" alt="FlightWoodX 团队与木质无人机作品合影" width={1440} height={942} loading="lazy" decoding="async" className="block h-auto w-full object-contain" />
             <figcaption className="mt-4 text-center text-sm leading-6 text-sky-700">团队与木质无人机作品合影</figcaption>
           </figure>
         </div>

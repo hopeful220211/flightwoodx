@@ -25,10 +25,14 @@ export function HeroHonors({ delay = 0 }: HeroHonorsProps) {
       {honors.map(({ file, alt }) => (
         <img
           key={file}
-          src={`/optimized/picture/honors/${file}.webp`}
+          src={`/optimized/picture/honors/${file}-320.webp`}
+          srcSet={`/optimized/picture/honors/${file}-320.webp 320w, /optimized/picture/honors/${file}-640.webp 640w`}
+          sizes="(max-width: 767px) calc(50vw - 16px), 149px"
           alt={alt}
           width={2298}
           height={872}
+          loading="lazy"
+          fetchPriority="low"
           decoding="async"
           className="h-auto w-full min-w-0 object-contain [&:nth-child(2)]:-translate-x-[6.6667%] sm:[&:nth-child(n+3)]:-translate-x-[10.4167%]"
         />

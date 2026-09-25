@@ -77,11 +77,26 @@ it('reports a failed wood image without capturing or uploading an empty texture'
   const onSnapshot = vi.fn()
   const onError = vi.fn()
   await act(async () => root.render(createElement(Snapshot, { trigger: 6, onSnapshot, onError })))
-  await act(async () => failImageLoad())
+  await act(async () => failImageLoad()) // WebP
+  await act(async () => failImageLoad()) // PNG fallback
   await renderFrames()
   expect(toBlob).not.toHaveBeenCalled()
   expect(onSnapshot).not.toHaveBeenCalled()
   expect(onError).toHaveBeenCalledWith(expect.any(Error))
+})
+
+it('captures after the PNG fallback loads when WebP is unavailable', async () => {
+  const onSnapshot = vi.fn()
+  const onError = vi.fn()
+  await act(async () => root.render(createElement(Snapshot, { trigger: 6, onSnapshot, onError })))
+  await act(async () => failImageLoad())
+  await renderFrames()
+  expect(onSnapshot).not.toHaveBeenCalled()
+
+  await act(async () => finishImageLoad())
+  await renderFrames()
+  expect(onSnapshot).toHaveBeenCalledOnce()
+  expect(onError).not.toHaveBeenCalled()
 })
 
 it('does not render or capture after unmount while the shared image is pending', async () => {

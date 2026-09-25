@@ -33,6 +33,12 @@ it('does not request GPU upload while the wood image is still loading', async ()
   const prepared = prepareWoodScene(sourceMesh()) as THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial>
   const texture = prepared.material.map!
 
+  expect(THREE.ImageLoader.prototype.load).toHaveBeenCalledWith(
+    expect.stringContaining('/textures/wood-board.webp'),
+    expect.any(Function),
+    undefined,
+    expect.any(Function),
+  )
   expect(texture).toBeInstanceOf(THREE.Texture)
   expect(texture.image).toBeNull()
   // WebGLTextures warns each render when version > 0 but image is null.
@@ -81,6 +87,7 @@ it('retries with a new texture without making an older failed scene ready', asyn
   const failedScene = prepareWoodScene(sourceMesh()) as ReturnType<typeof sourceMesh>
   const failedReady = waitForWoodTextures(failedScene)
   const failedAssertion = expect(failedReady).rejects.toThrow('木纹加载失败')
+  failImageLoad!() // WebP failed; try the original PNG on the same texture.
   failImageLoad!()
   await failedAssertion
 
@@ -90,7 +97,31 @@ it('retries with a new texture without making an older failed scene ready', asyn
   finishImageLoad!()
   await expect(retriedReady).resolves.toBeUndefined()
   await expect(waitForWoodTextures(failedScene)).rejects.toThrow('木纹加载失败')
-  expect(THREE.ImageLoader.prototype.load).toHaveBeenCalledTimes(2)
+  expect(THREE.ImageLoader.prototype.load).toHaveBeenCalledTimes(3)
+})
+
+it('uses the original PNG when WebP cannot load without changing the attached texture', async () => {
+  const { prepareWoodScene, waitForWoodTextures } = await import('./woodMaterial')
+  const scene = prepareWoodScene(sourceMesh()) as ReturnType<typeof sourceMesh>
+  const texture = scene.material.map!
+  const ready = waitForWoodTextures(scene)
+
+  failImageLoad!()
+  expect(texture.version).toBe(0)
+  expect(texture.image).toBeNull()
+  expect(THREE.ImageLoader.prototype.load).toHaveBeenNthCalledWith(
+    2,
+    expect.stringContaining('/textures/wood-board.png'),
+    expect.any(Function),
+    undefined,
+    expect.any(Function),
+  )
+  finishImageLoad!()
+
+  await expect(ready).resolves.toBeUndefined()
+  expect(scene.material.map).toBe(texture)
+  expect(texture.image).toBe(image)
+  expect(texture.version).toBe(1)
 })
 
 it('gives generated pieces the exact same wood material and texture as official pieces', async () => {

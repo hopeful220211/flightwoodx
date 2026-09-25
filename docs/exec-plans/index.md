@@ -10,6 +10,7 @@
 
 ## 当前计划
 
+- [`active/2026-09-25-static-asset-performance.md`](./active/2026-09-25-static-asset-performance.md)：首页、社区图片、字体、木纹与设计页代码加载优化；本地验收后交用户检查，不发布。
 - [`active/2026-09-07-review-readiness.md`](./active/2026-09-07-review-readiness.md)：评审前现有官网功能、界面与线上验证修复。
 
 进行中的计划放在 `docs/exec-plans/active/`，结束后按实际结果移入 `completed/`。目录位置不能替代文档状态和验证证据。

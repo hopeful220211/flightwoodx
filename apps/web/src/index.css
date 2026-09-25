@@ -1,7 +1,7 @@
 /* DJI reference: Open Sans, with the same OS-specific Chinese fallbacks. */
 @font-face {
   font-family: 'Open Sans';
-  src: url('/fonts/open-sans-variable.ttf') format('truetype');
+  src: url('/fonts/open-sans-variable.woff2') format('woff2');
   font-weight: 300 800;
   font-style: normal;
   font-display: swap;

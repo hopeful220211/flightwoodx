@@ -1,14 +1,24 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useNavigate } from 'react-router'
 import { BUILD_STEPS } from '@fwx/parts-schema'
 import { useDesignStore } from '../../stores/designStore'
 import { useDesignSync } from '../../hooks/useDesignSync'
-import { DesignPage } from './DesignPage'
-import { GuidedDesignPage } from './GuidedDesignPage'
 import { WelcomeEmptyState } from './components/WelcomeEmptyState'
 import { DesignListModal } from './components/DesignListModal'
 import { NameDroneDialog } from './components/NameDroneDialog'
 import { getAnalyticsClient, trackEvent } from '../../features/analytics/client'
+
+const DesignPage = lazy(() => import('./DesignPage').then(module => ({ default: module.DesignPage })))
+const GuidedDesignPage = lazy(() => import('./GuidedDesignPage').then(module => ({ default: module.GuidedDesignPage })))
+
+function EditorLoadingFallback() {
+  return (
+    <div role="status" className="flex h-full min-h-[360px] items-center justify-center gap-3 bg-gray-50 text-sm text-sky-800">
+      <span className="h-5 w-5 animate-spin rounded-full border-2 border-sky-200 border-t-sky-600" aria-hidden="true" />
+      正在加载设计工具…
+    </div>
+  )
+}
 
 /**
  * Routes between Welcome / Guided / Free modes based on state.
@@ -96,11 +106,9 @@ export function DesignPageRouter() {
     )
   }
 
-  // Guided mode
-  if (activeDesign.buildMode === 'guided') {
-    return <GuidedDesignPage />
-  }
-
-  // Free mode (legacy designs)
-  return <DesignPage />
+  return (
+    <Suspense fallback={<EditorLoadingFallback />}>
+      {activeDesign.buildMode === 'guided' ? <GuidedDesignPage /> : <DesignPage />}
+    </Suspense>
+  )
 }
